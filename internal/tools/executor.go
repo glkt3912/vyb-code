@@ -1,0 +1,166 @@
+package tools
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
+	"github.com/glkt/vyb-code/internal/security"
+)
+
+// コマンド実行結果を格納する構造体
+type ExecutionResult struct {
+	Command    string `json:"command"`    // 実行されたコマンド
+	ExitCode   int    `json:"exit_code"`  // 終了コード
+	Stdout     string `json:"stdout"`     // 標準出力
+	Stderr     string `json:"stderr"`     // 標準エラー
+	Duration   string `json:"duration"`   // 実行時間
+	TimedOut   bool   `json:"timed_out"`  // タイムアウトフラグ
+}
+
+// コマンド実行を管理する構造体
+type CommandExecutor struct {
+	constraints *security.Constraints // セキュリティ制約
+	workDir     string                // 作業ディレクトリ
+}
+
+// コマンド実行ハンドラーを作成するコンストラクタ
+func NewCommandExecutor(constraints *security.Constraints, workDir string) *CommandExecutor {
+	return &CommandExecutor{
+		constraints: constraints,
+		workDir:     workDir,
+	}
+}
+
+// セキュアなコマンド実行
+func (e *CommandExecutor) Execute(command string) (*ExecutionResult, error) {
+	startTime := time.Now()
+
+	// セキュリティチェック
+	if err := e.constraints.IsCommandAllowed(command); err != nil {
+		return nil, err
+	}
+
+	// コマンドをシェルで実行するための準備
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.constraints.MaxTimeout)*time.Second)
+	defer cancel()
+
+	// コマンドを分割してcmdとargsに分ける
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("empty command")
+	}
+
+	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	cmd.Dir = e.workDir
+
+	// 環境変数をフィルタリングして設定
+	cmd.Env = e.constraints.FilterEnvironment()
+
+	// 出力をキャプチャするためのバッファ
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	// コマンド実行
+	err := cmd.Run()
+	duration := time.Since(startTime)
+
+	result := &ExecutionResult{
+		Command:  command,
+		Stdout:   stdout.String(),
+		Stderr:   stderr.String(),
+		Duration: duration.String(),
+		TimedOut: ctx.Err() == context.DeadlineExceeded,
+	}
+
+	// 終了コードを取得
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			result.ExitCode = exitError.ExitCode()
+		} else {
+			result.ExitCode = -1
+		}
+	} else {
+		result.ExitCode = 0
+	}
+
+	return result, nil
+}
+
+// 作業ディレクトリを変更
+func (e *CommandExecutor) ChangeWorkingDirectory(newDir string) error {
+	// セキュリティチェック：指定されたパスが許可されているか
+	if !e.constraints.IsPathAllowed(newDir) {
+		return fmt.Errorf("access denied: path outside workspace")
+	}
+
+	// ディレクトリが存在するかチェック
+	if _, err := os.Stat(newDir); os.IsNotExist(err) {
+		return fmt.Errorf("directory does not exist: %s", newDir)
+	}
+
+	e.workDir = newDir
+	return nil
+}
+
+// 現在の作業ディレクトリを取得
+func (e *CommandExecutor) GetWorkingDirectory() string {
+	return e.workDir
+}
+
+// インタラクティブコマンドの実行（標準入力が必要なコマンド用）
+func (e *CommandExecutor) ExecuteInteractive(command string, input string) (*ExecutionResult, error) {
+	startTime := time.Now()
+
+	// セキュリティチェック
+	if err := e.constraints.IsCommandAllowed(command); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.constraints.MaxTimeout)*time.Second)
+	defer cancel()
+
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("empty command")
+	}
+
+	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	cmd.Dir = e.workDir
+	cmd.Env = e.constraints.FilterEnvironment()
+
+	// 標準入力を設定
+	cmd.Stdin = strings.NewReader(input)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	duration := time.Since(startTime)
+
+	result := &ExecutionResult{
+		Command:  command,
+		Stdout:   stdout.String(),
+		Stderr:   stderr.String(),
+		Duration: duration.String(),
+		TimedOut: ctx.Err() == context.DeadlineExceeded,
+	}
+
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			result.ExitCode = exitError.ExitCode()
+		} else {
+			result.ExitCode = -1
+		}
+	} else {
+		result.ExitCode = 0
+	}
+
+	return result, nil
+}

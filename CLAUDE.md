@@ -8,7 +8,7 @@ vyb-code is a local AI coding assistant that provides Claude Code-equivalent fun
 
 **Core Concept**: "Feel the rhythm of perfect code" - Local LLM-based coding assistant prioritizing privacy and developer experience.
 
-**Current Status**: MVP completed with working CLI, Ollama integration, and basic file operations. Ready for Phase 2 development.
+**Current Status**: Phase 2 completed with command execution, Git integration, project analysis, and multi-language support foundation. Ready for Phase 3 development.
 
 ## Architecture
 
@@ -91,12 +91,12 @@ golangci-lint run
 - ✅ Interactive chat mode with conversation history
 - ✅ Configuration management with JSON persistence
 
-### Phase 2: Feature Expansion (3 weeks)
+### Phase 2: Feature Expansion (✅ Completed)
 
-- Command execution
-- Git integration
-- Project analysis
-- Multi-language support foundation
+- ✅ Command execution with security constraints (whitelist, timeout)
+- ✅ Git integration (branch management, commits, status)
+- ✅ Project analysis (language detection, dependencies, structure)
+- ✅ Multi-language support foundation (Go, JS, Python)
 
 ### Phase 3: Quality & Distribution (2 weeks)
 
@@ -126,6 +126,20 @@ golangci-lint run
 vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
+```
+
+**Phase 2 commands:**
+```bash
+# Command execution
+vyb exec <command>                 # Execute shell command securely
+
+# Git operations
+vyb git status                     # Show git status
+vyb git branch [name]              # Create/list branches
+vyb git commit <message>           # Create commit
+
+# Project analysis
+vyb analyze                        # Analyze project structure
 ```
 
 ## Development Guidelines

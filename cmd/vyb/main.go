@@ -15,9 +15,10 @@ import (
 
 // メインコマンド：vyb単体で実行される処理
 var rootCmd = &cobra.Command{
-	Use:   "vyb",
-	Short: "Local AI coding assistant",
-	Long:  `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
+	Use:     "vyb",
+	Short:   "Local AI coding assistant",
+	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
+	Version: GetVersionString(),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			// 引数なし：対話モード開始

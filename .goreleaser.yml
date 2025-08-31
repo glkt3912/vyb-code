@@ -1,0 +1,117 @@
+# GoReleaser設定ファイル
+# GitHub Releasesでの自動配布用
+
+project_name: vyb
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/vyb
+    id: vyb
+    binary: vyb
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X 'main.Version={{.Version}}'
+      - -X 'main.BuildTime={{.Date}}'
+      - -X 'main.GitCommit={{.ShortCommit}}'
+      - -X 'main.GitBranch={{.Branch}}'
+
+archives:
+  - id: default
+    builds:
+      - vyb
+    name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+
+release:
+  github:
+    owner: glkt
+    name: vyb-code
+  
+  name_template: "Release {{.Version}}"
+  
+  header: |
+    ## vyb-code {{.Version}}
+    
+    Local AI coding assistant with privacy-focused development experience.
+  
+  footer: |
+    ### Installation
+    
+    #### Quick Install (Linux/macOS)
+    ```bash
+    curl -sf https://raw.githubusercontent.com/glkt/vyb-code/main/scripts/install.sh | bash
+    ```
+    
+    #### Manual Install
+    1. Download the appropriate binary for your platform
+    2. Extract the archive
+    3. Move the binary to a directory in your PATH
+    4. Run `vyb --version` to verify installation
+    
+    ### Requirements
+    - Local LLM server (Ollama recommended)
+    - Git (for version control features)
+    
+    **Full documentation**: https://github.com/glkt/vyb-code/blob/main/README.md
+
+# Homebrew配布設定
+brews:
+  - name: vyb
+    homepage: https://github.com/glkt/vyb-code
+    description: "Local AI coding assistant with privacy-focused development experience"
+    repository:
+      owner: glkt
+      name: homebrew-tap
+    folder: Formula
+    license: MIT
+    dependencies:
+      - name: git
+    install: |
+      bin.install "vyb"
+    test: |
+      system "#{bin}/vyb", "--version"
+
+# Snapcraft配布設定
+snapcrafts:
+  - name: vyb
+    summary: Local AI coding assistant
+    description: |
+      vyb is a local LLM-based coding assistant that prioritizes privacy 
+      and developer experience. Feel the rhythm of perfect code.
+    grade: stable
+    confinement: strict
+    publish: true
+    license: MIT
+    base: core20

@@ -109,3 +109,16 @@ Planned configuration system using `~/.vyb/config.yaml`:
 - Security settings and command restrictions
 - Workspace and file access policies
 - Timeout and performance tuning
+
+## Development Guidelines
+
+### Code Comments
+- **All comments must be in Japanese** for better readability by Japanese developers
+- Include both technical explanations and purpose of functions/types
+- Use format: `// 日本語での説明 (English technical terms if needed)`
+
+### Git Workflow
+- **Exclude AI attribution in commits**: Do not include "Generated with Claude Code" or "Co-Authored-By: Claude" 
+- **Clean commit messages**: Focus on clear, concise descriptions of changes
+- **PR process**: Use feature branches, create descriptive PRs without AI-generated footers
+- Follow conventional commit format: `feat:`, `fix:`, `docs:`, etc.

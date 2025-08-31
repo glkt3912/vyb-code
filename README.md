@@ -19,32 +19,48 @@
 
 ## インストール
 
+### 自動インストール（推奨）
+
+```bash
+# ワンライナーインストール
+curl -sf https://raw.githubusercontent.com/glkt/vyb-code/main/scripts/install.sh | bash
+
+# または手動ダウンロード
+wget https://github.com/glkt/vyb-code/releases/latest/download/vyb-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
+tar xzf vyb-*.tar.gz
+sudo mv vyb /usr/local/bin/
+```
+
+### ソースからビルド
+
 ```bash
 # リポジトリをクローン
-git clone https://github.com/glkt3912/vyb-code
+git clone https://github.com/glkt/vyb-code
 cd vyb-code
 
-# 依存関係を取得
-go mod tidy
-
-# ビルド
-go build -o vyb ./cmd/vyb
+# 開発ビルド
+make build
+# または
+./scripts/build.sh dev
 
 # 動作確認
-./vyb config list
+./vyb --version
 ```
 
 ## クイックスタート
 
 ### 前提条件
+
 1. Ollamaをインストールして起動
 2. コーディング用モデルをダウンロード
+
 ```bash
 # Ollamaでモデルをダウンロード（例）
 ollama pull qwen2.5-coder:14b
 ```
 
 ### 基本的な使用方法
+
 ```bash
 # 設定確認
 vyb config list
@@ -86,9 +102,10 @@ vyb analyze
 
 ## プロジェクトステータス
 
-✅ **Phase 2完成** - 機能拡張実装済み
+✅ **Phase 3完成** - 品質・配布機能実装済み
 
 ### Phase 1: MVP機能（完成）
+
 - ✅ CLI基盤（cobra）
 - ✅ 設定管理（JSON永続化）
 - ✅ Ollama HTTP API統合
@@ -96,16 +113,18 @@ vyb analyze
 - ✅ セキュアなファイル操作
 
 ### Phase 2: 機能拡張（完成）
+
 - ✅ セキュアなコマンド実行（ホワイトリスト・タイムアウト制御）
 - ✅ 包括的Git統合（ブランチ管理、コミット、状態確認）
 - ✅ プロジェクト分析機能（言語検出、依存関係解析）
 - ✅ 多言語サポート基盤（Go、JS、Python）
 
-### Phase 3: 品質・配布（予定）
-- 🔄 テストインフラストラクチャ
-- 🔄 パフォーマンス最適化
-- 🔄 パッケージ配布対応
-- 🔄 ドキュメント拡充
+### Phase 3: 品質・配布（完成）
+
+- ✅ テストインフラストラクチャ（全モジュール対応）
+- ✅ パフォーマンス最適化（メトリクス、キャッシュ、並行処理）
+- ✅ パッケージ配布対応（GitHub Actions、GoReleaser）
+- ✅ ビルドシステム（マルチプラットフォーム対応）
 
 ## 貢献
 

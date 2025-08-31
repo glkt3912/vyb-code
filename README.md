@@ -8,35 +8,52 @@
 
 - **プライバシー重視**: 全ての処理がローカルで実行 - 外部にデータを送信しません
 - **対話型CLI**: 自然な会話形式でのコーディング支援
-- **ファイル操作**: コードベースの読み取り、書き込み、検索
-- **Git統合**: インテリジェントなブランチ操作とコミット生成
-- **マルチLLM対応**: Ollama、LM Studio、vLLMに対応
-- **セキュリティ重視**: ホワイトリスト方式による制限付きコマンド実行
+- **ファイル操作**: セキュアなファイル読み取り、書き込み、検索機能
+- **設定管理**: 永続化された設定でモデルとプロバイダーを管理
+- **Ollama統合**: HTTP API経由でのローカルLLM連携（実装済み）
+- **セキュリティ重視**: ワークスペース制限とファイルサイズ制限
 
 ## インストール
 
 ```bash
-# ソースからビルド
-git clone https://github.com/glkt/vyb-code
+# リポジトリをクローン
+git clone https://github.com/glkt3912/vyb-code
 cd vyb-code
+
+# 依存関係を取得
+go mod tidy
+
+# ビルド
 go build -o vyb ./cmd/vyb
 
-# グローバルインストール
-go install ./cmd/vyb
+# 動作確認
+./vyb config list
 ```
 
 ## クイックスタート
 
+### 前提条件
+1. Ollamaをインストールして起動
+2. コーディング用モデルをダウンロード
 ```bash
+# Ollamaでモデルをダウンロード（例）
+ollama pull qwen2.5-coder:14b
+```
+
+### 基本的な使用方法
+```bash
+# 設定確認
+vyb config list
+
+# モデル設定
+vyb config set-model qwen2.5-coder:14b
+
 # 対話モード開始
 vyb
+> exit  # 終了
 
-# 質問を投げる
+# 単発質問
 vyb "GoでWebサーバーを作成して"
-
-# LLMの設定
-vyb config set-provider ollama
-vyb config set-model qwen2.5-coder:14b
 ```
 
 ## 推奨モデル
@@ -53,9 +70,21 @@ vyb config set-model qwen2.5-coder:14b
 
 ## プロジェクトステータス
 
-🚧 **開発初期段階** - MVPフェーズ進行中
+✅ **MVP完成** - 基本機能実装済み
 
-このプロジェクトは活発に開発されています。CLAUDE.mdのロードマップに従ってコア機能を実装中です。
+### 実装済み機能
+- ✅ CLI基盤（cobra）
+- ✅ 設定管理（JSON永続化）
+- ✅ Ollama HTTP API統合
+- ✅ 対話型チャットセッション
+- ✅ セキュアなファイル操作
+- ✅ 基本コマンド体系
+
+### 次期開発予定
+- 🔄 コマンド実行機能
+- 🔄 Git統合
+- 🔄 プロジェクト解析
+- 🔄 テストインフラ
 
 ## 貢献
 

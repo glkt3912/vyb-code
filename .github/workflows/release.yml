@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Run tests
+      run: go test -v ./...
+    
+    - name: Build multi-platform binaries
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }} ./scripts/build.sh
+    
+    - name: Create archives
+      run: |
+        cd dist
+        
+        # Linux x64
+        tar czf vyb-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz vyb-${{ steps.version.outputs.VERSION }}-linux-amd64
+        
+        # Linux ARM64
+        tar czf vyb-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz vyb-${{ steps.version.outputs.VERSION }}-linux-arm64
+        
+        # macOS x64
+        tar czf vyb-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz vyb-${{ steps.version.outputs.VERSION }}-darwin-amd64
+        
+        # macOS ARM64
+        tar czf vyb-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz vyb-${{ steps.version.outputs.VERSION }}-darwin-arm64
+        
+        # Windows x64
+        zip vyb-${{ steps.version.outputs.VERSION }}-windows-amd64.zip vyb-${{ steps.version.outputs.VERSION }}-windows-amd64.exe
+    
+    - name: Generate checksums
+      run: |
+        cd dist
+        sha256sum *.tar.gz *.zip > checksums.txt
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: Release ${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+        body: |
+          ## vyb-code ${{ steps.version.outputs.VERSION }}
+          
+          Local AI coding assistant with privacy-focused development experience.
+          
+          ### Downloads
+          - **Linux x64**: `vyb-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz`
+          - **Linux ARM64**: `vyb-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz`
+          - **macOS x64**: `vyb-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz`
+          - **macOS ARM64**: `vyb-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz`
+          - **Windows x64**: `vyb-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
+          
+          ### Installation
+          ```bash
+          # Linux/macOS
+          curl -L https://github.com/glkt/vyb-code/releases/download/${{ steps.version.outputs.VERSION }}/vyb-${{ steps.version.outputs.VERSION }}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz | tar xz
+          sudo mv vyb /usr/local/bin/
+          
+          # Verify installation
+          vyb --version
+          ```
+          
+          ### Changes
+          See [CHANGELOG.md](./CHANGELOG.md) for detailed changes.
+        files: |
+          dist/*.tar.gz
+          dist/*.zip
+          dist/checksums.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

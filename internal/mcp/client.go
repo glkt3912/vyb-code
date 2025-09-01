@@ -13,18 +13,18 @@ import (
 
 // MCPクライアント実装
 type Client struct {
-	mu          sync.RWMutex
-	conn        io.ReadWriteCloser
-	serverProc  *exec.Cmd
-	session     *SessionState
-	messageID   int64
-	handlers    map[string]MessageHandler
-	tools       map[string]Tool
-	resources   map[string]Resource
-	prompts     map[string]Prompt
-	ctx         context.Context
-	cancel      context.CancelFunc
-	logger      Logger
+	mu         sync.RWMutex
+	conn       io.ReadWriteCloser
+	serverProc *exec.Cmd
+	session    *SessionState
+	messageID  int64
+	handlers   map[string]MessageHandler
+	tools      map[string]Tool
+	resources  map[string]Resource
+	prompts    map[string]Prompt
+	ctx        context.Context
+	cancel     context.CancelFunc
+	logger     Logger
 }
 
 // メッセージハンドラー関数型
@@ -51,7 +51,7 @@ type ClientConfig struct {
 // 新しいMCPクライアントを作成
 func NewClient(config ClientConfig) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &Client{
 		session:   &SessionState{},
 		handlers:  make(map[string]MessageHandler),
@@ -201,7 +201,7 @@ func (c *Client) refreshTools() error {
 	var toolsResp struct {
 		Tools []Tool `json:"tools"`
 	}
-	
+
 	if err := json.Unmarshal(response.Result.([]byte), &toolsResp); err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (c *Client) refreshResources() error {
 	var resourcesResp struct {
 		Resources []Resource `json:"resources"`
 	}
-	
+
 	if err := json.Unmarshal(response.Result.([]byte), &resourcesResp); err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (c *Client) refreshResources() error {
 // ツールを実行
 func (c *Client) CallTool(name string, arguments map[string]interface{}) (*ToolResult, error) {
 	c.mu.RLock()
-	tool, exists := c.tools[name]
+	_, exists := c.tools[name]
 	c.mu.RUnlock()
 
 	if !exists {
@@ -280,7 +280,7 @@ func (c *Client) CallTool(name string, arguments map[string]interface{}) (*ToolR
 // リソースを読み取り
 func (c *Client) ReadResource(uri string) (*Content, error) {
 	c.mu.RLock()
-	resource, exists := c.resources[uri]
+	_, exists := c.resources[uri]
 	c.mu.RUnlock()
 
 	if !exists {
@@ -301,7 +301,7 @@ func (c *Client) ReadResource(uri string) (*Content, error) {
 	var readResp struct {
 		Contents []Content `json:"contents"`
 	}
-	
+
 	if err := json.Unmarshal(response.Result.([]byte), &readResp); err != nil {
 		return nil, fmt.Errorf("レスポンス解析失敗: %w", err)
 	}
@@ -320,7 +320,7 @@ func (c *Client) ReadResource(uri string) (*Content, error) {
 // 要求メッセージを送信
 func (c *Client) sendRequest(method string, params interface{}) (*Message, error) {
 	c.messageID++
-	
+
 	msg := Message{
 		JSONRPC: "2.0",
 		ID:      c.messageID,
@@ -349,7 +349,7 @@ func (c *Client) sendRequest(method string, params interface{}) (*Message, error
 func (c *Client) waitForResponse(ctx context.Context, id int64) (*Message, error) {
 	// 簡易実装：実際の本格的な実装では非同期メッセージキューが必要
 	decoder := json.NewDecoder(c.conn)
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -376,7 +376,7 @@ func (c *Client) waitForResponse(ctx context.Context, id int64) (*Message, error
 // メッセージ受信ループ
 func (c *Client) messageLoop() {
 	decoder := json.NewDecoder(c.conn)
-	
+
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -415,12 +415,12 @@ func (c *Client) RegisterHandler(method string, handler MessageHandler) {
 func (c *Client) GetTools() []Tool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	tools := make([]Tool, 0, len(c.tools))
 	for _, tool := range c.tools {
 		tools = append(tools, tool)
 	}
-	
+
 	return tools
 }
 
@@ -428,12 +428,12 @@ func (c *Client) GetTools() []Tool {
 func (c *Client) GetResources() []Resource {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	resources := make([]Resource, 0, len(c.resources))
 	for _, resource := range c.resources {
 		resources = append(resources, resource)
 	}
-	
+
 	return resources
 }
 
@@ -441,7 +441,7 @@ func (c *Client) GetResources() []Resource {
 func (c *Client) GetSessionState() *SessionState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	// セッション状態のコピーを返す
 	state := *c.session
 	return &state
@@ -480,7 +480,7 @@ func (c *Client) stopServer() {
 	// 優雅にシャットダウンを試行
 	if c.serverProc.Process != nil {
 		c.serverProc.Process.Signal(os.Interrupt)
-		
+
 		// 5秒待機
 		done := make(chan error, 1)
 		go func() {

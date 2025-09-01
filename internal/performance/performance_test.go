@@ -2,6 +2,7 @@ package performance
 
 import (
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -142,14 +143,14 @@ func TestWorkerPool(t *testing.T) {
 	optimizer := NewOptimizer()
 	pool := optimizer.NewWorkerPool()
 
-	// テスト用のカウンタ
-	counter := 0
+	// テスト用のカウンタ（アトミック操作で競合状態を回避）
+	var counter int64
 	done := make(chan bool, 5)
 
 	// 5つのジョブを投入
 	for i := 0; i < 5; i++ {
 		pool.Submit(func() {
-			counter++
+			atomic.AddInt64(&counter, 1)
 			done <- true
 		})
 	}
@@ -166,8 +167,9 @@ func TestWorkerPool(t *testing.T) {
 
 	pool.Stop()
 
-	if counter != 5 {
-		t.Errorf("期待値: 5, 実際値: %d", counter)
+	finalCounter := atomic.LoadInt64(&counter)
+	if finalCounter != 5 {
+		t.Errorf("期待値: 5, 実際値: %d", finalCounter)
 	}
 }
 

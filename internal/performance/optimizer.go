@@ -9,20 +9,20 @@ import (
 // パフォーマンス最適化を管理する構造体
 type Optimizer struct {
 	mu sync.RWMutex
-	
+
 	// キャッシュ設定
-	cacheEnabled     bool
-	cacheMaxSize     int
-	cacheExpiration  time.Duration
-	
+	cacheEnabled    bool
+	cacheMaxSize    int
+	cacheExpiration time.Duration
+
 	// 並行処理設定
-	maxConcurrency   int
-	workerPoolSize   int
-	
+	maxConcurrency int
+	workerPoolSize int
+
 	// メモリ管理
-	gcThreshold      int64 // メモリ使用量がこの値を超えたらGCを実行
-	gcInterval       time.Duration
-	lastGC           time.Time
+	gcThreshold int64 // メモリ使用量がこの値を超えたらGCを実行
+	gcInterval  time.Duration
+	lastGC      time.Time
 }
 
 // 最適化設定のコンストラクタ
@@ -43,7 +43,7 @@ func NewOptimizer() *Optimizer {
 func (o *Optimizer) SetCacheConfig(enabled bool, maxSize int, expiration time.Duration) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	o.cacheEnabled = enabled
 	o.cacheMaxSize = maxSize
 	o.cacheExpiration = expiration
@@ -53,14 +53,14 @@ func (o *Optimizer) SetCacheConfig(enabled bool, maxSize int, expiration time.Du
 func (o *Optimizer) SetConcurrencyConfig(maxConcurrency, workerPoolSize int) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	if maxConcurrency <= 0 {
 		maxConcurrency = runtime.NumCPU()
 	}
 	if workerPoolSize <= 0 {
 		workerPoolSize = 4
 	}
-	
+
 	o.maxConcurrency = maxConcurrency
 	o.workerPoolSize = workerPoolSize
 }
@@ -69,7 +69,7 @@ func (o *Optimizer) SetConcurrencyConfig(maxConcurrency, workerPoolSize int) {
 func (o *Optimizer) SetMemoryConfig(gcThreshold int64, gcInterval time.Duration) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	o.gcThreshold = gcThreshold
 	o.gcInterval = gcInterval
 }
@@ -78,20 +78,20 @@ func (o *Optimizer) SetMemoryConfig(gcThreshold int64, gcInterval time.Duration)
 func (o *Optimizer) AutoGC() {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	now := time.Now()
 	if now.Sub(o.lastGC) < o.gcInterval {
 		return
 	}
-	
+
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	// メモリ使用量がしきい値を超えた場合、または定期実行時間が経過した場合
 	if int64(m.Alloc) > o.gcThreshold || now.Sub(o.lastGC) > o.gcInterval {
 		runtime.GC()
 		o.lastGC = now
-		
+
 		// メトリクスに記録
 		GetMetrics().UpdateMemoryUsage(int64(m.Alloc))
 	}
@@ -109,18 +109,18 @@ func (o *Optimizer) NewWorkerPool() *WorkerPool {
 	o.mu.RLock()
 	workerCount := o.workerPoolSize
 	o.mu.RUnlock()
-	
+
 	wp := &WorkerPool{
 		jobs:    make(chan func(), workerCount*2),
 		workers: workerCount,
 	}
-	
+
 	// ワーカーゴルーチンを開始
 	for i := 0; i < workerCount; i++ {
 		wp.wg.Add(1)
 		go wp.worker()
 	}
-	
+
 	return wp
 }
 
@@ -147,7 +147,7 @@ func (wp *WorkerPool) Stop() {
 func GetSystemInfo() map[string]interface{} {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	return map[string]interface{}{
 		"go_version":     runtime.Version(),
 		"num_cpu":        runtime.NumCPU(),

@@ -13,11 +13,11 @@ type CacheEntry struct {
 
 // LRUキャッシュの実装
 type Cache struct {
-	mu       sync.RWMutex
-	items    map[string]*CacheEntry
-	maxSize  int
-	ttl      time.Duration
-	
+	mu      sync.RWMutex
+	items   map[string]*CacheEntry
+	maxSize int
+	ttl     time.Duration
+
 	// LRU管理用
 	accessOrder []string
 }
@@ -36,22 +36,22 @@ func NewCache(maxSize int, ttl time.Duration) *Cache {
 func (c *Cache) Get(key string) (interface{}, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	entry, exists := c.items[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// 期限切れチェック
 	if time.Now().After(entry.ExpiresAt) {
 		delete(c.items, key)
 		c.removeFromAccessOrder(key)
 		return nil, false
 	}
-	
+
 	// アクセス順序を更新
 	c.updateAccessOrder(key)
-	
+
 	return entry.Value, true
 }
 
@@ -59,25 +59,25 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 func (c *Cache) Set(key string, value interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// 新しいエントリを作成
 	entry := &CacheEntry{
 		Value:     value,
 		ExpiresAt: time.Now().Add(c.ttl),
 	}
-	
+
 	// 既存のエントリがある場合は更新
 	if _, exists := c.items[key]; exists {
 		c.items[key] = entry
 		c.updateAccessOrder(key)
 		return
 	}
-	
+
 	// 容量チェック - LRUアルゴリズムで古いエントリを削除
 	for len(c.items) >= c.maxSize {
 		c.evictLRU()
 	}
-	
+
 	// 新しいエントリを追加
 	c.items[key] = entry
 	c.accessOrder = append(c.accessOrder, key)
@@ -87,7 +87,7 @@ func (c *Cache) Set(key string, value interface{}) {
 func (c *Cache) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	delete(c.items, key)
 	c.removeFromAccessOrder(key)
 }
@@ -96,7 +96,7 @@ func (c *Cache) Delete(key string) {
 func (c *Cache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.items = make(map[string]*CacheEntry)
 	c.accessOrder = c.accessOrder[:0]
 }
@@ -105,16 +105,16 @@ func (c *Cache) Clear() {
 func (c *Cache) CleanExpired() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	now := time.Now()
 	toDelete := make([]string, 0)
-	
+
 	for key, entry := range c.items {
 		if now.After(entry.ExpiresAt) {
 			toDelete = append(toDelete, key)
 		}
 	}
-	
+
 	for _, key := range toDelete {
 		delete(c.items, key)
 		c.removeFromAccessOrder(key)
@@ -125,7 +125,7 @@ func (c *Cache) CleanExpired() {
 func (c *Cache) Stats() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	return map[string]interface{}{
 		"size":     len(c.items),
 		"max_size": c.maxSize,
@@ -162,9 +162,9 @@ func (c *Cache) removeFromAccessOrder(key string) {
 
 // グローバルキャッシュインスタンス
 var (
-	LLMResponseCache = NewCache(100, 10*time.Minute)  // LLMレスポンス用
-	FileContentCache = NewCache(200, 5*time.Minute)   // ファイル内容用
-	CommandCache     = NewCache(50, 2*time.Minute)    // コマンド結果用
+	LLMResponseCache = NewCache(100, 10*time.Minute) // LLMレスポンス用
+	FileContentCache = NewCache(200, 5*time.Minute)  // ファイル内容用
+	CommandCache     = NewCache(50, 2*time.Minute)   // コマンド結果用
 )
 
 // 定期的なキャッシュクリーンアップ

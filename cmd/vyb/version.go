@@ -7,10 +7,10 @@ import (
 
 // ビルド時に設定される変数（-ldflagsで注入）
 var (
-	Version   = "dev"      // バージョン情報
-	BuildTime = "unknown"  // ビルド時刻
-	GitCommit = "unknown"  // Gitコミットハッシュ
-	GitBranch = "unknown"  // Gitブランチ名
+	Version   = "dev"     // バージョン情報
+	BuildTime = "unknown" // ビルド時刻
+	GitCommit = "unknown" // Gitコミットハッシュ
+	GitBranch = "unknown" // Gitブランチ名
 )
 
 // バージョン情報を表示する構造体
@@ -38,7 +38,7 @@ func GetVersionInfo() VersionInfo {
 // バージョン情報を文字列として返す
 func GetVersionString() string {
 	info := GetVersionInfo()
-	return fmt.Sprintf("vyb-code %s (%s %s, built %s)", 
+	return fmt.Sprintf("vyb-code %s (%s %s, built %s)",
 		info.Version, info.GoVersion, info.Platform, info.BuildTime)
 }
 

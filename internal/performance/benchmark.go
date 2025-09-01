@@ -8,12 +8,12 @@ import (
 
 // ベンチマーク結果を格納する構造体
 type BenchmarkResult struct {
-	Name           string        `json:"name"`
-	Duration       time.Duration `json:"duration"`
-	OperationsPerSec float64     `json:"operations_per_sec"`
-	MemoryAllocated int64        `json:"memory_allocated"`
-	Success        bool          `json:"success"`
-	Error          string        `json:"error,omitempty"`
+	Name             string        `json:"name"`
+	Duration         time.Duration `json:"duration"`
+	OperationsPerSec float64       `json:"operations_per_sec"`
+	MemoryAllocated  int64         `json:"memory_allocated"`
+	Success          bool          `json:"success"`
+	Error            string        `json:"error,omitempty"`
 }
 
 // ベンチマーク実行器
@@ -32,11 +32,11 @@ func NewBenchmarker() *Benchmarker {
 func (b *Benchmarker) BenchmarkFunction(name string, iterations int, fn func() error) BenchmarkResult {
 	var memBefore runtime.MemStats
 	runtime.ReadMemStats(&memBefore)
-	
+
 	startTime := time.Now()
 	var lastError error
 	successCount := 0
-	
+
 	for i := 0; i < iterations; i++ {
 		if err := fn(); err != nil {
 			lastError = err
@@ -44,12 +44,12 @@ func (b *Benchmarker) BenchmarkFunction(name string, iterations int, fn func() e
 			successCount++
 		}
 	}
-	
+
 	duration := time.Since(startTime)
-	
+
 	var memAfter runtime.MemStats
 	runtime.ReadMemStats(&memAfter)
-	
+
 	result := BenchmarkResult{
 		Name:             name,
 		Duration:         duration,
@@ -57,11 +57,11 @@ func (b *Benchmarker) BenchmarkFunction(name string, iterations int, fn func() e
 		MemoryAllocated:  int64(memAfter.TotalAlloc - memBefore.TotalAlloc),
 		Success:          successCount == iterations,
 	}
-	
+
 	if lastError != nil {
 		result.Error = lastError.Error()
 	}
-	
+
 	b.results = append(b.results, result)
 	return result
 }
@@ -76,15 +76,15 @@ func (b *Benchmarker) BenchmarkLLMResponse(ctx context.Context, llmFunc func(con
 // ファイル操作のベンチマーク
 func (b *Benchmarker) BenchmarkFileOperations(readFunc, writeFunc func() error) []BenchmarkResult {
 	results := make([]BenchmarkResult, 0, 2)
-	
+
 	// ファイル読み込みベンチマーク
 	readResult := b.BenchmarkFunction("File Read", 10, readFunc)
 	results = append(results, readResult)
-	
+
 	// ファイル書き込みベンチマーク
 	writeResult := b.BenchmarkFunction("File Write", 10, writeFunc)
 	results = append(results, writeResult)
-	
+
 	return results
 }
 
@@ -105,12 +105,12 @@ func (b *Benchmarker) GenerateReport() map[string]interface{} {
 			"message": "ベンチマーク結果がありません",
 		}
 	}
-	
+
 	// 統計情報の計算
 	totalDuration := time.Duration(0)
 	totalMemory := int64(0)
 	successCount := 0
-	
+
 	for _, result := range b.results {
 		totalDuration += result.Duration
 		totalMemory += result.MemoryAllocated
@@ -118,19 +118,19 @@ func (b *Benchmarker) GenerateReport() map[string]interface{} {
 			successCount++
 		}
 	}
-	
+
 	avgDuration := totalDuration / time.Duration(len(b.results))
 	avgMemory := totalMemory / int64(len(b.results))
 	successRate := float64(successCount) / float64(len(b.results)) * 100.0
-	
+
 	return map[string]interface{}{
-		"total_benchmarks":   len(b.results),
-		"average_duration":   avgDuration.String(),
-		"total_memory":       totalMemory,
-		"average_memory":     avgMemory,
-		"success_rate":       successRate,
-		"detailed_results":   b.results,
-		"system_info":        GetSystemInfo(),
+		"total_benchmarks": len(b.results),
+		"average_duration": avgDuration.String(),
+		"total_memory":     totalMemory,
+		"average_memory":   avgMemory,
+		"success_rate":     successRate,
+		"detailed_results": b.results,
+		"system_info":      GetSystemInfo(),
 	}
 }
 
@@ -139,9 +139,9 @@ func MeasureExecution(name string, fn func()) time.Duration {
 	start := time.Now()
 	fn()
 	duration := time.Since(start)
-	
+
 	// グローバルメトリクスに記録
 	GetMetrics().RecordCommandExecution(duration, true)
-	
+
 	return duration
 }

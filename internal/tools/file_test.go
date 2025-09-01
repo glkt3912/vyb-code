@@ -58,9 +58,9 @@ func TestFileSize(t *testing.T) {
 // TestSecurityConstraints はセキュリティ制約をテストする
 func TestSecurityConstraints(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     string
-		allowed  bool
+		name    string
+		path    string
+		allowed bool
 	}{
 		{
 			name:    "プロジェクト内ファイル",

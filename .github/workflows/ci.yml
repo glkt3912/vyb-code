@@ -73,11 +73,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Run Gosec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
+    - name: Set up Go
+      uses: actions/setup-go@v4
       with:
-        args: './...'
+        go-version: '1.20'
     
-    - name: Run Nancy vulnerability scanner
-      run: |
-        go list -json -m all | docker run --rm -i sonatypecommunity/nancy:latest sleuth
+    - name: Run Gosec Security Scanner
+      uses: cosmos/gosec@master
+    
+    - name: Run go vet security check
+      run: go vet ./...

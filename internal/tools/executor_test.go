@@ -16,18 +16,18 @@ func TestCommandExecution(t *testing.T) {
 		MaxTimeout:      30,
 	}
 	executor := NewCommandExecutor(constraints, workDir)
-	
+
 	// 安全なコマンドのテスト
 	result, err := executor.Execute("echo hello world")
 	if err != nil {
 		t.Fatalf("コマンド実行エラー: %v", err)
 	}
-	
+
 	expected := "hello world"
 	if !strings.Contains(result.Stdout, expected) {
 		t.Errorf("期待値: %s, 実際値: %s", expected, result.Stdout)
 	}
-	
+
 	if result.ExitCode != 0 {
 		t.Errorf("期待値: 0, 実際値: %d", result.ExitCode)
 	}
@@ -41,13 +41,13 @@ func TestCommandTimeout(t *testing.T) {
 		MaxTimeout:      1, // 1秒タイムアウト
 	}
 	executor := NewCommandExecutor(constraints, workDir)
-	
+
 	// 長時間実行されるコマンド（sleepコマンド）
 	result, err := executor.Execute("sleep 5")
 	if err != nil {
 		t.Fatalf("コマンド実行エラー: %v", err)
 	}
-	
+
 	if !result.TimedOut {
 		t.Error("タイムアウトが機能していません")
 	}
@@ -56,7 +56,7 @@ func TestCommandTimeout(t *testing.T) {
 // TestCommandSecurity はコマンドセキュリティ制約をテストする
 func TestCommandSecurity(t *testing.T) {
 	workDir, _ := os.Getwd()
-	
+
 	tests := []struct {
 		name        string
 		command     string
@@ -88,7 +88,7 @@ func TestCommandSecurity(t *testing.T) {
 			expectError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			constraints := &security.Constraints{
@@ -96,9 +96,9 @@ func TestCommandSecurity(t *testing.T) {
 				MaxTimeout:      30,
 			}
 			executor := NewCommandExecutor(constraints, workDir)
-			
+
 			_, err := executor.Execute(tt.command)
-			
+
 			if tt.expectError && err == nil {
 				t.Error("期待されるエラーが発生しませんでした")
 			}

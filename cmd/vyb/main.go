@@ -254,10 +254,10 @@ func executeCommand(args []string) {
 
 	// セキュリティ制約を設定
 	constraints := security.NewDefaultConstraints(workDir)
-	
+
 	// セキュア実行器を作成（厳格モード無効）
 	secureExecutor := security.NewSecureExecutor(constraints, false)
-	
+
 	// 従来のコマンド実行器も作成
 	executor := tools.NewCommandExecutor(constraints, workDir)
 

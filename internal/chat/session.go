@@ -8,21 +8,24 @@ import (
 	"strings"
 
 	"github.com/glkt/vyb-code/internal/llm"
+	"github.com/glkt/vyb-code/internal/mcp"
 )
 
 // 会話セッションを管理する構造体
 type Session struct {
-	provider llm.Provider      // LLMプロバイダー
-	messages []llm.ChatMessage // 会話履歴
-	model    string            // 使用するモデル名
+	provider   llm.Provider      // LLMプロバイダー
+	messages   []llm.ChatMessage // 会話履歴
+	model      string            // 使用するモデル名
+	mcpManager *mcp.Manager      // MCPマネージャー
 }
 
 // 新しい会話セッションを作成
 func NewSession(provider llm.Provider, model string) *Session {
 	return &Session{
-		provider: provider,
-		messages: make([]llm.ChatMessage, 0),
-		model:    model,
+		provider:   provider,
+		messages:   make([]llm.ChatMessage, 0),
+		model:      model,
+		mcpManager: mcp.NewManager(),
 	}
 }
 
@@ -120,4 +123,29 @@ func (s *Session) ClearHistory() {
 // 会話履歴の件数を取得
 func (s *Session) GetMessageCount() int {
 	return len(s.messages)
+}
+
+// MCPサーバーに接続
+func (s *Session) ConnectMCPServer(name string, config mcp.ClientConfig) error {
+	return s.mcpManager.ConnectServer(name, config)
+}
+
+// MCPサーバーから切断
+func (s *Session) DisconnectMCPServer(name string) error {
+	return s.mcpManager.DisconnectServer(name)
+}
+
+// 利用可能なMCPツールを取得
+func (s *Session) GetMCPTools() map[string][]mcp.Tool {
+	return s.mcpManager.GetAllTools()
+}
+
+// MCPツールを実行
+func (s *Session) CallMCPTool(serverName, toolName string, arguments map[string]interface{}) (*mcp.ToolResult, error) {
+	return s.mcpManager.CallTool(serverName, toolName, arguments)
+}
+
+// セッション終了時にMCP接続をクリーンアップ
+func (s *Session) Close() error {
+	return s.mcpManager.DisconnectAll()
 }

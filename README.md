@@ -86,6 +86,13 @@ vyb git commit "feat: add new functionality"
 
 # プロジェクト分析
 vyb analyze
+
+# MCP（Model Context Protocol）操作
+vyb mcp add filesystem npx @modelcontextprotocol/server-filesystem
+vyb mcp list
+vyb mcp connect filesystem
+vyb mcp tools filesystem
+vyb mcp disconnect filesystem
 ```
 
 ## 推奨モデル

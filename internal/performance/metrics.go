@@ -112,5 +112,20 @@ func (m *Metrics) Snapshot() Metrics {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	return *m
+	// mutexを除いたコピーを作成
+	return Metrics{
+		LLMRequestCount:    m.LLMRequestCount,
+		LLMTotalDuration:   m.LLMTotalDuration,
+		LLMAverageDuration: m.LLMAverageDuration,
+		LLMErrorCount:      m.LLMErrorCount,
+		FileReadCount:      m.FileReadCount,
+		FileWriteCount:     m.FileWriteCount,
+		FileTotalSize:      m.FileTotalSize,
+		FileOperationTime:  m.FileOperationTime,
+		CommandCount:       m.CommandCount,
+		CommandSuccessRate: m.CommandSuccessRate,
+		CommandTotalTime:   m.CommandTotalTime,
+		MemoryUsage:        m.MemoryUsage,
+		PeakMemoryUsage:    m.PeakMemoryUsage,
+	}
 }

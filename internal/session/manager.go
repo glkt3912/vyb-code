@@ -38,14 +38,15 @@ type Session struct {
 
 // 会話ターン
 type Turn struct {
-	ID        string    `json:"id"`
-	Type      TurnType  `json:"type"` // "user", "assistant", "system"
-	Content   string    `json:"content"`
-	Timestamp time.Time `json:"timestamp"`
-	Metadata  Metadata  `json:"metadata,omitempty"`
-	Files     []string  `json:"files,omitempty"`    // 関連ファイル
-	Commands  []string  `json:"commands,omitempty"` // 実行したコマンド
-	Tools     []string  `json:"tools,omitempty"`    // 使用したツール
+	ID        string        `json:"id"`
+	Type      TurnType      `json:"type"` // "user", "assistant", "system"
+	Content   string        `json:"content"`
+	Timestamp time.Time     `json:"timestamp"`
+	Metadata  Metadata      `json:"metadata,omitempty"`
+	Files     []string      `json:"files,omitempty"`    // 関連ファイル
+	Commands  []string      `json:"commands,omitempty"` // 実行したコマンド
+	Tools     []string      `json:"tools,omitempty"`    // 使用したツール
+	MCPTools  []MCPToolCall `json:"mcpTools,omitempty"` // 使用したMCPツール
 }
 
 // ターンタイプ
@@ -77,6 +78,17 @@ type MemoryItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Relevance float64   `json:"relevance"` // 関連度スコア
+}
+
+// MCPツール呼び出し記録
+type MCPToolCall struct {
+	Server    string                 `json:"server"`
+	Tool      string                 `json:"tool"`
+	Arguments map[string]interface{} `json:"arguments"`
+	Result    string                 `json:"result"`
+	Success   bool                   `json:"success"`
+	Duration  string                 `json:"duration"`
+	Timestamp time.Time              `json:"timestamp"`
 }
 
 // メタデータ
@@ -287,6 +299,29 @@ func (m *Manager) AddMemory(sessionID, key, value, memoryType string) error {
 	}
 
 	session.Context.Memory = append(session.Context.Memory, memory)
+	session.UpdatedAt = time.Now()
+
+	return m.saveSession(session)
+}
+
+// MCPツール呼び出しを記録
+func (m *Manager) AddMCPToolCall(sessionID string, toolCall MCPToolCall) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, exists := m.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("セッション '%s' が見つかりません", sessionID)
+	}
+
+	// 最新のターンを取得または作成
+	if len(session.Turns) == 0 {
+		return fmt.Errorf("セッションにターンがありません")
+	}
+
+	// 最新のターンにMCPツール呼び出しを追加
+	lastTurnIndex := len(session.Turns) - 1
+	session.Turns[lastTurnIndex].MCPTools = append(session.Turns[lastTurnIndex].MCPTools, toolCall)
 	session.UpdatedAt = time.Now()
 
 	return m.saveSession(session)

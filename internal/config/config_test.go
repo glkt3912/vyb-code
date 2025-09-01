@@ -7,6 +7,12 @@ import (
 
 // TestConfigLoadDefault はデフォルト設定の読み込みをテストする
 func TestConfigLoadDefault(t *testing.T) {
+	// テスト用の一時的な設定ディレクトリを作成
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
 	// 存在しない設定ファイルからロードする場合、デフォルト設定が返されることを確認
 	config, err := Load()
 	if err != nil {
@@ -22,6 +28,9 @@ func TestConfigLoadDefault(t *testing.T) {
 	}
 	if config.BaseURL != "http://localhost:11434" {
 		t.Errorf("期待値: http://localhost:11434, 実際値: %s", config.BaseURL)
+	}
+	if config.MCPServers == nil {
+		t.Error("MCPServersが初期化されていません")
 	}
 }
 
@@ -73,5 +82,57 @@ func TestConfigDefault(t *testing.T) {
 	}
 	if config.Timeout <= 0 {
 		t.Error("Timeoutは正の値でなければなりません")
+	}
+}
+
+// TestMCPServerConfig はMCPサーバー設定のテストする
+func TestMCPServerConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	config := DefaultConfig()
+
+	// MCPサーバーを追加
+	serverConfig := MCPServerConfig{
+		Name:        "test-server",
+		Command:     []string{"test", "command"},
+		Args:        []string{"arg1", "arg2"},
+		Environment: map[string]string{"TEST": "value"},
+		WorkingDir:  "/tmp",
+		Enabled:     true,
+		AutoConnect: false,
+	}
+
+	err := config.AddMCPServer("test-server", serverConfig)
+	if err != nil {
+		t.Fatalf("MCPサーバー追加エラー: %v", err)
+	}
+
+	// 設定を取得して検証
+	savedServer, err := config.GetMCPServer("test-server")
+	if err != nil {
+		t.Fatalf("MCPサーバー取得エラー: %v", err)
+	}
+
+	if savedServer.Name != "test-server" {
+		t.Errorf("期待値: test-server, 実際値: %s", savedServer.Name)
+	}
+
+	if len(savedServer.Command) != 2 {
+		t.Errorf("期待されるコマンド数: 2, 実際: %d", len(savedServer.Command))
+	}
+
+	// サーバーを削除
+	err = config.RemoveMCPServer("test-server")
+	if err != nil {
+		t.Fatalf("MCPサーバー削除エラー: %v", err)
+	}
+
+	// 削除後の確認
+	_, err = config.GetMCPServer("test-server")
+	if err == nil {
+		t.Error("削除されたサーバーが取得できました")
 	}
 }

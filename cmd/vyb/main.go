@@ -8,6 +8,7 @@ import (
 	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/llm"
+	"github.com/glkt/vyb-code/internal/mcp"
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/tools"
 	"github.com/spf13/cobra"
@@ -130,12 +131,69 @@ var analyzeCmd = &cobra.Command{
 	},
 }
 
+// MCP操作のメインコマンド
+var mcpCmd = &cobra.Command{
+	Use:   "mcp",
+	Short: "MCP (Model Context Protocol) server management",
+}
+
+var mcpListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List configured MCP servers",
+	Run: func(cmd *cobra.Command, args []string) {
+		listMCPServers()
+	},
+}
+
+var mcpConnectCmd = &cobra.Command{
+	Use:   "connect [server-name]",
+	Short: "Connect to MCP server",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		connectMCPServer(args[0])
+	},
+}
+
+var mcpToolsCmd = &cobra.Command{
+	Use:   "tools [server-name]",
+	Short: "List available tools from MCP server",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			listMCPTools(args[0])
+		} else {
+			listAllMCPTools()
+		}
+	},
+}
+
+var mcpDisconnectCmd = &cobra.Command{
+	Use:   "disconnect [server-name]",
+	Short: "Disconnect from MCP server",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			disconnectMCPServer(args[0])
+		} else {
+			disconnectAllMCPServers()
+		}
+	},
+}
+
+var mcpAddCmd = &cobra.Command{
+	Use:   "add [server-name] [command...]",
+	Short: "Add new MCP server configuration",
+	Args:  cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		addMCPServer(args[0], args[1:])
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(execCmd)
 	rootCmd.AddCommand(gitCmd)
 	rootCmd.AddCommand(analyzeCmd)
+	rootCmd.AddCommand(mcpCmd)
 
 	configCmd.AddCommand(setModelCmd)
 	configCmd.AddCommand(setProviderCmd)
@@ -144,6 +202,12 @@ func init() {
 	gitCmd.AddCommand(gitStatusCmd)
 	gitCmd.AddCommand(gitBranchCmd)
 	gitCmd.AddCommand(gitCommitCmd)
+
+	mcpCmd.AddCommand(mcpListCmd)
+	mcpCmd.AddCommand(mcpConnectCmd)
+	mcpCmd.AddCommand(mcpToolsCmd)
+	mcpCmd.AddCommand(mcpDisconnectCmd)
+	mcpCmd.AddCommand(mcpAddCmd)
 }
 
 func main() {
@@ -471,4 +535,135 @@ func analyzeProject() {
 			}
 		}
 	}
+}
+
+// MCPサーバー一覧表示の実装関数
+func listMCPServers() {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	servers := cfg.GetMCPServers()
+	if len(servers) == 0 {
+		fmt.Println("設定されたMCPサーバーはありません")
+		return
+	}
+
+	fmt.Println("設定済みMCPサーバー:")
+	for name, server := range servers {
+		status := "無効"
+		if server.Enabled {
+			status = "有効"
+		}
+		fmt.Printf("  %s (%s)\n", name, status)
+		fmt.Printf("    コマンド: %s\n", strings.Join(server.Command, " "))
+		if server.AutoConnect {
+			fmt.Printf("    自動接続: はい\n")
+		}
+	}
+}
+
+// MCPサーバー接続の実装関数
+func connectMCPServer(serverName string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	serverConfig, err := cfg.GetMCPServer(serverName)
+	if err != nil {
+		fmt.Printf("MCPサーバー取得エラー: %v\n", err)
+		return
+	}
+
+	if !serverConfig.Enabled {
+		fmt.Printf("MCPサーバー '%s' は無効化されています\n", serverName)
+		return
+	}
+
+	// MCPクライアントを作成
+	clientConfig := mcp.ClientConfig{
+		ServerCommand: serverConfig.Command,
+		ServerArgs:    serverConfig.Args,
+		Environment:   serverConfig.Environment,
+		WorkingDir:    serverConfig.WorkingDir,
+	}
+
+	client := mcp.NewClient(clientConfig)
+
+	// サーバーに接続
+	fmt.Printf("MCPサーバー '%s' に接続中...\n", serverName)
+	if err := client.Connect(clientConfig); err != nil {
+		fmt.Printf("接続エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✅ MCPサーバー '%s' に接続しました\n", serverName)
+
+	// 利用可能なツールを表示
+	tools := client.GetTools()
+	if len(tools) > 0 {
+		fmt.Printf("利用可能なツール (%d個):\n", len(tools))
+		for _, tool := range tools {
+			fmt.Printf("  - %s: %s\n", tool.Name, tool.Description)
+		}
+	}
+
+	// リソースを表示
+	resources := client.GetResources()
+	if len(resources) > 0 {
+		fmt.Printf("利用可能なリソース (%d個):\n", len(resources))
+		for _, resource := range resources {
+			fmt.Printf("  - %s: %s\n", resource.Name, resource.Description)
+		}
+	}
+}
+
+// MCPツール一覧表示の実装関数（特定サーバー）
+func listMCPTools(serverName string) {
+	fmt.Printf("MCPサーバー '%s' のツール一覧機能は開発中です\n", serverName)
+}
+
+// MCPツール一覧表示の実装関数（全サーバー）
+func listAllMCPTools() {
+	fmt.Println("全MCPサーバーのツール一覧機能は開発中です")
+}
+
+// MCPサーバー切断の実装関数（特定サーバー）
+func disconnectMCPServer(serverName string) {
+	fmt.Printf("MCPサーバー '%s' の切断機能は開発中です\n", serverName)
+}
+
+// MCPサーバー切断の実装関数（全サーバー）
+func disconnectAllMCPServers() {
+	fmt.Println("全MCPサーバーの切断機能は開発中です")
+}
+
+// MCPサーバー追加の実装関数
+func addMCPServer(name string, command []string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	serverConfig := config.MCPServerConfig{
+		Name:        name,
+		Command:     command,
+		Args:        []string{},
+		Environment: make(map[string]string),
+		WorkingDir:  "",
+		Enabled:     true,
+		AutoConnect: false,
+	}
+
+	if err := cfg.AddMCPServer(name, serverConfig); err != nil {
+		fmt.Printf("MCPサーバー追加エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("MCPサーバー '%s' を追加しました\n", name)
 }

@@ -7,14 +7,26 @@ import (
 	"path/filepath"
 )
 
+// MCPサーバー設定
+type MCPServerConfig struct {
+	Name        string            `json:"name"`        // サーバー名
+	Command     []string          `json:"command"`     // 起動コマンド
+	Args        []string          `json:"args"`        // コマンド引数
+	Environment map[string]string `json:"environment"` // 環境変数
+	WorkingDir  string            `json:"workingDir"`  // 作業ディレクトリ
+	Enabled     bool              `json:"enabled"`     // 有効/無効
+	AutoConnect bool              `json:"autoConnect"` // 自動接続
+}
+
 // vybの設定情報を管理する構造体
 type Config struct {
-	Provider      string `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
-	Model         string `json:"model"`          // 使用するモデル名
-	BaseURL       string `json:"base_url"`       // LLMサーバーのURL
-	Timeout       int    `json:"timeout"`        // リクエストタイムアウト（秒）
-	MaxFileSize   int64  `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
-	WorkspaceMode string `json:"workspace_mode"` // ワークスペースモード（project_only等）
+	Provider      string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
+	Model         string                     `json:"model"`          // 使用するモデル名
+	BaseURL       string                     `json:"base_url"`       // LLMサーバーのURL
+	Timeout       int                        `json:"timeout"`        // リクエストタイムアウト（秒）
+	MaxFileSize   int64                      `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
+	WorkspaceMode string                     `json:"workspace_mode"` // ワークスペースモード（project_only等）
+	MCPServers    map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -26,6 +38,7 @@ func DefaultConfig() *Config {
 		Timeout:       30,
 		MaxFileSize:   10 * 1024 * 1024, // 10MB
 		WorkspaceMode: "project_only",
+		MCPServers:    make(map[string]MCPServerConfig),
 	}
 }
 
@@ -107,4 +120,45 @@ func (c *Config) SetModel(model string) error {
 func (c *Config) SetProvider(provider string) error {
 	c.Provider = provider // プロバイダー名を更新
 	return c.Save()       // ファイルに保存
+}
+
+// MCPサーバーを追加する
+func (c *Config) AddMCPServer(name string, server MCPServerConfig) error {
+	if c.MCPServers == nil {
+		c.MCPServers = make(map[string]MCPServerConfig)
+	}
+	c.MCPServers[name] = server
+	return c.Save()
+}
+
+// MCPサーバーを削除する
+func (c *Config) RemoveMCPServer(name string) error {
+	if c.MCPServers == nil {
+		return fmt.Errorf("MCPサーバー '%s' が見つかりません", name)
+	}
+	if _, exists := c.MCPServers[name]; !exists {
+		return fmt.Errorf("MCPサーバー '%s' が見つかりません", name)
+	}
+	delete(c.MCPServers, name)
+	return c.Save()
+}
+
+// MCPサーバー一覧を取得する
+func (c *Config) GetMCPServers() map[string]MCPServerConfig {
+	if c.MCPServers == nil {
+		return make(map[string]MCPServerConfig)
+	}
+	return c.MCPServers
+}
+
+// MCPサーバーを取得する
+func (c *Config) GetMCPServer(name string) (MCPServerConfig, error) {
+	if c.MCPServers == nil {
+		return MCPServerConfig{}, fmt.Errorf("MCPサーバー '%s' が見つかりません", name)
+	}
+	server, exists := c.MCPServers[name]
+	if !exists {
+		return MCPServerConfig{}, fmt.Errorf("MCPサーバー '%s' が見つかりません", name)
+	}
+	return server, nil
 }

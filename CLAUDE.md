@@ -36,17 +36,17 @@ vyb-code/
 
 ```bash
 # Quick development build
-make build
-# or
+/usr/bin/make build
+# or  
 ./scripts/build.sh dev
 
-# Run all tests
-make test
+# Run all tests  
+/usr/bin/make test
 # or
 go test ./...
 
 # Run tests with coverage
-make coverage
+/usr/bin/make coverage
 
 # Run specific package tests
 go test ./internal/config -v
@@ -64,11 +64,11 @@ go test ./internal/mcp -v -run TestMCP
 go test ./internal/config -v -run TestMCPServerConfig
 
 # Format and lint
-make fmt
-make lint
+/usr/bin/make fmt
+/usr/bin/make lint
 
 # Full CI check
-make check
+/usr/bin/make check
 
 # Multi-platform build
 ./scripts/build.sh
@@ -140,6 +140,7 @@ make check
 - ✅ Streaming response processing for real-time user experience
 - ✅ Comprehensive security enhancements against malicious LLM responses
 - ✅ Enhanced CLI integration with backward compatibility
+- ✅ Intelligent search with AST-based code structure analysis
 
 ## Development Priorities
 
@@ -178,6 +179,9 @@ vyb chat --session <id>            # Resume specific session
 
 # Search and discovery
 vyb search <pattern>               # Search across project files
+vyb search <pattern> --smart       # Intelligent search with AST analysis and relevance scoring
+vyb search <pattern> --max-results N # Limit number of results
+vyb search <pattern> --context      # Include/exclude context lines
 vyb find <pattern>                 # Find files by name pattern
 vyb grep <pattern>                 # Advanced grep with context
 

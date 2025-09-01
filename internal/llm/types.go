@@ -38,15 +38,15 @@ type Provider interface {
 	// Chat sends a chat request and returns the response
 	// チャットリクエストを送信し、レスポンスを返す
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
-	
+
 	// SupportsFunctionCalling returns whether this provider supports function calling
 	// このプロバイダーがFunction Callingに対応しているかを返す
 	SupportsFunctionCalling() bool
-	
+
 	// GetModelInfo retrieves information about a specific model
 	// 指定されたモデルの情報を取得する
 	GetModelInfo(model string) (*ModelInfo, error)
-	
+
 	// ListModels returns all available models
 	// 利用可能なモデル一覧を返す
 	ListModels() ([]ModelInfo, error)

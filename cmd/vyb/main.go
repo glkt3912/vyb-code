@@ -5,19 +5,20 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/tools"
+	"github.com/spf13/cobra"
 )
 
 // メインコマンド：vyb単体で実行される処理
 var rootCmd = &cobra.Command{
-	Use:   "vyb",
-	Short: "Local AI coding assistant",
-	Long:  `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
+	Use:     "vyb",
+	Short:   "Local AI coding assistant",
+	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
+	Version: GetVersionString(),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			// 引数なし：対話モード開始
@@ -155,17 +156,17 @@ func main() {
 // 対話モードを開始する実装関数
 func startInteractiveMode() {
 	fmt.Println("🎵 vyb - Feel the rhythm of perfect code")
-	
+
 	// 設定を読み込み
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
-	
+
 	// LLMクライアントを作成
 	provider := llm.NewOllamaClient(cfg.BaseURL)
-	
+
 	// チャットセッションを開始
 	session := chat.NewSession(provider, cfg.Model)
 	if err := session.StartInteractive(); err != nil {
@@ -176,17 +177,17 @@ func startInteractiveMode() {
 // 単発クエリを処理する実装関数
 func processSingleQuery(query string) {
 	fmt.Printf("Processing: %s\n", query)
-	
+
 	// 設定を読み込み
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
-	
+
 	// LLMクライアントを作成
 	provider := llm.NewOllamaClient(cfg.BaseURL)
-	
+
 	// チャットセッションで単発処理
 	session := chat.NewSession(provider, cfg.Model)
 	if err := session.ProcessQuery(query); err != nil {
@@ -201,12 +202,12 @@ func setModel(model string) {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
-	
+
 	if err := cfg.SetModel(model); err != nil {
 		fmt.Printf("モデル設定エラー: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("モデルを %s に設定しました\n", model)
 }
 
@@ -217,12 +218,12 @@ func setProvider(provider string) {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
-	
+
 	if err := cfg.SetProvider(provider); err != nil {
 		fmt.Printf("プロバイダー設定エラー: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("プロバイダーを %s に設定しました\n", provider)
 }
 
@@ -233,7 +234,7 @@ func listConfig() {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
-	
+
 	fmt.Println("現在の設定:")
 	fmt.Printf("  プロバイダー: %s\n", cfg.Provider)
 	fmt.Printf("  モデル: %s\n", cfg.Model)
@@ -444,11 +445,11 @@ func analyzeProject() {
 		fmt.Println("\n🔀 Git情報:")
 		fmt.Printf("  現在のブランチ: %s\n", analysis.GitInfo.CurrentBranch)
 		fmt.Printf("  状態: %s\n", analysis.GitInfo.Status)
-		
+
 		if len(analysis.GitInfo.Branches) > 0 {
 			fmt.Printf("  ブランチ数: %d\n", len(analysis.GitInfo.Branches))
 		}
-		
+
 		if len(analysis.GitInfo.RecentCommits) > 0 {
 			fmt.Println("  最近のコミット:")
 			for i, commit := range analysis.GitInfo.RecentCommits {

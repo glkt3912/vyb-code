@@ -14,12 +14,12 @@ import (
 
 // コマンド実行結果を格納する構造体
 type ExecutionResult struct {
-	Command    string `json:"command"`    // 実行されたコマンド
-	ExitCode   int    `json:"exit_code"`  // 終了コード
-	Stdout     string `json:"stdout"`     // 標準出力
-	Stderr     string `json:"stderr"`     // 標準エラー
-	Duration   string `json:"duration"`   // 実行時間
-	TimedOut   bool   `json:"timed_out"`  // タイムアウトフラグ
+	Command  string `json:"command"`   // 実行されたコマンド
+	ExitCode int    `json:"exit_code"` // 終了コード
+	Stdout   string `json:"stdout"`    // 標準出力
+	Stderr   string `json:"stderr"`    // 標準エラー
+	Duration string `json:"duration"`  // 実行時間
+	TimedOut bool   `json:"timed_out"` // タイムアウトフラグ
 }
 
 // コマンド実行を管理する構造体

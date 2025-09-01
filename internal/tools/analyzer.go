@@ -11,11 +11,11 @@ import (
 
 // プロジェクト分析結果を格納する構造体
 type ProjectAnalysis struct {
-	TotalFiles      int                       `json:"total_files"`
-	FilesByLanguage map[string]int            `json:"files_by_language"`
-	ProjectStructure map[string][]string      `json:"project_structure"`
-	Dependencies    []string                  `json:"dependencies"`
-	GitInfo         *GitProjectInfo           `json:"git_info"`
+	TotalFiles       int                 `json:"total_files"`
+	FilesByLanguage  map[string]int      `json:"files_by_language"`
+	ProjectStructure map[string][]string `json:"project_structure"`
+	Dependencies     []string            `json:"dependencies"`
+	GitInfo          *GitProjectInfo     `json:"git_info"`
 }
 
 // Git情報を格納する構造体
@@ -28,10 +28,10 @@ type GitProjectInfo struct {
 
 // プロジェクト解析を管理する構造体
 type ProjectAnalyzer struct {
-	fileOps     *FileOperations  // ファイル操作
-	gitOps      *GitOperations   // Git操作
+	fileOps     *FileOperations       // ファイル操作
+	gitOps      *GitOperations        // Git操作
 	constraints *security.Constraints // セキュリティ制約
-	projectDir  string           // プロジェクトディレクトリ
+	projectDir  string                // プロジェクトディレクトリ
 }
 
 // プロジェクト解析ハンドラーを作成するコンストラクタ
@@ -85,11 +85,11 @@ func (p *ProjectAnalyzer) analyzeFiles(analysis *ProjectAnalysis) error {
 		if info.IsDir() {
 			// 隠しディレクトリや一般的な無視ディレクトリをスキップ
 			dirname := filepath.Base(path)
-			if strings.HasPrefix(dirname, ".") || 
-			   dirname == "node_modules" || 
-			   dirname == "vendor" || 
-			   dirname == "target" ||
-			   dirname == "__pycache__" {
+			if strings.HasPrefix(dirname, ".") ||
+				dirname == "node_modules" ||
+				dirname == "vendor" ||
+				dirname == "target" ||
+				dirname == "__pycache__" {
 				return filepath.SkipDir
 			}
 
@@ -107,7 +107,7 @@ func (p *ProjectAnalyzer) analyzeFiles(analysis *ProjectAnalysis) error {
 
 		// ファイル処理
 		analysis.TotalFiles++
-		
+
 		// プログラミング言語を判定
 		ext := strings.ToLower(filepath.Ext(path))
 		language := p.getLanguageFromExtension(ext)
@@ -135,7 +135,7 @@ func (p *ProjectAnalyzer) analyzeGitInfo() (*GitProjectInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if branchResult.ExitCode == 0 {
 		branches := strings.Split(strings.TrimSpace(branchResult.Stdout), "\n")
 		for _, branch := range branches {
@@ -203,30 +203,30 @@ func (p *ProjectAnalyzer) analyzeDependencies(analysis *ProjectAnalysis) error {
 // ファイル拡張子からプログラミング言語を判定
 func (p *ProjectAnalyzer) getLanguageFromExtension(ext string) string {
 	languageMap := map[string]string{
-		".go":   "Go",
-		".js":   "JavaScript",
-		".ts":   "TypeScript",
-		".py":   "Python",
-		".java": "Java",
-		".c":    "C",
-		".cpp":  "C++",
-		".cc":   "C++",
-		".cxx":  "C++",
-		".h":    "C/C++ Header",
-		".hpp":  "C++ Header",
-		".rs":   "Rust",
-		".php":  "PHP",
-		".rb":   "Ruby",
-		".kt":   "Kotlin",
+		".go":    "Go",
+		".js":    "JavaScript",
+		".ts":    "TypeScript",
+		".py":    "Python",
+		".java":  "Java",
+		".c":     "C",
+		".cpp":   "C++",
+		".cc":    "C++",
+		".cxx":   "C++",
+		".h":     "C/C++ Header",
+		".hpp":   "C++ Header",
+		".rs":    "Rust",
+		".php":   "PHP",
+		".rb":    "Ruby",
+		".kt":    "Kotlin",
 		".swift": "Swift",
-		".sh":   "Shell",
-		".bash": "Bash",
-		".md":   "Markdown",
-		".yml":  "YAML",
-		".yaml": "YAML",
-		".json": "JSON",
-		".xml":  "XML",
-		".sql":  "SQL",
+		".sh":    "Shell",
+		".bash":  "Bash",
+		".md":    "Markdown",
+		".yml":   "YAML",
+		".yaml":  "YAML",
+		".json":  "JSON",
+		".xml":   "XML",
+		".sql":   "SQL",
 	}
 
 	if lang, exists := languageMap[ext]; exists {
@@ -239,11 +239,11 @@ func (p *ProjectAnalyzer) getLanguageFromExtension(ext string) string {
 func (p *ProjectAnalyzer) parseGoModDependencies(content string) []string {
 	var deps []string
 	lines := strings.Split(content, "\n")
-	
+
 	inRequireBlock := false
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(line, "require ") {
 			if strings.Contains(line, "(") {
 				inRequireBlock = true
@@ -266,6 +266,6 @@ func (p *ProjectAnalyzer) parseGoModDependencies(content string) []string {
 			}
 		}
 	}
-	
+
 	return deps
 }

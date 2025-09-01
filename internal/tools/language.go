@@ -20,21 +20,21 @@ type LanguageSupport interface {
 // Go言語サポート
 type GoLanguageSupport struct{}
 
-func (g *GoLanguageSupport) GetName() string { return "Go" }
-func (g *GoLanguageSupport) GetExtensions() []string { return []string{".go"} }
-func (g *GoLanguageSupport) GetBuildCommand() string { return "go build" }
-func (g *GoLanguageSupport) GetTestCommand() string { return "go test ./..." }
-func (g *GoLanguageSupport) GetLintCommand() string { return "golangci-lint run" }
+func (g *GoLanguageSupport) GetName() string           { return "Go" }
+func (g *GoLanguageSupport) GetExtensions() []string   { return []string{".go"} }
+func (g *GoLanguageSupport) GetBuildCommand() string   { return "go build" }
+func (g *GoLanguageSupport) GetTestCommand() string    { return "go test ./..." }
+func (g *GoLanguageSupport) GetLintCommand() string    { return "golangci-lint run" }
 func (g *GoLanguageSupport) GetDependencyFile() string { return "go.mod" }
 
 func (g *GoLanguageSupport) ParseDependencies(content string) []string {
 	var deps []string
 	lines := strings.Split(content, "\n")
-	
+
 	inRequireBlock := false
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(line, "require ") {
 			if strings.Contains(line, "(") {
 				inRequireBlock = true
@@ -56,7 +56,7 @@ func (g *GoLanguageSupport) ParseDependencies(content string) []string {
 			}
 		}
 	}
-	
+
 	return deps
 }
 
@@ -64,10 +64,12 @@ func (g *GoLanguageSupport) ParseDependencies(content string) []string {
 type JavaScriptLanguageSupport struct{}
 
 func (js *JavaScriptLanguageSupport) GetName() string { return "JavaScript/Node.js" }
-func (js *JavaScriptLanguageSupport) GetExtensions() []string { return []string{".js", ".ts", ".jsx", ".tsx"} }
-func (js *JavaScriptLanguageSupport) GetBuildCommand() string { return "npm run build" }
-func (js *JavaScriptLanguageSupport) GetTestCommand() string { return "npm test" }
-func (js *JavaScriptLanguageSupport) GetLintCommand() string { return "npm run lint" }
+func (js *JavaScriptLanguageSupport) GetExtensions() []string {
+	return []string{".js", ".ts", ".jsx", ".tsx"}
+}
+func (js *JavaScriptLanguageSupport) GetBuildCommand() string   { return "npm run build" }
+func (js *JavaScriptLanguageSupport) GetTestCommand() string    { return "npm test" }
+func (js *JavaScriptLanguageSupport) GetLintCommand() string    { return "npm run lint" }
 func (js *JavaScriptLanguageSupport) GetDependencyFile() string { return "package.json" }
 
 func (js *JavaScriptLanguageSupport) ParseDependencies(content string) []string {
@@ -75,19 +77,19 @@ func (js *JavaScriptLanguageSupport) ParseDependencies(content string) []string 
 	// 簡易的なpackage.json解析（実際のJSONパーサーを使用することを推奨）
 	lines := strings.Split(content, "\n")
 	inDeps := false
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.Contains(line, "\"dependencies\"") || strings.Contains(line, "\"devDependencies\"") {
 			inDeps = true
 			continue
 		}
-		
+
 		if inDeps && strings.Contains(line, "}") {
 			inDeps = false
 			continue
 		}
-		
+
 		if inDeps && strings.Contains(line, "\"") {
 			parts := strings.Split(line, "\"")
 			if len(parts) >= 2 {
@@ -95,24 +97,24 @@ func (js *JavaScriptLanguageSupport) ParseDependencies(content string) []string 
 			}
 		}
 	}
-	
+
 	return deps
 }
 
 // Python言語サポート
 type PythonLanguageSupport struct{}
 
-func (py *PythonLanguageSupport) GetName() string { return "Python" }
-func (py *PythonLanguageSupport) GetExtensions() []string { return []string{".py"} }
-func (py *PythonLanguageSupport) GetBuildCommand() string { return "python -m py_compile" }
-func (py *PythonLanguageSupport) GetTestCommand() string { return "python -m pytest" }
-func (py *PythonLanguageSupport) GetLintCommand() string { return "flake8" }
+func (py *PythonLanguageSupport) GetName() string           { return "Python" }
+func (py *PythonLanguageSupport) GetExtensions() []string   { return []string{".py"} }
+func (py *PythonLanguageSupport) GetBuildCommand() string   { return "python -m py_compile" }
+func (py *PythonLanguageSupport) GetTestCommand() string    { return "python -m pytest" }
+func (py *PythonLanguageSupport) GetLintCommand() string    { return "flake8" }
 func (py *PythonLanguageSupport) GetDependencyFile() string { return "requirements.txt" }
 
 func (py *PythonLanguageSupport) ParseDependencies(content string) []string {
 	var deps []string
 	lines := strings.Split(content, "\n")
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" && !strings.HasPrefix(line, "#") {
@@ -123,7 +125,7 @@ func (py *PythonLanguageSupport) ParseDependencies(content string) []string {
 			deps = append(deps, strings.TrimSpace(depName))
 		}
 	}
-	
+
 	return deps
 }
 
@@ -137,12 +139,12 @@ func NewLanguageManager() *LanguageManager {
 	manager := &LanguageManager{
 		languages: make(map[string]LanguageSupport),
 	}
-	
+
 	// サポート言語を登録
 	manager.RegisterLanguage(&GoLanguageSupport{})
 	manager.RegisterLanguage(&JavaScriptLanguageSupport{})
 	manager.RegisterLanguage(&PythonLanguageSupport{})
-	
+
 	return manager
 }
 
@@ -154,7 +156,7 @@ func (lm *LanguageManager) RegisterLanguage(lang LanguageSupport) {
 // ファイル拡張子から言語を検出
 func (lm *LanguageManager) DetectLanguage(filePath string) LanguageSupport {
 	ext := strings.ToLower(filepath.Ext(filePath))
-	
+
 	for _, lang := range lm.languages {
 		for _, supportedExt := range lang.GetExtensions() {
 			if ext == supportedExt {
@@ -162,7 +164,7 @@ func (lm *LanguageManager) DetectLanguage(filePath string) LanguageSupport {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -170,24 +172,24 @@ func (lm *LanguageManager) DetectLanguage(filePath string) LanguageSupport {
 func (lm *LanguageManager) DetectProjectLanguages(projectDir string) ([]LanguageSupport, error) {
 	var detectedLangs []LanguageSupport
 	langCounts := make(map[string]int)
-	
+
 	err := filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
-		
+
 		lang := lm.DetectLanguage(path)
 		if lang != nil {
 			langCounts[lang.GetName()]++
 		}
-		
+
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// ファイル数が多い言語を主要言語として選択
 	for langName, count := range langCounts {
 		if count > 0 { // 少なくとも1つのファイルがある言語
@@ -196,7 +198,7 @@ func (lm *LanguageManager) DetectProjectLanguages(projectDir string) ([]Language
 			}
 		}
 	}
-	
+
 	return detectedLangs, nil
 }
 

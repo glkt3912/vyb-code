@@ -36,14 +36,14 @@ func GetConfigPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
-	
+
 	// ~/.vybディレクトリのパスを作成
 	configDir := filepath.Join(homeDir, ".vyb")
 	// ディレクトリが存在しなければ作成（権限755）
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// 設定ファイルのフルパスを返す
 	return filepath.Join(configDir, "config.json"), nil
 }

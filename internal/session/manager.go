@@ -14,38 +14,38 @@ import (
 
 // 永続的会話セッション管理
 type Manager struct {
-	mu           sync.RWMutex
-	sessionsDir  string
-	currentID    string
-	sessions     map[string]*Session
-	maxSessions  int
-	maxTurnAge   time.Duration
+	mu          sync.RWMutex
+	sessionsDir string
+	currentID   string
+	sessions    map[string]*Session
+	maxSessions int
+	maxTurnAge  time.Duration
 }
 
 // セッション構造
 type Session struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Model       string    `json:"model"`
-	Provider    string    `json:"provider"`
-	TurnCount   int       `json:"turnCount"`
-	Turns       []Turn    `json:"turns"`
-	Context     Context   `json:"context"`
-	Metadata    Metadata  `json:"metadata"`
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Model     string    `json:"model"`
+	Provider  string    `json:"provider"`
+	TurnCount int       `json:"turnCount"`
+	Turns     []Turn    `json:"turns"`
+	Context   Context   `json:"context"`
+	Metadata  Metadata  `json:"metadata"`
 }
 
 // 会話ターン
 type Turn struct {
 	ID        string    `json:"id"`
-	Type      TurnType  `json:"type"`      // "user", "assistant", "system"
+	Type      TurnType  `json:"type"` // "user", "assistant", "system"
 	Content   string    `json:"content"`
 	Timestamp time.Time `json:"timestamp"`
 	Metadata  Metadata  `json:"metadata,omitempty"`
-	Files     []string  `json:"files,omitempty"`     // 関連ファイル
-	Commands  []string  `json:"commands,omitempty"`  // 実行したコマンド
-	Tools     []string  `json:"tools,omitempty"`     // 使用したツール
+	Files     []string  `json:"files,omitempty"`    // 関連ファイル
+	Commands  []string  `json:"commands,omitempty"` // 実行したコマンド
+	Tools     []string  `json:"tools,omitempty"`    // 使用したツール
 }
 
 // ターンタイプ
@@ -60,20 +60,20 @@ const (
 
 // セッションコンテキスト
 type Context struct {
-	WorkspaceDir   string            `json:"workspaceDir"`
-	CurrentBranch  string            `json:"currentBranch,omitempty"`
-	RecentFiles    []string          `json:"recentFiles,omitempty"`
-	ProjectInfo    map[string]string `json:"projectInfo,omitempty"`
-	Environment    map[string]string `json:"environment,omitempty"`
-	ActiveTools    []string          `json:"activeTools,omitempty"`
-	Memory         []MemoryItem      `json:"memory,omitempty"`
+	WorkspaceDir  string            `json:"workspaceDir"`
+	CurrentBranch string            `json:"currentBranch,omitempty"`
+	RecentFiles   []string          `json:"recentFiles,omitempty"`
+	ProjectInfo   map[string]string `json:"projectInfo,omitempty"`
+	Environment   map[string]string `json:"environment,omitempty"`
+	ActiveTools   []string          `json:"activeTools,omitempty"`
+	Memory        []MemoryItem      `json:"memory,omitempty"`
 }
 
 // メモリアイテム
 type MemoryItem struct {
 	Key       string    `json:"key"`
 	Value     string    `json:"value"`
-	Type      string    `json:"type"`      // "fact", "preference", "context"
+	Type      string    `json:"type"` // "fact", "preference", "context"
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Relevance float64   `json:"relevance"` // 関連度スコア
@@ -84,13 +84,13 @@ type Metadata map[string]interface{}
 
 // セッション統計
 type SessionStats struct {
-	TotalSessions   int                    `json:"totalSessions"`
-	ActiveSessions  int                    `json:"activeSessions"`
-	TotalTurns      int                    `json:"totalTurns"`
-	AverageTurns    float64                `json:"averageTurns"`
-	ModelUsage      map[string]int         `json:"modelUsage"`
-	LanguageStats   map[string]int         `json:"languageStats"`
-	RecentActivity  []time.Time            `json:"recentActivity"`
+	TotalSessions  int            `json:"totalSessions"`
+	ActiveSessions int            `json:"activeSessions"`
+	TotalTurns     int            `json:"totalTurns"`
+	AverageTurns   float64        `json:"averageTurns"`
+	ModelUsage     map[string]int `json:"modelUsage"`
+	LanguageStats  map[string]int `json:"languageStats"`
+	RecentActivity []time.Time    `json:"recentActivity"`
 }
 
 // 新しいセッションマネージャーを作成
@@ -337,7 +337,7 @@ func (m *Manager) GetStats() SessionStats {
 // セッションをファイルに保存
 func (m *Manager) saveSession(session *Session) error {
 	sessionFile := filepath.Join(m.sessionsDir, session.ID+".json")
-	
+
 	data, err := json.MarshalIndent(session, "", "  ")
 	if err != nil {
 		return err
@@ -487,7 +487,7 @@ func (m *Manager) exportToMarkdown(session *Session) []byte {
 	for i, turn := range session.Turns {
 		builder.WriteString(fmt.Sprintf("## Turn %d - %s\n\n", i+1, turn.Type))
 		builder.WriteString(fmt.Sprintf("**時刻:** %s\n\n", turn.Timestamp.Format("15:04:05")))
-		
+
 		if turn.Type == TurnTypeUser {
 			builder.WriteString("### ユーザー\n\n")
 		} else if turn.Type == TurnTypeAssistant {
@@ -522,7 +522,7 @@ func (m *Manager) exportToText(session *Session) []byte {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("セッション: %s\n", session.Title))
-	builder.WriteString(fmt.Sprintf("作成: %s | 更新: %s\n", 
+	builder.WriteString(fmt.Sprintf("作成: %s | 更新: %s\n",
 		session.CreatedAt.Format("2006-01-02 15:04:05"),
 		session.UpdatedAt.Format("2006-01-02 15:04:05")))
 	builder.WriteString(strings.Repeat("=", 60) + "\n\n")
@@ -605,9 +605,9 @@ func (m *Manager) CompressContext(sessionID string, maxTurns int) error {
 // ターン要約を作成
 func (m *Manager) createTurnSummary(turns []Turn) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString(fmt.Sprintf("以前の会話要約（%dターン）:\n", len(turns)))
-	
+
 	for _, turn := range turns {
 		content := turn.Content
 		if len(content) > 100 {

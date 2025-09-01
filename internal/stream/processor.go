@@ -13,24 +13,24 @@ import (
 
 // ストリーミング応答プロセッサー
 type Processor struct {
-	mu              sync.RWMutex
-	bufferSize      int
-	flushInterval   time.Duration
-	handlers        map[EventType]EventHandler
-	currentStream   *Stream
-	metrics         StreamMetrics
+	mu            sync.RWMutex
+	bufferSize    int
+	flushInterval time.Duration
+	handlers      map[EventType]EventHandler
+	currentStream *Stream
+	metrics       StreamMetrics
 }
 
 // ストリーム情報
 type Stream struct {
-	ID          string                 `json:"id"`
-	Model       string                 `json:"model"`
-	StartTime   time.Time              `json:"startTime"`
-	TokenCount  int                    `json:"tokenCount"`
-	ChunkCount  int                    `json:"chunkCount"`
-	Status      StreamStatus           `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Buffer      strings.Builder        `json:"-"`
+	ID         string                 `json:"id"`
+	Model      string                 `json:"model"`
+	StartTime  time.Time              `json:"startTime"`
+	TokenCount int                    `json:"tokenCount"`
+	ChunkCount int                    `json:"chunkCount"`
+	Status     StreamStatus           `json:"status"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Buffer     strings.Builder        `json:"-"`
 }
 
 // ストリーム状態
@@ -77,13 +77,13 @@ type ChunkData struct {
 
 // ストリーミングメトリクス
 type StreamMetrics struct {
-	TotalStreams     int64         `json:"totalStreams"`
-	ActiveStreams    int64         `json:"activeStreams"`
-	TotalTokens      int64         `json:"totalTokens"`
-	TotalChunks      int64         `json:"totalChunks"`
-	AverageLatency   time.Duration `json:"averageLatency"`
-	ErrorCount       int64         `json:"errorCount"`
-	LastStreamTime   time.Time     `json:"lastStreamTime"`
+	TotalStreams   int64         `json:"totalStreams"`
+	ActiveStreams  int64         `json:"activeStreams"`
+	TotalTokens    int64         `json:"totalTokens"`
+	TotalChunks    int64         `json:"totalChunks"`
+	AverageLatency time.Duration `json:"averageLatency"`
+	ErrorCount     int64         `json:"errorCount"`
+	LastStreamTime time.Time     `json:"lastStreamTime"`
 }
 
 // 新しいプロセッサーを作成
@@ -109,11 +109,11 @@ func (p *Processor) StartStream(streamID, model string, metadata map[string]inte
 	defer p.mu.Unlock()
 
 	stream := &Stream{
-		ID:         streamID,
-		Model:      model,
-		StartTime:  time.Now(),
-		Status:     StreamStatusStarting,
-		Metadata:   metadata,
+		ID:        streamID,
+		Model:     model,
+		StartTime: time.Now(),
+		Status:    StreamStatusStarting,
+		Metadata:  metadata,
 	}
 
 	p.currentStream = stream
@@ -167,7 +167,7 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 		default:
 			if scanner.Scan() {
 				chunk := scanner.Text()
-				
+
 				// チャンクを処理
 				if err := p.processChunk(chunk, &pendingContent); err != nil {
 					p.handleStreamError(err)
@@ -187,12 +187,12 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 				if pendingContent.Len() > 0 {
 					p.flushContent(output, pendingContent.String())
 				}
-				
+
 				if err := scanner.Err(); err != nil {
 					p.handleStreamError(err)
 					return err
 				}
-				
+
 				p.handleStreamComplete()
 				return nil
 			}
@@ -301,8 +301,8 @@ func (p *Processor) handleStreamComplete() {
 	// 平均レイテンシーを更新
 	if p.metrics.TotalStreams > 0 {
 		p.metrics.AverageLatency = time.Duration(
-			(int64(p.metrics.AverageLatency)*p.metrics.TotalStreams + int64(duration)) / 
-			(p.metrics.TotalStreams + 1))
+			(int64(p.metrics.AverageLatency)*p.metrics.TotalStreams + int64(duration)) /
+				(p.metrics.TotalStreams + 1))
 	} else {
 		p.metrics.AverageLatency = duration
 	}

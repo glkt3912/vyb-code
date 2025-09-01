@@ -35,12 +35,12 @@ type FileInfo struct {
 
 // 検索結果
 type SearchResult struct {
-	File        FileInfo `json:"file"`
-	LineNumber  int      `json:"lineNumber"`
-	Line        string   `json:"line"`
-	Context     []string `json:"context,omitempty"` // 前後の行
-	MatchStart  int      `json:"matchStart"`
-	MatchEnd    int      `json:"matchEnd"`
+	File       FileInfo `json:"file"`
+	LineNumber int      `json:"lineNumber"`
+	Line       string   `json:"line"`
+	Context    []string `json:"context,omitempty"` // 前後の行
+	MatchStart int      `json:"matchStart"`
+	MatchEnd   int      `json:"matchEnd"`
 }
 
 // 検索オプション
@@ -105,7 +105,7 @@ func (e *Engine) IndexProject() error {
 	defer e.mu.Unlock()
 
 	e.indexedFiles = make(map[string]FileInfo)
-	
+
 	err := filepath.Walk(e.workspaceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // エラーが発生したファイルはスキップ
@@ -398,10 +398,10 @@ func globToRegex(glob string) string {
 // ファイルの言語を検出
 func detectLanguage(path string) string {
 	ext := strings.ToLower(filepath.Ext(path))
-	
+
 	langMap := map[string]string{
 		".go":   "Go",
-		".js":   "JavaScript", 
+		".js":   "JavaScript",
 		".ts":   "TypeScript",
 		".py":   "Python",
 		".java": "Java",
@@ -438,7 +438,7 @@ func detectLanguage(path string) string {
 // テキストファイルかどうか判定
 func isTextFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
-	
+
 	textExts := []string{
 		".go", ".js", ".ts", ".py", ".java", ".cpp", ".c", ".rs",
 		".php", ".rb", ".sh", ".bash", ".zsh", ".fish", ".ps1",

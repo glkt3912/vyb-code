@@ -59,12 +59,12 @@ type Resource struct {
 
 // MCPサーバー情報
 type ServerInfo struct {
-	Name             string            `json:"name"`
-	Version          string            `json:"version"`
-	ProtocolVersion  string            `json:"protocolVersion"`
-	Capabilities     ServerCapability  `json:"capabilities"`
-	Instructions     string            `json:"instructions,omitempty"`
-	Metadata         map[string]string `json:"metadata,omitempty"`
+	Name            string            `json:"name"`
+	Version         string            `json:"version"`
+	ProtocolVersion string            `json:"protocolVersion"`
+	Capabilities    ServerCapability  `json:"capabilities"`
+	Instructions    string            `json:"instructions,omitempty"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
 }
 
 // サーバー機能定義
@@ -133,9 +133,9 @@ type Root struct {
 
 // プロンプト定義
 type Prompt struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description,omitempty"`
-	Arguments   []PromptArg     `json:"arguments,omitempty"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Arguments   []PromptArg `json:"arguments,omitempty"`
 }
 
 // プロンプト引数
@@ -169,14 +169,14 @@ type LogEntry struct {
 
 // MCPセッション状態
 type SessionState struct {
-	ID          string            `json:"id"`
-	Connected   bool              `json:"connected"`
-	ServerInfo  *ServerInfo       `json:"serverInfo,omitempty"`
-	Tools       []Tool            `json:"tools"`
-	Resources   []Resource        `json:"resources"`
-	Prompts     []Prompt          `json:"prompts"`
-	LastPing    time.Time         `json:"lastPing"`
-	Metadata    map[string]string `json:"metadata"`
+	ID         string            `json:"id"`
+	Connected  bool              `json:"connected"`
+	ServerInfo *ServerInfo       `json:"serverInfo,omitempty"`
+	Tools      []Tool            `json:"tools"`
+	Resources  []Resource        `json:"resources"`
+	Prompts    []Prompt          `json:"prompts"`
+	LastPing   time.Time         `json:"lastPing"`
+	Metadata   map[string]string `json:"metadata"`
 }
 
 // MCPイベント定義

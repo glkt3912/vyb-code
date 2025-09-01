@@ -13,10 +13,10 @@ import (
 
 // 高性能グレップ実装
 type Grep struct {
-	engine      *Engine
-	maxWorkers  int
-	maxResults  int
-	timeout     time.Duration
+	engine     *Engine
+	maxWorkers int
+	maxResults int
+	timeout    time.Duration
 }
 
 // グレップ結果の詳細
@@ -136,11 +136,11 @@ func (g *Grep) searchConcurrent(ctx context.Context, files []FileInfo, regex *re
 		wg.Add(1)
 		go func(f FileInfo) {
 			defer wg.Done()
-			
+
 			select {
 			case semaphore <- struct{}{}:
 				defer func() { <-semaphore }()
-				
+
 				matches, err := g.searchFile(f, regex, options)
 				if err == nil {
 					resultChan <- matches
@@ -163,7 +163,7 @@ func (g *Grep) searchConcurrent(ctx context.Context, files []FileInfo, regex *re
 	var allMatches []GrepMatch
 	for matches := range resultChan {
 		allMatches = append(allMatches, matches...)
-		
+
 		// 最大結果数チェック
 		if len(allMatches) >= g.maxResults {
 			break
@@ -256,7 +256,7 @@ func (g *Grep) addContext(match *GrepMatch, lines []string, options GrepOptions)
 		if end > len(lines) {
 			end = len(lines)
 		}
-		match.After = lines[lineIdx+1:end]
+		match.After = lines[lineIdx+1 : end]
 	}
 }
 

@@ -14,12 +14,13 @@ import (
 
 // ファイル検索エンジン
 type Engine struct {
-	mu              sync.RWMutex
-	workspaceDir    string
-	excludePatterns []*regexp.Regexp
-	indexedFiles    map[string]FileInfo
-	lastIndexTime   time.Time
-	maxFileSize     int64
+	mu                sync.RWMutex
+	workspaceDir      string
+	excludePatterns   []*regexp.Regexp
+	indexedFiles      map[string]FileInfo
+	lastIndexTime     time.Time
+	maxFileSize       int64
+	intelligentSearch *IntelligentSearch // インテリジェント検索機能
 }
 
 // ファイル情報
@@ -57,12 +58,17 @@ type SearchOptions struct {
 
 // 新しい検索エンジンを作成
 func NewEngine(workspaceDir string) *Engine {
-	return &Engine{
+	engine := &Engine{
 		workspaceDir:    workspaceDir,
 		excludePatterns: compileDefaultExcludes(),
 		indexedFiles:    make(map[string]FileInfo),
 		maxFileSize:     10 * 1024 * 1024, // 10MB
 	}
+
+	// インテリジェント検索を初期化
+	engine.intelligentSearch = NewIntelligentSearch(engine)
+
+	return engine
 }
 
 // デフォルトの除外パターンをコンパイル
@@ -205,7 +211,7 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 		}
 
 		// パターンフィルターをチェック
-		if !matchesPatterns(fileInfo.RelativePath, includeFilter) {
+		if len(includeFilter) > 0 && !matchesPatterns(fileInfo.RelativePath, includeFilter) {
 			continue
 		}
 		if matchesPatterns(fileInfo.RelativePath, excludeFilter) {
@@ -575,4 +581,33 @@ func (e *Engine) GetFilePreview(path string, lines int) ([]string, error) {
 	}
 
 	return preview, scanner.Err()
+}
+
+// スマート検索を実行（インテリジェント検索機能）
+func (e *Engine) SmartSearch(options SmartSearchOptions) ([]IntelligentResult, error) {
+	if e.intelligentSearch == nil {
+		return nil, fmt.Errorf("インテリジェント検索が初期化されていません")
+	}
+
+	return e.intelligentSearch.SmartSearch(options)
+}
+
+// インテリジェント検索統計を取得
+func (e *Engine) GetIntelligentSearchStats() map[string]interface{} {
+	if e.intelligentSearch == nil {
+		return map[string]interface{}{
+			"enabled": false,
+		}
+	}
+
+	stats := e.intelligentSearch.GetASTStats()
+	stats["enabled"] = true
+	return stats
+}
+
+// ASTキャッシュをクリア
+func (e *Engine) ClearIntelligentCache() {
+	if e.intelligentSearch != nil {
+		e.intelligentSearch.ClearASTCache()
+	}
 }

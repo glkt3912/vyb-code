@@ -254,10 +254,22 @@ func executeCommand(args []string) {
 
 	// セキュリティ制約を設定
 	constraints := security.NewDefaultConstraints(workDir)
+
+	// セキュア実行器を作成（厳格モード無効）
+	secureExecutor := security.NewSecureExecutor(constraints, false)
+
+	// 従来のコマンド実行器も作成
 	executor := tools.NewCommandExecutor(constraints, workDir)
 
 	// コマンドを結合
 	command := strings.Join(args, " ")
+
+	// セキュリティ検証と確認
+	allowed, err := secureExecutor.ValidateAndConfirm(command)
+	if err != nil || !allowed {
+		fmt.Printf("セキュリティチェックによりコマンド実行が拒否されました: %v\n", err)
+		return
+	}
 
 	fmt.Printf("実行中: %s\n", command)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/mcp"
+	"github.com/glkt/vyb-code/internal/search"
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/tools"
 	"github.com/spf13/cobra"
@@ -131,6 +132,19 @@ var analyzeCmd = &cobra.Command{
 	},
 }
 
+// 検索機能のメインコマンド
+var searchCmd = &cobra.Command{
+	Use:   "search [pattern]",
+	Short: "Search across project files with intelligent ranking",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		smart, _ := cmd.Flags().GetBool("smart")
+		maxResults, _ := cmd.Flags().GetInt("max-results")
+		includeContext, _ := cmd.Flags().GetBool("context")
+		performSearch(args[0], smart, maxResults, includeContext)
+	},
+}
+
 // MCP操作のメインコマンド
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
@@ -193,7 +207,13 @@ func init() {
 	rootCmd.AddCommand(execCmd)
 	rootCmd.AddCommand(gitCmd)
 	rootCmd.AddCommand(analyzeCmd)
+	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(mcpCmd)
+
+	// 検索コマンドのフラグ
+	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
+	searchCmd.Flags().Int("max-results", 50, "Maximum number of results to return")
+	searchCmd.Flags().Bool("context", true, "Include context lines in results")
 
 	configCmd.AddCommand(setModelCmd)
 	configCmd.AddCommand(setProviderCmd)
@@ -666,4 +686,148 @@ func addMCPServer(name string, command []string) {
 	}
 
 	fmt.Printf("MCPサーバー '%s' を追加しました\n", name)
+}
+
+// 検索機能の実装関数
+func performSearch(pattern string, smart bool, maxResults int, includeContext bool) {
+	workDir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("作業ディレクトリ取得エラー: %v\n", err)
+		return
+	}
+
+	// 検索エンジンを作成
+	engine := search.NewEngine(workDir)
+
+	// プロジェクトインデックスを構築
+	fmt.Println("プロジェクトインデックス構築中...")
+	if err := engine.IndexProject(); err != nil {
+		fmt.Printf("インデックス構築エラー: %v\n", err)
+		return
+	}
+
+	if smart {
+		// スマート検索を実行
+		fmt.Printf("🔍 スマート検索実行中: %s\n", pattern)
+
+		smartOptions := search.SmartSearchOptions{
+			SearchOptions: search.SearchOptions{
+				Pattern:      pattern,
+				MaxResults:   maxResults,
+				ContextLines: 2,
+			},
+			UseStructuralAnalysis: true,
+			UseContextRanking:     true,
+			IncludeASTInfo:        false, // パフォーマンス考慮
+			MinRelevanceScore:     0.1,
+		}
+
+		results, err := engine.SmartSearch(smartOptions)
+		if err != nil {
+			fmt.Printf("スマート検索エラー: %v\n", err)
+			return
+		}
+
+		displayIntelligentResults(results, includeContext)
+	} else {
+		// 通常検索を実行
+		fmt.Printf("🔍 検索実行中: %s\n", pattern)
+
+		searchOptions := search.SearchOptions{
+			Pattern:      pattern,
+			MaxResults:   maxResults,
+			ContextLines: 2,
+		}
+
+		results, err := engine.SearchInFiles(searchOptions)
+		if err != nil {
+			fmt.Printf("検索エラー: %v\n", err)
+			return
+		}
+
+		displaySearchResults(results, includeContext)
+	}
+
+	// 検索統計を表示
+	stats := engine.GetIndexStats()
+	fmt.Printf("\n📊 検索統計: %d件中から検索\n", stats["total_files"])
+
+	if smart {
+		intelligentStats := engine.GetIntelligentSearchStats()
+		fmt.Printf("AST解析ファイル: %d件\n", intelligentStats["cached_files"])
+	}
+}
+
+// インテリジェント検索結果を表示
+func displayIntelligentResults(results []search.IntelligentResult, includeContext bool) {
+	if len(results) == 0 {
+		fmt.Println("検索結果が見つかりませんでした")
+		return
+	}
+
+	fmt.Printf("\n🎯 スマート検索結果 (%d件):\n\n", len(results))
+
+	for i, result := range results {
+		// ファイル情報とスコア表示
+		fmt.Printf("%d. 📁 %s:%d (スコア: %.2f)\n",
+			i+1, result.File.RelativePath, result.LineNumber, result.FinalScore)
+
+		// スコア詳細
+		fmt.Printf("   構造: %.2f | コンテキスト: %.2f | コード: %.2f\n",
+			result.StructuralRelevance, result.ContextRelevance, result.CodeRelevance)
+
+		// マッチした行を表示
+		fmt.Printf("   %s\n", result.Line)
+
+		// 関連シンボル表示
+		if len(result.RelatedSymbols) > 0 {
+			fmt.Printf("   関連: %s\n", strings.Join(result.RelatedSymbols[:min(3, len(result.RelatedSymbols))], ", "))
+		}
+
+		// コンテキスト表示
+		if includeContext && len(result.Context) > 0 {
+			fmt.Println("   コンテキスト:")
+			for j, contextLine := range result.Context {
+				if j < 2 { // 最大2行まで表示
+					fmt.Printf("     %s\n", contextLine)
+				}
+			}
+		}
+
+		fmt.Println()
+	}
+}
+
+// 通常検索結果を表示
+func displaySearchResults(results []search.SearchResult, includeContext bool) {
+	if len(results) == 0 {
+		fmt.Println("検索結果が見つかりませんでした")
+		return
+	}
+
+	fmt.Printf("\n🔍 検索結果 (%d件):\n\n", len(results))
+
+	for i, result := range results {
+		fmt.Printf("%d. 📁 %s:%d\n", i+1, result.File.RelativePath, result.LineNumber)
+		fmt.Printf("   %s\n", result.Line)
+
+		if includeContext && len(result.Context) > 0 {
+			fmt.Println("   コンテキスト:")
+			for j, contextLine := range result.Context {
+				if j < 2 {
+					fmt.Printf("     %s\n", contextLine)
+				}
+			}
+		}
+
+		fmt.Println()
+	}
+}
+
+// min関数（Go 1.20では標準ライブラリにない）
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

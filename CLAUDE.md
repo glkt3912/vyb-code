@@ -59,6 +59,10 @@ go test ./internal/search -v
 go test ./internal/session -v
 go test ./internal/stream -v
 
+# Test MCP functionality
+go test ./internal/mcp -v -run TestMCP
+go test ./internal/config -v -run TestMCPServerConfig
+
 # Format and lint
 make fmt
 make lint
@@ -199,6 +203,13 @@ vyb analyze --path <dir>           # Analyze specific directory
 vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
+
+# MCP (Model Context Protocol) operations
+vyb mcp list                       # List configured MCP servers
+vyb mcp add <name> <command>       # Add new MCP server
+vyb mcp connect <server>           # Connect to MCP server
+vyb mcp tools [server]             # List available tools
+vyb mcp disconnect [server]        # Disconnect from MCP server
 ```
 
 ## Development Guidelines

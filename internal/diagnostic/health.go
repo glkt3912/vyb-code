@@ -15,21 +15,21 @@ import (
 type HealthStatus string
 
 const (
-	HealthStatusHealthy   HealthStatus = "healthy"
-	HealthStatusWarning   HealthStatus = "warning"
-	HealthStatusCritical  HealthStatus = "critical"
-	HealthStatusUnknown   HealthStatus = "unknown"
+	HealthStatusHealthy  HealthStatus = "healthy"
+	HealthStatusWarning  HealthStatus = "warning"
+	HealthStatusCritical HealthStatus = "critical"
+	HealthStatusUnknown  HealthStatus = "unknown"
 )
 
 // ヘルスチェック結果
 type HealthCheckResult struct {
-	Component   string                 `json:"component"`
-	Status      HealthStatus           `json:"status"`
-	Message     string                 `json:"message"`
-	Metrics     map[string]interface{} `json:"metrics,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Duration    time.Duration          `json:"duration"`
-	Error       string                 `json:"error,omitempty"`
+	Component string                 `json:"component"`
+	Status    HealthStatus           `json:"status"`
+	Message   string                 `json:"message"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration"`
+	Error     string                 `json:"error,omitempty"`
 }
 
 // 診断レポート
@@ -45,13 +45,13 @@ type DiagnosticReport struct {
 
 // システム情報
 type SystemInfo struct {
-	GOOS         string `json:"goos"`
-	GOARCH       string `json:"goarch"`
-	NumCPU       int    `json:"num_cpu"`
-	NumGoroutine int    `json:"num_goroutine"`
+	GOOS         string      `json:"goos"`
+	GOARCH       string      `json:"goarch"`
+	NumCPU       int         `json:"num_cpu"`
+	NumGoroutine int         `json:"num_goroutine"`
 	MemStats     MemoryStats `json:"mem_stats"`
-	WorkingDir   string `json:"working_dir"`
-	PID          int    `json:"pid"`
+	WorkingDir   string      `json:"working_dir"`
+	PID          int         `json:"pid"`
 }
 
 // メモリ統計
@@ -73,10 +73,10 @@ type PerformanceStats struct {
 
 // セキュリティ統計
 type SecurityStats struct {
-	BlockedCommands   int64   `json:"blocked_commands"`
-	SuspiciousEvents  int64   `json:"suspicious_events"`
-	SecurityScore     float64 `json:"security_score"`
-	LastAuditEntries  int     `json:"last_audit_entries"`
+	BlockedCommands  int64   `json:"blocked_commands"`
+	SuspiciousEvents int64   `json:"suspicious_events"`
+	SecurityScore    float64 `json:"security_score"`
+	LastAuditEntries int     `json:"last_audit_entries"`
 }
 
 // ヘルスチェッカー
@@ -113,7 +113,7 @@ func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunction) {
 // 全体ヘルスチェックを実行
 func (hc *HealthChecker) RunHealthChecks(ctx context.Context) *DiagnosticReport {
 	startTime := time.Now()
-	
+
 	report := &DiagnosticReport{
 		Timestamp:    startTime,
 		HealthChecks: make([]HealthCheckResult, 0, len(hc.checks)),
@@ -164,7 +164,7 @@ func (hc *HealthChecker) RunHealthChecks(ctx context.Context) *DiagnosticReport 
 // システムヘルスをチェック
 func (hc *HealthChecker) checkSystemHealth(ctx context.Context) HealthCheckResult {
 	start := time.Now()
-	
+
 	result := HealthCheckResult{
 		Component: "system",
 		Timestamp: start,
@@ -187,7 +187,7 @@ func (hc *HealthChecker) checkSystemHealth(ctx context.Context) HealthCheckResul
 		"goroutines": numGoroutines,
 		"cpu_count":  runtime.NumCPU(),
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -195,7 +195,7 @@ func (hc *HealthChecker) checkSystemHealth(ctx context.Context) HealthCheckResul
 // メモリ使用量をチェック
 func (hc *HealthChecker) checkMemoryUsage(ctx context.Context) HealthCheckResult {
 	start := time.Now()
-	
+
 	result := HealthCheckResult{
 		Component: "memory",
 		Timestamp: start,
@@ -224,7 +224,7 @@ func (hc *HealthChecker) checkMemoryUsage(ctx context.Context) HealthCheckResult
 		"num_gc":      memStats.NumGC,
 		"gc_pause_ns": memStats.PauseNs[(memStats.NumGC+255)%256],
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -232,7 +232,7 @@ func (hc *HealthChecker) checkMemoryUsage(ctx context.Context) HealthCheckResult
 // パフォーマンス指標をチェック
 func (hc *HealthChecker) checkPerformanceMetrics(ctx context.Context) HealthCheckResult {
 	start := time.Now()
-	
+
 	result := HealthCheckResult{
 		Component: "performance",
 		Timestamp: start,
@@ -269,13 +269,13 @@ func (hc *HealthChecker) checkPerformanceMetrics(ctx context.Context) HealthChec
 	}
 
 	result.Metrics = map[string]interface{}{
-		"llm_requests":     metrics.LLMRequestCount,
-		"llm_avg_duration": metrics.LLMAverageDuration.Seconds(),
-		"llm_error_rate":   errorRate,
-		"file_operations":  metrics.FileReadCount + metrics.FileWriteCount,
+		"llm_requests":         metrics.LLMRequestCount,
+		"llm_avg_duration":     metrics.LLMAverageDuration.Seconds(),
+		"llm_error_rate":       errorRate,
+		"file_operations":      metrics.FileReadCount + metrics.FileWriteCount,
 		"command_success_rate": metrics.CommandSuccessRate,
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -283,7 +283,7 @@ func (hc *HealthChecker) checkPerformanceMetrics(ctx context.Context) HealthChec
 // セキュリティ状態をチェック
 func (hc *HealthChecker) checkSecurityStatus(ctx context.Context) HealthCheckResult {
 	start := time.Now()
-	
+
 	result := HealthCheckResult{
 		Component: "security",
 		Timestamp: start,
@@ -294,7 +294,7 @@ func (hc *HealthChecker) checkSecurityStatus(ctx context.Context) HealthCheckRes
 	result.Metrics = map[string]interface{}{
 		"audit_enabled": hc.auditLogger != nil,
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -302,7 +302,7 @@ func (hc *HealthChecker) checkSecurityStatus(ctx context.Context) HealthCheckRes
 // ディスク容量をチェック
 func (hc *HealthChecker) checkDiskSpace(ctx context.Context) HealthCheckResult {
 	start := time.Now()
-	
+
 	result := HealthCheckResult{
 		Component: "disk_space",
 		Timestamp: start,
@@ -322,7 +322,7 @@ func (hc *HealthChecker) checkDiskSpace(ctx context.Context) HealthCheckResult {
 			"working_directory": wd,
 		}
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -382,32 +382,32 @@ func (hc *HealthChecker) generateRecommendations(report *DiagnosticReport) []str
 	// メモリ使用量のチェック
 	allocMB := report.SystemInfo.MemStats.Alloc / (1024 * 1024)
 	if allocMB > 200 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"メモリ使用量が高いです。キャッシュクリアを検討してください")
 	}
 
 	// Goroutine数のチェック
 	if report.SystemInfo.NumGoroutine > 100 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Goroutine数が多いです。リソースリークがないか確認してください")
 	}
 
 	// エラー率のチェック
 	if report.PerformanceStats.LLMErrorRate > 5.0 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"LLMエラー率が高いです。ネットワーク接続またはモデル設定を確認してください")
 	}
 
 	// LLM応答時間のチェック
 	if report.PerformanceStats.LLMAvgDuration > 10*time.Second {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"LLM応答時間が遅いです。より軽量なモデルの使用を検討してください")
 	}
 
 	// 警告状態のコンポーネントチェック
 	for _, check := range report.HealthChecks {
 		if check.Status == HealthStatusWarning || check.Status == HealthStatusCritical {
-			recommendations = append(recommendations, 
+			recommendations = append(recommendations,
 				fmt.Sprintf("%sコンポーネント: %s", check.Component, check.Message))
 		}
 	}
@@ -422,37 +422,37 @@ func (hc *HealthChecker) generateRecommendations(report *DiagnosticReport) []str
 // ヘルスチェック結果を表示
 func (hc *HealthChecker) DisplayHealthStatus(report *DiagnosticReport) {
 	statusEmoji := getHealthEmoji(report.OverallStatus)
-	
+
 	fmt.Printf("\n%s vyb-code システムヘルス %s\n", statusEmoji, statusEmoji)
 	fmt.Printf("==================================\n\n")
-	
+
 	// 全体ステータス
 	fmt.Printf("全体ステータス: %s %s\n", statusEmoji, report.OverallStatus)
 	fmt.Printf("チェック時刻: %s\n\n", report.Timestamp.Format("2006-01-02 15:04:05"))
-	
+
 	// 各コンポーネントの状態
 	fmt.Printf("📊 コンポーネント別ヘルス:\n")
 	for _, check := range report.HealthChecks {
 		emoji := getHealthEmoji(check.Status)
-		fmt.Printf("  %s %s: %s (%.2fms)\n", 
-			emoji, check.Component, check.Message, 
+		fmt.Printf("  %s %s: %s (%.2fms)\n",
+			emoji, check.Component, check.Message,
 			float64(check.Duration.Nanoseconds())/1000000)
-		
+
 		if check.Error != "" {
 			fmt.Printf("    エラー: %s\n", check.Error)
 		}
 	}
-	
+
 	// システム情報
 	fmt.Printf("\n🖥️  システム情報:\n")
 	fmt.Printf("  OS: %s/%s\n", report.SystemInfo.GOOS, report.SystemInfo.GOARCH)
 	fmt.Printf("  CPU: %d cores\n", report.SystemInfo.NumCPU)
-	fmt.Printf("  メモリ: %.1fMB / %.1fMB (システム)\n", 
+	fmt.Printf("  メモリ: %.1fMB / %.1fMB (システム)\n",
 		float64(report.SystemInfo.MemStats.Alloc)/(1024*1024),
 		float64(report.SystemInfo.MemStats.Sys)/(1024*1024))
 	fmt.Printf("  Goroutines: %d\n", report.SystemInfo.NumGoroutine)
 	fmt.Printf("  GC回数: %d\n", report.SystemInfo.MemStats.NumGC)
-	
+
 	// パフォーマンス統計
 	fmt.Printf("\n⚡ パフォーマンス統計:\n")
 	fmt.Printf("  LLMリクエスト: %d件\n", report.PerformanceStats.LLMRequests)
@@ -460,7 +460,7 @@ func (hc *HealthChecker) DisplayHealthStatus(report *DiagnosticReport) {
 	fmt.Printf("  LLMエラー率: %.1f%%\n", report.PerformanceStats.LLMErrorRate)
 	fmt.Printf("  ファイル操作: %d件\n", report.PerformanceStats.FileOps)
 	fmt.Printf("  コマンド実行: %d件\n", report.PerformanceStats.CommandExecs)
-	
+
 	// 推奨事項
 	if len(report.Recommendations) > 0 {
 		fmt.Printf("\n💡 推奨事項:\n")
@@ -468,7 +468,7 @@ func (hc *HealthChecker) DisplayHealthStatus(report *DiagnosticReport) {
 			fmt.Printf("  %d. %s\n", i+1, rec)
 		}
 	}
-	
+
 	fmt.Printf("\n")
 }
 
@@ -489,20 +489,20 @@ func getHealthEmoji(status HealthStatus) string {
 // 診断モードでシステムを分析
 func (hc *HealthChecker) RunDiagnostics(ctx context.Context) {
 	fmt.Printf("🔍 vyb-code システム診断を開始...\n\n")
-	
+
 	// 基本ヘルスチェック
 	report := hc.RunHealthChecks(ctx)
 	hc.DisplayHealthStatus(report)
-	
+
 	// 詳細診断
 	fmt.Printf("🔧 詳細診断:\n")
-	
+
 	// ファイルシステムチェック
 	hc.checkFileSystemHealth()
-	
+
 	// 設定検証
 	hc.checkConfigurationHealth()
-	
+
 	// 依存関係チェック
 	hc.checkDependencies()
 }
@@ -510,17 +510,17 @@ func (hc *HealthChecker) RunDiagnostics(ctx context.Context) {
 // ファイルシステムヘルスをチェック
 func (hc *HealthChecker) checkFileSystemHealth() {
 	fmt.Printf("  📁 ファイルシステム:\n")
-	
+
 	// 設定ディレクトリの確認
 	homeDir, _ := os.UserHomeDir()
 	configDir := fmt.Sprintf("%s/.vyb", homeDir)
-	
+
 	if info, err := os.Stat(configDir); err == nil {
 		fmt.Printf("    ✅ 設定ディレクトリ: %s (権限: %s)\n", configDir, info.Mode())
 	} else {
 		fmt.Printf("    ❌ 設定ディレクトリなし: %s\n", configDir)
 	}
-	
+
 	// ログファイルの確認
 	auditLog := fmt.Sprintf("%s/audit.log", configDir)
 	if info, err := os.Stat(auditLog); err == nil {
@@ -533,14 +533,14 @@ func (hc *HealthChecker) checkFileSystemHealth() {
 // 設定状態をチェック
 func (hc *HealthChecker) checkConfigurationHealth() {
 	fmt.Printf("  ⚙️  設定状態:\n")
-	
+
 	// 環境変数チェック
 	if vybModel := os.Getenv("VYB_MODEL"); vybModel != "" {
 		fmt.Printf("    ✅ VYB_MODEL: %s\n", vybModel)
 	} else {
 		fmt.Printf("    ⚠️  VYB_MODEL未設定\n")
 	}
-	
+
 	if vybProvider := os.Getenv("VYB_PROVIDER"); vybProvider != "" {
 		fmt.Printf("    ✅ VYB_PROVIDER: %s\n", vybProvider)
 	} else {

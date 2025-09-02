@@ -9,22 +9,22 @@ import (
 
 // LLMレスポンス検証器
 type LLMResponseValidator struct {
-	maliciousPatterns    []*regexp.Regexp // 悪意のあるコードパターン
-	privateInfoPatterns  []*regexp.Regexp // プライベート情報パターン
-	harmfulPatterns      []*regexp.Regexp // 有害コンテンツパターン
-	maxResponseLength    int              // 最大レスポンス長
-	allowCodeGeneration  bool             // コード生成を許可するか
+	maliciousPatterns   []*regexp.Regexp // 悪意のあるコードパターン
+	privateInfoPatterns []*regexp.Regexp // プライベート情報パターン
+	harmfulPatterns     []*regexp.Regexp // 有害コンテンツパターン
+	maxResponseLength   int              // 最大レスポンス長
+	allowCodeGeneration bool             // コード生成を許可するか
 }
 
 // LLMレスポンス検証結果
 type LLMValidationResult struct {
-	IsValid           bool     `json:"is_valid"`
-	RiskLevel         string   `json:"risk_level"`        // "safe", "warning", "dangerous"
-	DetectedThreats   []string `json:"detected_threats"`
-	FilteredContent   string   `json:"filtered_content"`  // フィルタリング後のコンテンツ
-	RequiresReview    bool     `json:"requires_review"`   // 人的レビューが必要か
-	TruncatedReason   string   `json:"truncated_reason"`  // 切り詰めの理由
-	SecurityScore     float64  `json:"security_score"`    // セキュリティスコア (0-10)
+	IsValid         bool     `json:"is_valid"`
+	RiskLevel       string   `json:"risk_level"` // "safe", "warning", "dangerous"
+	DetectedThreats []string `json:"detected_threats"`
+	FilteredContent string   `json:"filtered_content"` // フィルタリング後のコンテンツ
+	RequiresReview  bool     `json:"requires_review"`  // 人的レビューが必要か
+	TruncatedReason string   `json:"truncated_reason"` // 切り詰めの理由
+	SecurityScore   float64  `json:"security_score"`   // セキュリティスコア (0-10)
 }
 
 // 新しいLLMレスポンス検証器を作成
@@ -149,7 +149,7 @@ func (v *LLMResponseValidator) validateGeneratedCode(content string) []string {
 
 	// コードブロックを抽出
 	codeBlocks := v.extractCodeBlocks(content)
-	
+
 	for _, code := range codeBlocks {
 		// 危険な関数呼び出しをチェック
 		if v.containsDangerousFunctions(code) {
@@ -184,23 +184,23 @@ func (v *LLMResponseValidator) extractCodeBlocks(content string) []string {
 	// マークダウンコードブロックを抽出
 	codeBlockRegex := regexp.MustCompile("```[\\s\\S]*?```")
 	matches := codeBlockRegex.FindAllString(content, -1)
-	
+
 	var codeBlocks []string
 	for _, match := range matches {
 		// 先頭と末尾の```を除去
 		code := strings.TrimPrefix(match, "```")
 		code = strings.TrimSuffix(code, "```")
 		code = strings.TrimSpace(code)
-		
+
 		// 言語指定がある場合は除去
 		lines := strings.Split(code, "\n")
 		if len(lines) > 0 && !strings.Contains(lines[0], " ") {
 			code = strings.Join(lines[1:], "\n")
 		}
-		
+
 		codeBlocks = append(codeBlocks, code)
 	}
-	
+
 	return codeBlocks
 }
 
@@ -268,23 +268,23 @@ func compileMaliciousPatterns() []*regexp.Regexp {
 		`wget.*\|\s*sh`,
 		`curl.*\|\s*bash`,
 		`rm\s+-rf\s*/`,
-		
+
 		// リバースシェル
 		`nc\s+-[el].*\d+`,
 		`bash\s+-i\s+>&`,
 		`python.*socket.*connect`,
 		`perl.*socket.*connect`,
-		
+
 		// データ破壊
 		`dd\s+if=.*of=/dev`,
 		`mkfs\.\w+\s+/dev`,
 		`formatc\:`,
-		
+
 		// 権限昇格
 		`sudo\s+su\s*-`,
 		`chmod\s+\+s\s+`,
 		`setuid\s*\(\s*0\s*\)`,
-		
+
 		// 基本的な危険コマンド
 		`rm\s+-rf`,
 		`format\s+c:`,
@@ -309,12 +309,12 @@ func compilePrivateInfoPatterns() []*regexp.Regexp {
 		`(?i)api[_-]?key\s*[:=]\s*["\']?\w+`,
 		`(?i)secret\s*[:=]\s*["\']?\w+`,
 		`(?i)token\s*[:=]\s*["\']?\w+`,
-		
+
 		// 個人情報
-		`\b\d{3}-\d{2}-\d{4}\b`,      // SSN形式
-		`\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b`, // クレジットカード
+		`\b\d{3}-\d{2}-\d{4}\b`,                          // SSN形式
+		`\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b`,     // クレジットカード
 		`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, // メールアドレス
-		
+
 		// システム情報
 		`/etc/passwd`,
 		`/etc/shadow`,
@@ -337,14 +337,14 @@ func compileHarmfulPatterns() []*regexp.Regexp {
 	patterns := []string{
 		// 差別的表現
 		`(?i)(hate|discrimination|racist|sexist).*content`,
-		
+
 		// 暴力的内容
 		`(?i)(violence|harmful|destructive).*code`,
-		
+
 		// 不正アクセス
 		`(?i)(hack|crack|exploit|backdoor)`,
 		`(?i)(penetration|intrusion|bypass).*security`,
-		
+
 		// マルウェア関連
 		`(?i)(malware|virus|trojan|rootkit)`,
 		`(?i)(keylogger|spyware|ransomware)`,
@@ -364,7 +364,7 @@ func compileHarmfulPatterns() []*regexp.Regexp {
 func (v *LLMResponseValidator) FilterResponse(content string) string {
 	// 悪意のあるパターンをマスク
 	filtered := content
-	
+
 	for _, pattern := range v.maliciousPatterns {
 		filtered = pattern.ReplaceAllString(filtered, "[悪意のあるコードがフィルタリングされました]")
 	}
@@ -414,7 +414,7 @@ func (v *LLMResponseValidator) SetSecurityLevel(level string) error {
 // レスポンスの統計情報を取得
 func (v *LLMResponseValidator) GetValidationStats(results []*LLMValidationResult) map[string]interface{} {
 	stats := make(map[string]interface{})
-	
+
 	totalResponses := len(results)
 	safeCount := 0
 	warningCount := 0

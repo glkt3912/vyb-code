@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -32,10 +33,10 @@ func TestNewProcessor(t *testing.T) {
 // TestRegisterHandler はイベントハンドラー登録をテストする
 func TestRegisterHandler(t *testing.T) {
 	processor := NewProcessor()
-	called := false
+	var called int32
 
 	handler := func(event StreamEvent) error {
-		called = true
+		atomic.StoreInt32(&called, 1)
 		return nil
 	}
 
@@ -51,7 +52,7 @@ func TestRegisterHandler(t *testing.T) {
 	// 少し待ってからチェック（goroutineで実行されるため）
 	time.Sleep(10 * time.Millisecond)
 
-	if !called {
+	if atomic.LoadInt32(&called) == 0 {
 		t.Error("ハンドラーが呼び出されませんでした")
 	}
 }

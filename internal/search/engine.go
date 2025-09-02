@@ -2,10 +2,12 @@ package search
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -21,6 +23,14 @@ type Engine struct {
 	lastIndexTime     time.Time
 	maxFileSize       int64
 	intelligentSearch *IntelligentSearch // インテリジェント検索機能
+
+	// パフォーマンス最適化
+	workerPool       chan struct{}       // ファイル処理ワーカープール
+	maxWorkers       int                 // 最大並行処理数
+	fileContentCache map[string][]string // ファイル内容キャッシュ
+	cacheMu          sync.RWMutex        // キャッシュ専用ミューテックス
+	cacheMaxSize     int                 // キャッシュ最大サイズ
+	cacheTTL         time.Duration       // キャッシュ有効期限
 }
 
 // ファイル情報
@@ -58,11 +68,18 @@ type SearchOptions struct {
 
 // 新しい検索エンジンを作成
 func NewEngine(workspaceDir string) *Engine {
+	maxWorkers := runtime.NumCPU() * 2 // CPU数の2倍でI/O処理を最適化
+
 	engine := &Engine{
-		workspaceDir:    workspaceDir,
-		excludePatterns: compileDefaultExcludes(),
-		indexedFiles:    make(map[string]FileInfo),
-		maxFileSize:     10 * 1024 * 1024, // 10MB
+		workspaceDir:     workspaceDir,
+		excludePatterns:  compileDefaultExcludes(),
+		indexedFiles:     make(map[string]FileInfo),
+		maxFileSize:      10 * 1024 * 1024, // 10MB
+		maxWorkers:       maxWorkers,
+		workerPool:       make(chan struct{}, maxWorkers),
+		fileContentCache: make(map[string][]string),
+		cacheMaxSize:     1000,             // 最大1000ファイルをキャッシュ
+		cacheTTL:         30 * time.Minute, // 30分間キャッシュ
 	}
 
 	// インテリジェント検索を初期化
@@ -171,8 +188,15 @@ func (e *Engine) shouldExclude(path string) bool {
 
 // テキストファイルの検索
 func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
+	// まず対象ファイルを取得（読み取りロック）
 	e.mu.RLock()
-	defer e.mu.RUnlock()
+	var targetFiles []FileInfo
+	for _, fileInfo := range e.indexedFiles {
+		if fileInfo.Indexed {
+			targetFiles = append(targetFiles, fileInfo)
+		}
+	}
+	e.mu.RUnlock()
 
 	var results []SearchResult
 	resultCount := 0
@@ -204,12 +228,9 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 	includeFilter := compilePatterns(options.IncludePatterns)
 	excludeFilter := compilePatterns(options.ExcludePatterns)
 
-	// 各ファイルを検索
-	for _, fileInfo := range e.indexedFiles {
-		if !fileInfo.Indexed {
-			continue
-		}
-
+	// ファイルフィルタリング
+	var filteredFiles []FileInfo
+	for _, fileInfo := range targetFiles {
 		// パターンフィルターをチェック
 		if len(includeFilter) > 0 && !matchesPatterns(fileInfo.RelativePath, includeFilter) {
 			continue
@@ -217,13 +238,38 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 		if matchesPatterns(fileInfo.RelativePath, excludeFilter) {
 			continue
 		}
+		filteredFiles = append(filteredFiles, fileInfo)
+	}
 
-		// ファイル内容を検索
-		fileResults, err := e.searchInFile(fileInfo, searchRegex, options)
-		if err != nil {
-			continue // エラーファイルはスキップ
-		}
+	// 並列検索処理
+	resultsChan := make(chan []SearchResult, len(filteredFiles))
+	var wg sync.WaitGroup
 
+	for _, fileInfo := range filteredFiles {
+		wg.Add(1)
+		go func(fi FileInfo) {
+			defer wg.Done()
+
+			// ワーカープール制御
+			e.workerPool <- struct{}{}
+			defer func() { <-e.workerPool }()
+
+			fileResults, err := e.searchInFile(fi, searchRegex, options)
+			if err == nil {
+				resultsChan <- fileResults
+			} else {
+				resultsChan <- []SearchResult{}
+			}
+		}(fileInfo)
+	}
+
+	// 結果を待機して収集
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	for fileResults := range resultsChan {
 		results = append(results, fileResults...)
 		resultCount += len(fileResults)
 
@@ -249,31 +295,23 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 	return results, nil
 }
 
-// 単一ファイル内を検索
+// 単一ファイル内を検索（最適化版）
 func (e *Engine) searchInFile(fileInfo FileInfo, regex *regexp.Regexp, options SearchOptions) ([]SearchResult, error) {
-	file, err := os.Open(fileInfo.Path)
+	// キャッシュから取得を試行
+	lines, err := e.getFileContentCached(fileInfo.Path)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	var results []SearchResult
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	lineNum := 0
 
-	// ファイル全体を読み込み（コンテキスト表示のため）
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Text()
-		lines = append(lines, line)
-
-		// パターンマッチング
+	// 各行をパターンマッチング
+	for lineNum, line := range lines {
 		matches := regex.FindAllStringIndex(line, -1)
 		for _, match := range matches {
 			result := SearchResult{
 				File:       fileInfo,
-				LineNumber: lineNum,
+				LineNumber: lineNum + 1,
 				Line:       line,
 				MatchStart: match[0],
 				MatchEnd:   match[1],
@@ -281,14 +319,61 @@ func (e *Engine) searchInFile(fileInfo FileInfo, regex *regexp.Regexp, options S
 
 			// コンテキスト行を追加
 			if options.ContextLines > 0 {
-				result.Context = e.getContext(lines, lineNum-1, options.ContextLines)
+				result.Context = e.getContext(lines, lineNum, options.ContextLines)
 			}
 
 			results = append(results, result)
 		}
 	}
 
-	return results, scanner.Err()
+	return results, nil
+}
+
+// ファイル内容をキャッシュから取得または読み込み
+func (e *Engine) getFileContentCached(filePath string) ([]string, error) {
+	e.cacheMu.RLock()
+	if cached, exists := e.fileContentCache[filePath]; exists {
+		e.cacheMu.RUnlock()
+		return cached, nil
+	}
+	e.cacheMu.RUnlock()
+
+	// ファイルを読み込み
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	// キャッシュに保存
+	e.cacheMu.Lock()
+	if len(e.fileContentCache) >= e.cacheMaxSize {
+		e.evictOldestCache()
+	}
+	e.fileContentCache[filePath] = lines
+	e.cacheMu.Unlock()
+
+	return lines, nil
+}
+
+// 古いキャッシュエントリを削除
+func (e *Engine) evictOldestCache() {
+	// 簡易LRU: 最初のエントリを削除
+	for key := range e.fileContentCache {
+		delete(e.fileContentCache, key)
+		break
+	}
 }
 
 // コンテキスト行を取得
@@ -610,4 +695,120 @@ func (e *Engine) ClearIntelligentCache() {
 	if e.intelligentSearch != nil {
 		e.intelligentSearch.ClearASTCache()
 	}
+}
+
+// ファイル内容キャッシュをクリア
+func (e *Engine) ClearFileCache() {
+	e.cacheMu.Lock()
+	defer e.cacheMu.Unlock()
+
+	e.fileContentCache = make(map[string][]string)
+}
+
+// キャッシュ統計を取得
+func (e *Engine) GetCacheStats() map[string]interface{} {
+	e.cacheMu.RLock()
+	defer e.cacheMu.RUnlock()
+
+	return map[string]interface{}{
+		"file_cache_size":     len(e.fileContentCache),
+		"file_cache_max_size": e.cacheMaxSize,
+		"cache_ttl_minutes":   e.cacheTTL.Minutes(),
+	}
+}
+
+// 並列インデックス処理（最適化版）
+func (e *Engine) IndexProjectParallel(ctx context.Context) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.indexedFiles = make(map[string]FileInfo)
+
+	// ファイルリストを収集
+	var filePaths []string
+	err := filepath.Walk(e.workspaceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+
+		relPath, _ := filepath.Rel(e.workspaceDir, path)
+		if !e.shouldExclude(relPath) && info.Size() <= e.maxFileSize {
+			filePaths = append(filePaths, path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// 並列処理でファイル情報を作成
+	resultChan := make(chan FileInfo, len(filePaths))
+	var wg sync.WaitGroup
+
+	for _, path := range filePaths {
+		wg.Add(1)
+		go func(filePath string) {
+			defer wg.Done()
+
+			// ワーカープール制御
+			e.workerPool <- struct{}{}
+			defer func() { <-e.workerPool }()
+
+			if fileInfo, err := e.processFileInfo(filePath); err == nil {
+				select {
+				case resultChan <- fileInfo:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}(path)
+	}
+
+	// 結果を収集
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	for {
+		select {
+		case fileInfo, ok := <-resultChan:
+			if !ok {
+				e.lastIndexTime = time.Now()
+				return nil
+			}
+			e.indexedFiles[fileInfo.Path] = fileInfo
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+// ファイル情報を処理
+func (e *Engine) processFileInfo(path string) (FileInfo, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return FileInfo{}, err
+	}
+
+	relPath, _ := filepath.Rel(e.workspaceDir, path)
+	fileInfo := FileInfo{
+		Path:         path,
+		RelativePath: relPath,
+		Size:         info.Size(),
+		ModTime:      info.ModTime(),
+		Language:     detectLanguage(path),
+		Indexed:      false,
+	}
+
+	// テキストファイルの場合は行数をカウント
+	if isTextFile(path) {
+		if lineCount, err := countLines(path); err == nil {
+			fileInfo.LineCount = lineCount
+			fileInfo.Indexed = true
+		}
+	}
+
+	return fileInfo, nil
 }

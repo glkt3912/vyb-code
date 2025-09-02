@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
+	"github.com/glkt/vyb-code/internal/diagnostic"
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/mcp"
 	"github.com/glkt/vyb-code/internal/search"
@@ -221,6 +224,28 @@ var mcpAddCmd = &cobra.Command{
 	},
 }
 
+// ヘルスチェック・診断機能のメインコマンド
+var healthCmd = &cobra.Command{
+	Use:   "health",
+	Short: "System health check and diagnostics",
+}
+
+var healthCheckCmd = &cobra.Command{
+	Use:   "check",
+	Short: "Run health checks for all components",
+	Run: func(cmd *cobra.Command, args []string) {
+		runHealthCheck()
+	},
+}
+
+var diagnosticsCmd = &cobra.Command{
+	Use:   "diagnostics",
+	Short: "Run comprehensive system diagnostics",
+	Run: func(cmd *cobra.Command, args []string) {
+		runDiagnostics()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(configCmd)
@@ -229,6 +254,7 @@ func init() {
 	rootCmd.AddCommand(analyzeCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(healthCmd)
 
 	// 検索コマンドのフラグ
 	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
@@ -250,6 +276,9 @@ func init() {
 	mcpCmd.AddCommand(mcpToolsCmd)
 	mcpCmd.AddCommand(mcpDisconnectCmd)
 	mcpCmd.AddCommand(mcpAddCmd)
+
+	healthCmd.AddCommand(healthCheckCmd)
+	healthCmd.AddCommand(diagnosticsCmd)
 }
 
 func main() {
@@ -887,4 +916,27 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// ヘルスチェック実行の実装関数
+func runHealthCheck() {
+	fmt.Println("🏥 vyb-code ヘルスチェック開始...")
+
+	checker := diagnostic.NewHealthChecker()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	report := checker.RunHealthChecks(ctx)
+	checker.DisplayHealthStatus(report)
+}
+
+// 診断実行の実装関数
+func runDiagnostics() {
+	checker := diagnostic.NewHealthChecker()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	checker.RunDiagnostics(ctx)
 }

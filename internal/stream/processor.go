@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,13 @@ type Processor struct {
 	handlers      map[EventType]EventHandler
 	currentStream *Stream
 	metrics       StreamMetrics
+
+	// パフォーマンス最適化
+	bufferPool sync.Pool        // バッファプール
+	workerPool chan struct{}    // ワーカープール
+	eventQueue chan StreamEvent // イベントキュー
+	maxWorkers int              // 最大ワーカー数
+	queueSize  int              // キューサイズ
 }
 
 // ストリーム情報
@@ -88,12 +96,31 @@ type StreamMetrics struct {
 
 // 新しいプロセッサーを作成
 func NewProcessor() *Processor {
-	return &Processor{
+	maxWorkers := runtime.NumCPU()
+	queueSize := maxWorkers * 10
+
+	p := &Processor{
 		bufferSize:    4096,
 		flushInterval: 50 * time.Millisecond,
 		handlers:      make(map[EventType]EventHandler),
 		metrics:       StreamMetrics{},
+		maxWorkers:    maxWorkers,
+		queueSize:     queueSize,
+		workerPool:    make(chan struct{}, maxWorkers),
+		eventQueue:    make(chan StreamEvent, queueSize),
 	}
+
+	// バッファプールを初期化
+	p.bufferPool = sync.Pool{
+		New: func() interface{} {
+			return &strings.Builder{}
+		},
+	}
+
+	// イベント処理ワーカーを開始
+	go p.startEventWorkers()
+
+	return p
 }
 
 // イベントハンドラーを登録
@@ -147,7 +174,13 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 	ticker := time.NewTicker(p.flushInterval)
 	defer ticker.Stop()
 
-	var pendingContent strings.Builder
+	// バッファプールから取得
+	pendingBuffer := p.bufferPool.Get().(*strings.Builder)
+	defer func() {
+		pendingBuffer.Reset()
+		p.bufferPool.Put(pendingBuffer)
+	}()
+
 	lastFlush := time.Now()
 
 	for {
@@ -157,11 +190,11 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 			return ctx.Err()
 		case <-ticker.C:
 			// 定期的にバッファをフラッシュ
-			if pendingContent.Len() > 0 {
-				if err := p.flushContent(output, pendingContent.String()); err != nil {
+			if pendingBuffer.Len() > 0 {
+				if err := p.flushContent(output, pendingBuffer.String()); err != nil {
 					return err
 				}
-				pendingContent.Reset()
+				pendingBuffer.Reset()
 				lastFlush = time.Now()
 			}
 		default:
@@ -169,23 +202,23 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 				chunk := scanner.Text()
 
 				// チャンクを処理
-				if err := p.processChunk(chunk, &pendingContent); err != nil {
+				if err := p.processChunk(chunk, pendingBuffer); err != nil {
 					p.handleStreamError(err)
 					return err
 				}
 
 				// 即座にフラッシュするか判定
-				if time.Since(lastFlush) > p.flushInterval || pendingContent.Len() > p.bufferSize/2 {
-					if err := p.flushContent(output, pendingContent.String()); err != nil {
+				if time.Since(lastFlush) > p.flushInterval || pendingBuffer.Len() > p.bufferSize/2 {
+					if err := p.flushContent(output, pendingBuffer.String()); err != nil {
 						return err
 					}
-					pendingContent.Reset()
+					pendingBuffer.Reset()
 					lastFlush = time.Now()
 				}
 			} else {
 				// スキャン完了
-				if pendingContent.Len() > 0 {
-					p.flushContent(output, pendingContent.String())
+				if pendingBuffer.Len() > 0 {
+					p.flushContent(output, pendingBuffer.String())
 				}
 
 				if err := scanner.Err(); err != nil {
@@ -368,16 +401,43 @@ func (p *Processor) handleStreamCancel() {
 	p.currentStream = nil
 }
 
-// イベントを発行
-func (p *Processor) emitEvent(event StreamEvent) {
-	p.mu.RLock()
-	handler, exists := p.handlers[event.Type]
-	p.mu.RUnlock()
-
-	if exists {
-		if err := handler(event); err != nil {
-			// エラーハンドリングは各実装に委譲
+// イベント処理ワーカーを開始
+func (p *Processor) startEventWorkers() {
+	for {
+		select {
+		case event := <-p.eventQueue:
+			p.processEvent(event)
 		}
+	}
+}
+
+// イベントを処理
+func (p *Processor) processEvent(event StreamEvent) {
+	// ワーカープールを使用
+	p.workerPool <- struct{}{}
+	go func() {
+		defer func() { <-p.workerPool }()
+
+		p.mu.RLock()
+		handler, exists := p.handlers[event.Type]
+		p.mu.RUnlock()
+
+		if exists {
+			if err := handler(event); err != nil {
+				// エラーハンドリングは各実装に委譲
+			}
+		}
+	}()
+}
+
+// イベントを発行（最適化版）
+func (p *Processor) emitEvent(event StreamEvent) {
+	select {
+	case p.eventQueue <- event:
+		// キューに正常に追加
+	default:
+		// キューが満杯の場合は直接処理
+		p.processEvent(event)
 	}
 }
 
@@ -425,4 +485,28 @@ func (p *Processor) ResetMetrics() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.metrics = StreamMetrics{}
+}
+
+// プロセッサーを安全にシャットダウン
+func (p *Processor) Shutdown(ctx context.Context) error {
+	// 現在のストリームを完了
+	if p.currentStream != nil {
+		p.handleStreamComplete()
+	}
+
+	// イベントキューを処理完了まで待機
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for len(p.eventQueue) > 0 {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

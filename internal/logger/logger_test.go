@@ -312,3 +312,93 @@ func TestColorOutput(t *testing.T) {
 		t.Error("色付きフォーマットが適用されていません")
 	}
 }
+
+// TestVybLoggerTestMode はテストモード機能をテストする
+func TestVybLoggerTestMode(t *testing.T) {
+	var buffer bytes.Buffer
+
+	config := DefaultConfig()
+	logger, err := NewLogger(config)
+	if err != nil {
+		t.Fatalf("ロガー作成エラー: %v", err)
+	}
+
+	logger.outputs = []io.Writer{&buffer}
+
+	// テストモードを有効化
+	logger.SetTestMode(true)
+
+	// Fatalログを出力（os.Exitが呼ばれないことを確認）
+	logger.Fatal("テストFatalメッセージ")
+
+	// バッファにFatalメッセージが出力されていることを確認
+	output := buffer.String()
+	if !strings.Contains(output, "FATAL") {
+		t.Error("Fatalメッセージが出力されていません")
+	}
+
+	if !strings.Contains(output, "テストFatalメッセージ") {
+		t.Error("Fatalメッセージの内容が正しくありません")
+	}
+}
+
+// TestVybLoggerCustomExitHandler はカスタム終了ハンドラーをテストする
+func TestVybLoggerCustomExitHandler(t *testing.T) {
+	var buffer bytes.Buffer
+	var exitCode int
+	exitCalled := false
+
+	config := DefaultConfig()
+	logger, err := NewLogger(config)
+	if err != nil {
+		t.Fatalf("ロガー作成エラー: %v", err)
+	}
+
+	logger.outputs = []io.Writer{&buffer}
+
+	// カスタム終了ハンドラーを設定
+	logger.SetExitHandler(func(code int) {
+		exitCode = code
+		exitCalled = true
+	})
+
+	// Fatalログを出力
+	logger.Fatal("カスタムハンドラーテスト")
+
+	// カスタムハンドラーが呼ばれたことを確認
+	if !exitCalled {
+		t.Error("カスタム終了ハンドラーが呼ばれませんでした")
+	}
+
+	if exitCode != 1 {
+		t.Errorf("期待終了コード: 1, 実際: %d", exitCode)
+	}
+}
+
+// TestVybLoggerFatalCallback はFatalコールバック機能をテストする
+func TestVybLoggerFatalCallback(t *testing.T) {
+	var buffer bytes.Buffer
+	callbackCalled := false
+
+	config := DefaultConfig()
+	logger, err := NewLogger(config)
+	if err != nil {
+		t.Fatalf("ロガー作成エラー: %v", err)
+	}
+
+	logger.outputs = []io.Writer{&buffer}
+	logger.SetTestMode(true) // os.Exitを無効化
+
+	// Fatalコールバックを設定
+	logger.SetFatalCallback(func() {
+		callbackCalled = true
+	})
+
+	// Fatalログを出力
+	logger.Fatal("コールバックテスト")
+
+	// コールバックが呼ばれたことを確認
+	if !callbackCalled {
+		t.Error("Fatalコールバックが呼ばれませんでした")
+	}
+}

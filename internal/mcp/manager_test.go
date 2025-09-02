@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"testing"
+	
+	"github.com/glkt/vyb-code/internal/logger"
 )
 
 // MCPマネージャーのテスト
@@ -51,17 +53,25 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
-// SimpleLoggerのテスト
-func TestSimpleLogger(t *testing.T) {
-	logger := &SimpleLogger{}
+// StructuredLoggerAdapterのテスト
+func TestStructuredLoggerAdapter(t *testing.T) {
+	config := logger.DefaultConfig()
+	config.Component = "test"
+	
+	vybLogger, err := logger.NewLogger(config)
+	if err != nil {
+		t.Fatalf("ロガー作成エラー: %v", err)
+	}
+	
+	adapter := &StructuredLoggerAdapter{vybLogger: vybLogger}
 
 	// ログメソッドが正常に実行されることを確認
-	logger.Debug("テストデバッグメッセージ")
-	logger.Info("テスト情報メッセージ")
-	logger.Warn("テスト警告メッセージ")
-	logger.Error("テストエラーメッセージ")
+	adapter.Debug("テストデバッグメッセージ")
+	adapter.Info("テスト情報メッセージ")
+	adapter.Warn("テスト警告メッセージ")
+	adapter.Error("テストエラーメッセージ")
 
 	// エラーが発生しないことを確認
-	logger.Debug("フォーマット付きメッセージ: %s", "テスト")
-	logger.Info("フォーマット付きメッセージ: %d", 42)
+	adapter.Debug("フォーマット付きメッセージ: %s", "テスト")
+	adapter.Info("フォーマット付きメッセージ: %d", 42)
 }

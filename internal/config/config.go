@@ -18,6 +18,19 @@ type MCPServerConfig struct {
 	AutoConnect bool              `json:"autoConnect"` // 自動接続
 }
 
+// ログ設定
+type LogConfig struct {
+	Level         string            `json:"level"`          // ログレベル（debug, info, warn, error）
+	Format        string            `json:"format"`         // 出力フォーマット（console, json）
+	Output        []string          `json:"output"`         // 出力先（stdout, stderr, file:/path）
+	ShowCaller    bool              `json:"show_caller"`    // 呼び出し元表示
+	ShowTimestamp bool              `json:"show_timestamp"` // タイムスタンプ表示
+	ColorEnabled  bool              `json:"color_enabled"`  // 色付き出力
+	FileRotation  bool              `json:"file_rotation"`  // ファイルローテーション
+	MaxFileSize   int64             `json:"max_file_size"`  // ログファイル最大サイズ
+	Context       map[string]string `json:"context"`        // デフォルトコンテキスト
+}
+
 // vybの設定情報を管理する構造体
 type Config struct {
 	Provider      string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
@@ -27,6 +40,7 @@ type Config struct {
 	MaxFileSize   int64                      `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
 	WorkspaceMode string                     `json:"workspace_mode"` // ワークスペースモード（project_only等）
 	MCPServers    map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
+	Logging       LogConfig                  `json:"logging"`        // ログ設定
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -39,6 +53,17 @@ func DefaultConfig() *Config {
 		MaxFileSize:   10 * 1024 * 1024, // 10MB
 		WorkspaceMode: "project_only",
 		MCPServers:    make(map[string]MCPServerConfig),
+		Logging: LogConfig{
+			Level:         "info",
+			Format:        "console",
+			Output:        []string{"stdout"},
+			ShowCaller:    false,
+			ShowTimestamp: true,
+			ColorEnabled:  true,
+			FileRotation:  false,
+			MaxFileSize:   10 * 1024 * 1024, // 10MB
+			Context:       make(map[string]string),
+		},
 	}
 }
 
@@ -161,4 +186,22 @@ func (c *Config) GetMCPServer(name string) (MCPServerConfig, error) {
 		return MCPServerConfig{}, fmt.Errorf("MCPサーバー '%s' が見つかりません", name)
 	}
 	return server, nil
+}
+
+// ログレベルを設定して保存する
+func (c *Config) SetLogLevel(level string) error {
+	c.Logging.Level = level
+	return c.Save()
+}
+
+// ログフォーマットを設定して保存する
+func (c *Config) SetLogFormat(format string) error {
+	c.Logging.Format = format
+	return c.Save()
+}
+
+// ログ出力先を設定して保存する
+func (c *Config) SetLogOutput(outputs []string) error {
+	c.Logging.Output = outputs
+	return c.Save()
 }

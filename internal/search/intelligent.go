@@ -1,6 +1,7 @@
 package search
 
 import (
+	"container/list"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -8,13 +9,22 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
+
+// LRUキャッシュエントリ
+type astCacheEntry struct {
+	key       string
+	value     *ASTInfo
+	timestamp time.Time
+}
 
 // インテリジェント検索エンジン
 type IntelligentSearch struct {
 	engine      *Engine
-	astCache    map[string]*ASTInfo
+	astCache    map[string]*list.Element // LRUキャッシュ
 	astCacheMu  sync.RWMutex
+	lruList     *list.List               // LRU順序管理
 	maxASTFiles int
 }
 
@@ -98,7 +108,8 @@ type SmartSearchOptions struct {
 func NewIntelligentSearch(engine *Engine) *IntelligentSearch {
 	return &IntelligentSearch{
 		engine:      engine,
-		astCache:    make(map[string]*ASTInfo),
+		astCache:    make(map[string]*list.Element),
+		lruList:     list.New(),
 		maxASTFiles: 1000, // メモリ使用量制限
 	}
 }
@@ -171,14 +182,26 @@ func (is *IntelligentSearch) analyzeStructure(result *IntelligentResult, options
 	return nil
 }
 
-// AST情報を取得または作成
+// AST情報を取得または作成（LRU最適化版）
 func (is *IntelligentSearch) getOrCreateASTInfo(filePath string) (*ASTInfo, error) {
-	is.astCacheMu.RLock()
-	if astInfo, exists := is.astCache[filePath]; exists {
-		is.astCacheMu.RUnlock()
-		return astInfo, nil
+	// まずキャッシュチェック
+	is.astCacheMu.Lock()
+	if element, exists := is.astCache[filePath]; exists {
+		// LRUの先頭に移動
+		is.lruList.MoveToFront(element)
+		entry := element.Value.(*astCacheEntry)
+		
+		// TTLチェック
+		if time.Since(entry.timestamp) < 30*time.Minute {
+			is.astCacheMu.Unlock()
+			return entry.value, nil
+		} else {
+			// 期限切れエントリを削除
+			is.lruList.Remove(element)
+			delete(is.astCache, filePath)
+		}
 	}
-	is.astCacheMu.RUnlock()
+	is.astCacheMu.Unlock()
 
 	// AST解析を実行
 	astInfo, err := is.parseGoFile(filePath)
@@ -186,14 +209,22 @@ func (is *IntelligentSearch) getOrCreateASTInfo(filePath string) (*ASTInfo, erro
 		return nil, err
 	}
 
-	// キャッシュに保存（容量制限付き）
+	// キャッシュに保存（LRU管理）
 	is.astCacheMu.Lock()
-	if len(is.astCache) >= is.maxASTFiles {
-		// 古いエントリを削除（簡易LRU）
-		is.evictOldestAST()
+	defer is.astCacheMu.Unlock()
+	
+	if is.lruList.Len() >= is.maxASTFiles {
+		is.evictLRU()
 	}
-	is.astCache[filePath] = astInfo
-	is.astCacheMu.Unlock()
+	
+	entry := &astCacheEntry{
+		key:       filePath,
+		value:     astInfo,
+		timestamp: time.Now(),
+	}
+	
+	element := is.lruList.PushFront(entry)
+	is.astCache[filePath] = element
 
 	return astInfo, nil
 }
@@ -629,12 +660,18 @@ func (is *IntelligentSearch) calculateComplexity(astInfo *ASTInfo) int {
 	return complexity
 }
 
-// 古いASTエントリを削除（簡易LRU）
-func (is *IntelligentSearch) evictOldestAST() {
-	// 実装では最初のエントリを削除（簡易版）
-	for key := range is.astCache {
-		delete(is.astCache, key)
-		break
+// LRU方式でASTエントリを削除
+func (is *IntelligentSearch) evictLRU() {
+	if is.lruList.Len() == 0 {
+		return
+	}
+	
+	// 最も古いエントリを削除
+	oldest := is.lruList.Back()
+	if oldest != nil {
+		entry := oldest.Value.(*astCacheEntry)
+		delete(is.astCache, entry.key)
+		is.lruList.Remove(oldest)
 	}
 }
 
@@ -654,7 +691,8 @@ func (is *IntelligentSearch) ClearASTCache() {
 	is.astCacheMu.Lock()
 	defer is.astCacheMu.Unlock()
 
-	is.astCache = make(map[string]*ASTInfo)
+	is.astCache = make(map[string]*list.Element)
+	is.lruList = list.New()
 }
 
 // AST統計情報取得
@@ -662,8 +700,25 @@ func (is *IntelligentSearch) GetASTStats() map[string]interface{} {
 	is.astCacheMu.RLock()
 	defer is.astCacheMu.RUnlock()
 
-	return map[string]interface{}{
-		"cached_files": len(is.astCache),
-		"max_files":    is.maxASTFiles,
+	stats := map[string]interface{}{
+		"cached_files":       len(is.astCache),
+		"max_files":          is.maxASTFiles,
+		"lru_list_length":    is.lruList.Len(),
+		"cache_utilization":  float64(len(is.astCache)) / float64(is.maxASTFiles) * 100,
 	}
+	
+	// キャッシュ効率性統計
+	expiredCount := 0
+	if is.lruList.Len() > 0 {
+		for element := is.lruList.Front(); element != nil; element = element.Next() {
+			entry := element.Value.(*astCacheEntry)
+			if time.Since(entry.timestamp) > 30*time.Minute {
+				expiredCount++
+			}
+		}
+	}
+	
+	stats["expired_entries"] = expiredCount
+	
+	return stats
 }

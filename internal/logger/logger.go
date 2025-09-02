@@ -149,12 +149,15 @@ func (f *JSONFormatter) Format(entry Entry) ([]byte, error) {
 
 // vyb統合ロガー
 type VybLogger struct {
-	mu        sync.RWMutex
-	level     Level
-	component string
-	formatter Formatter
-	outputs   []io.Writer
-	context   map[string]interface{}
+	mu            sync.RWMutex
+	level         Level
+	component     string
+	formatter     Formatter
+	outputs       []io.Writer
+	context       map[string]interface{}
+	testMode      bool      // テストモード（os.Exitを無効化）
+	exitHandler   func(int) // 終了処理のカスタムハンドラー
+	fatalCallback func()    // Fatalログ時のコールバック
 }
 
 // ログ設定
@@ -376,7 +379,41 @@ func (l *VybLogger) Error(msg string, args ...interface{}) {
 
 func (l *VybLogger) Fatal(msg string, args ...interface{}) {
 	l.log(FatalLevel, msg, args...)
-	os.Exit(1)
+	
+	// コールバックが設定されている場合は実行
+	if l.fatalCallback != nil {
+		l.fatalCallback()
+	}
+	
+	// テストモードでない場合のみ終了
+	if !l.testMode {
+		if l.exitHandler != nil {
+			l.exitHandler(1)
+		} else {
+			os.Exit(1)
+		}
+	}
+}
+
+// テストモードを設定（os.Exitを無効化）
+func (l *VybLogger) SetTestMode(enabled bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.testMode = enabled
+}
+
+// カスタム終了ハンドラーを設定
+func (l *VybLogger) SetExitHandler(handler func(int)) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.exitHandler = handler
+}
+
+// Fatalログ時のコールバックを設定
+func (l *VybLogger) SetFatalCallback(callback func()) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.fatalCallback = callback
 }
 
 // グローバルロガー

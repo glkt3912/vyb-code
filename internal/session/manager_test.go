@@ -31,7 +31,7 @@ func TestNewManager(t *testing.T) {
 func TestInitialize(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -54,7 +54,7 @@ func TestInitialize(t *testing.T) {
 func TestCreateSession(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -108,7 +108,7 @@ func TestCreateSession(t *testing.T) {
 func TestAddTurn(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -162,7 +162,7 @@ func TestAddTurn(t *testing.T) {
 func TestGetSession(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -203,7 +203,7 @@ func TestGetSession(t *testing.T) {
 func TestListSessions(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -239,7 +239,7 @@ func TestListSessions(t *testing.T) {
 func TestDeleteSession(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -281,7 +281,7 @@ func TestDeleteSession(t *testing.T) {
 func TestSwitchSession(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -316,7 +316,7 @@ func TestSwitchSession(t *testing.T) {
 func TestGetStats(t *testing.T) {
 	// テスト用の一時ディレクトリを作成
 	tempDir := t.TempDir()
-	
+
 	manager := &Manager{
 		sessionsDir: tempDir,
 		sessions:    make(map[string]*Session),
@@ -356,7 +356,7 @@ func TestGenerateSessionID(t *testing.T) {
 
 	title1 := "テストセッション1"
 	title2 := "テストセッション2"
-	
+
 	id1 := manager.generateSessionID(title1)
 	id2 := manager.generateSessionID(title2)
 

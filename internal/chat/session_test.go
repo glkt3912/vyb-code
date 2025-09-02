@@ -56,7 +56,7 @@ func (m *MockProvider) ListModels() ([]llm.ModelInfo, error) {
 	return []llm.ModelInfo{
 		{
 			Name:        "test-model",
-			Description: "Test Model", 
+			Description: "Test Model",
 			Size:        "14B",
 		},
 	}, nil
@@ -103,7 +103,7 @@ func TestProcessQuery(t *testing.T) {
 	mockProvider := NewMockProvider([]llm.ChatResponse{mockResponse})
 
 	session := NewSession(mockProvider, "test-model")
-	
+
 	// クエリを処理
 	query := "テストクエリ"
 	err := session.ProcessQuery(query)
@@ -145,7 +145,7 @@ func TestClearHistory(t *testing.T) {
 		Content: "テストメッセージ1",
 	})
 	session.messages = append(session.messages, llm.ChatMessage{
-		Role:    "assistant", 
+		Role:    "assistant",
 		Content: "テスト応答1",
 	})
 

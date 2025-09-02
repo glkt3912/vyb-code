@@ -15,10 +15,10 @@ func TestSetModel(t *testing.T) {
 
 	// モデル設定をテスト
 	testModel := "test-model:latest"
-	
+
 	// 関数を直接呼び出してテスト（出力は無視）
 	setModel(testModel)
-	
+
 	// 実際の設定ファイルから確認は統合テストで行う
 }
 
@@ -32,7 +32,7 @@ func TestSetProvider(t *testing.T) {
 
 	// プロバイダー設定をテスト
 	testProvider := "test-provider"
-	
+
 	// 関数を直接呼び出してテスト（出力は無視）
 	setProvider(testProvider)
 }
@@ -123,7 +123,7 @@ func TestAnalyzeProject(t *testing.T) {
 
 	// テスト用ファイルを作成
 	os.WriteFile("test.go", []byte("package main"), 0644)
-	
+
 	// プロジェクト分析をテスト（パニックしないことを確認）
 	analyzeProject()
 }

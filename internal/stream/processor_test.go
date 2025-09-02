@@ -106,7 +106,7 @@ func TestStartStream(t *testing.T) {
 // TestProcessChunk はチャンク処理をテストする
 func TestProcessChunk(t *testing.T) {
 	processor := NewProcessor()
-	
+
 	// ストリームを開始
 	stream := processor.StartStream("test", "test-model", nil)
 	if stream == nil {
@@ -179,7 +179,7 @@ func TestFlushContent(t *testing.T) {
 // TestProcessLLMStream はLLMストリーム処理をテストする
 func TestProcessLLMStream(t *testing.T) {
 	processor := NewProcessor()
-	
+
 	// ストリームを開始
 	stream := processor.StartStream("test", "test-model", nil)
 	if stream == nil {
@@ -209,7 +209,7 @@ func TestProcessLLMStream(t *testing.T) {
 	t.Run("コンテキストキャンセル", func(t *testing.T) {
 		// 新しいストリームを開始
 		processor.StartStream("test-cancel", "test-model", nil)
-		
+
 		input := "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n"
 		reader := strings.NewReader(input)
 		var output strings.Builder
@@ -227,7 +227,7 @@ func TestProcessLLMStream(t *testing.T) {
 // TestStreamStatusTransitions はストリームステータス遷移をテストする
 func TestStreamStatusTransitions(t *testing.T) {
 	processor := NewProcessor()
-	
+
 	// ストリームを開始
 	stream := processor.StartStream("test", "test-model", nil)
 	if stream.Status != StreamStatusStarting {
@@ -236,7 +236,7 @@ func TestStreamStatusTransitions(t *testing.T) {
 
 	// 完了処理をテスト
 	processor.handleStreamComplete()
-	
+
 	// メトリクスが更新されたことを確認
 	metrics := processor.GetMetrics()
 	if metrics.ActiveStreams != 0 {
@@ -252,7 +252,7 @@ func TestStreamStatusTransitions(t *testing.T) {
 // TestStreamError はストリームエラー処理をテストする
 func TestStreamError(t *testing.T) {
 	processor := NewProcessor()
-	
+
 	// ストリームを開始
 	processor.StartStream("test", "test-model", nil)
 
@@ -274,7 +274,7 @@ func TestStreamError(t *testing.T) {
 // TestStreamCancel はストリームキャンセル処理をテストする
 func TestStreamCancel(t *testing.T) {
 	processor := NewProcessor()
-	
+
 	// ストリームを開始
 	processor.StartStream("test", "test-model", nil)
 
@@ -312,7 +312,7 @@ func TestUpdateConfig(t *testing.T) {
 
 	// 無効な値でのテスト
 	processor.UpdateConfig(0, 0)
-	
+
 	// 値が変更されないことを確認
 	if processor.bufferSize != newBufferSize {
 		t.Error("無効な値でバッファサイズが変更されました")
@@ -363,7 +363,7 @@ func TestGetCurrentStream(t *testing.T) {
 
 	// ストリームを開始
 	stream := processor.StartStream("test", "test-model", nil)
-	
+
 	// 現在のストリームを取得
 	current = processor.GetCurrentStream()
 	if current == nil {

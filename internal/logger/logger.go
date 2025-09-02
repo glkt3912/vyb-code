@@ -379,12 +379,12 @@ func (l *VybLogger) Error(msg string, args ...interface{}) {
 
 func (l *VybLogger) Fatal(msg string, args ...interface{}) {
 	l.log(FatalLevel, msg, args...)
-	
+
 	// コールバックが設定されている場合は実行
 	if l.fatalCallback != nil {
 		l.fatalCallback()
 	}
-	
+
 	// テストモードでない場合のみ終了
 	if !l.testMode {
 		if l.exitHandler != nil {

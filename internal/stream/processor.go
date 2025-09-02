@@ -20,13 +20,13 @@ type Processor struct {
 	handlers      map[EventType]EventHandler
 	currentStream *Stream
 	metrics       StreamMetrics
-	
+
 	// パフォーマンス最適化
-	bufferPool    sync.Pool         // バッファプール
-	workerPool    chan struct{}     // ワーカープール
-	eventQueue    chan StreamEvent  // イベントキュー
-	maxWorkers    int               // 最大ワーカー数
-	queueSize     int               // キューサイズ
+	bufferPool sync.Pool        // バッファプール
+	workerPool chan struct{}    // ワーカープール
+	eventQueue chan StreamEvent // イベントキュー
+	maxWorkers int              // 最大ワーカー数
+	queueSize  int              // キューサイズ
 }
 
 // ストリーム情報
@@ -98,7 +98,7 @@ type StreamMetrics struct {
 func NewProcessor() *Processor {
 	maxWorkers := runtime.NumCPU()
 	queueSize := maxWorkers * 10
-	
+
 	p := &Processor{
 		bufferSize:    4096,
 		flushInterval: 50 * time.Millisecond,
@@ -109,17 +109,17 @@ func NewProcessor() *Processor {
 		workerPool:    make(chan struct{}, maxWorkers),
 		eventQueue:    make(chan StreamEvent, queueSize),
 	}
-	
+
 	// バッファプールを初期化
 	p.bufferPool = sync.Pool{
 		New: func() interface{} {
 			return &strings.Builder{}
 		},
 	}
-	
+
 	// イベント処理ワーカーを開始
 	go p.startEventWorkers()
-	
+
 	return p
 }
 
@@ -180,7 +180,7 @@ func (p *Processor) ProcessLLMStream(ctx context.Context, reader io.Reader, outp
 		pendingBuffer.Reset()
 		p.bufferPool.Put(pendingBuffer)
 	}()
-	
+
 	lastFlush := time.Now()
 
 	for {
@@ -417,7 +417,7 @@ func (p *Processor) processEvent(event StreamEvent) {
 	p.workerPool <- struct{}{}
 	go func() {
 		defer func() { <-p.workerPool }()
-		
+
 		p.mu.RLock()
 		handler, exists := p.handlers[event.Type]
 		p.mu.RUnlock()
@@ -493,7 +493,7 @@ func (p *Processor) Shutdown(ctx context.Context) error {
 	if p.currentStream != nil {
 		p.handleStreamComplete()
 	}
-	
+
 	// イベントキューを処理完了まで待機
 	done := make(chan struct{})
 	go func() {
@@ -502,7 +502,7 @@ func (p *Processor) Shutdown(ctx context.Context) error {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}()
-	
+
 	select {
 	case <-done:
 		return nil

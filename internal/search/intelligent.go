@@ -24,7 +24,7 @@ type IntelligentSearch struct {
 	engine      *Engine
 	astCache    map[string]*list.Element // LRUキャッシュ
 	astCacheMu  sync.RWMutex
-	lruList     *list.List               // LRU順序管理
+	lruList     *list.List // LRU順序管理
 	maxASTFiles int
 }
 
@@ -190,7 +190,7 @@ func (is *IntelligentSearch) getOrCreateASTInfo(filePath string) (*ASTInfo, erro
 		// LRUの先頭に移動
 		is.lruList.MoveToFront(element)
 		entry := element.Value.(*astCacheEntry)
-		
+
 		// TTLチェック
 		if time.Since(entry.timestamp) < 30*time.Minute {
 			is.astCacheMu.Unlock()
@@ -212,17 +212,17 @@ func (is *IntelligentSearch) getOrCreateASTInfo(filePath string) (*ASTInfo, erro
 	// キャッシュに保存（LRU管理）
 	is.astCacheMu.Lock()
 	defer is.astCacheMu.Unlock()
-	
+
 	if is.lruList.Len() >= is.maxASTFiles {
 		is.evictLRU()
 	}
-	
+
 	entry := &astCacheEntry{
 		key:       filePath,
 		value:     astInfo,
 		timestamp: time.Now(),
 	}
-	
+
 	element := is.lruList.PushFront(entry)
 	is.astCache[filePath] = element
 
@@ -665,7 +665,7 @@ func (is *IntelligentSearch) evictLRU() {
 	if is.lruList.Len() == 0 {
 		return
 	}
-	
+
 	// 最も古いエントリを削除
 	oldest := is.lruList.Back()
 	if oldest != nil {
@@ -701,12 +701,12 @@ func (is *IntelligentSearch) GetASTStats() map[string]interface{} {
 	defer is.astCacheMu.RUnlock()
 
 	stats := map[string]interface{}{
-		"cached_files":       len(is.astCache),
-		"max_files":          is.maxASTFiles,
-		"lru_list_length":    is.lruList.Len(),
-		"cache_utilization":  float64(len(is.astCache)) / float64(is.maxASTFiles) * 100,
+		"cached_files":      len(is.astCache),
+		"max_files":         is.maxASTFiles,
+		"lru_list_length":   is.lruList.Len(),
+		"cache_utilization": float64(len(is.astCache)) / float64(is.maxASTFiles) * 100,
 	}
-	
+
 	// キャッシュ効率性統計
 	expiredCount := 0
 	if is.lruList.Len() > 0 {
@@ -717,8 +717,8 @@ func (is *IntelligentSearch) GetASTStats() map[string]interface{} {
 			}
 		}
 	}
-	
+
 	stats["expired_entries"] = expiredCount
-	
+
 	return stats
 }

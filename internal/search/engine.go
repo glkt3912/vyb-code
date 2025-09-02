@@ -23,14 +23,14 @@ type Engine struct {
 	lastIndexTime     time.Time
 	maxFileSize       int64
 	intelligentSearch *IntelligentSearch // インテリジェント検索機能
-	
+
 	// パフォーマンス最適化
-	workerPool        chan struct{}     // ファイル処理ワーカープール
-	maxWorkers        int               // 最大並行処理数
-	fileContentCache  map[string][]string // ファイル内容キャッシュ
-	cacheMu           sync.RWMutex      // キャッシュ専用ミューテックス
-	cacheMaxSize      int               // キャッシュ最大サイズ
-	cacheTTL          time.Duration     // キャッシュ有効期限
+	workerPool       chan struct{}       // ファイル処理ワーカープール
+	maxWorkers       int                 // 最大並行処理数
+	fileContentCache map[string][]string // ファイル内容キャッシュ
+	cacheMu          sync.RWMutex        // キャッシュ専用ミューテックス
+	cacheMaxSize     int                 // キャッシュ最大サイズ
+	cacheTTL         time.Duration       // キャッシュ有効期限
 }
 
 // ファイル情報
@@ -69,17 +69,17 @@ type SearchOptions struct {
 // 新しい検索エンジンを作成
 func NewEngine(workspaceDir string) *Engine {
 	maxWorkers := runtime.NumCPU() * 2 // CPU数の2倍でI/O処理を最適化
-	
+
 	engine := &Engine{
-		workspaceDir:      workspaceDir,
-		excludePatterns:   compileDefaultExcludes(),
-		indexedFiles:      make(map[string]FileInfo),
-		maxFileSize:       10 * 1024 * 1024, // 10MB
-		maxWorkers:        maxWorkers,
-		workerPool:        make(chan struct{}, maxWorkers),
-		fileContentCache:  make(map[string][]string),
-		cacheMaxSize:      1000, // 最大1000ファイルをキャッシュ
-		cacheTTL:          30 * time.Minute, // 30分間キャッシュ
+		workspaceDir:     workspaceDir,
+		excludePatterns:  compileDefaultExcludes(),
+		indexedFiles:     make(map[string]FileInfo),
+		maxFileSize:      10 * 1024 * 1024, // 10MB
+		maxWorkers:       maxWorkers,
+		workerPool:       make(chan struct{}, maxWorkers),
+		fileContentCache: make(map[string][]string),
+		cacheMaxSize:     1000,             // 最大1000ファイルをキャッシュ
+		cacheTTL:         30 * time.Minute, // 30分間キャッシュ
 	}
 
 	// インテリジェント検索を初期化
@@ -240,20 +240,20 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 		}
 		filteredFiles = append(filteredFiles, fileInfo)
 	}
-	
+
 	// 並列検索処理
 	resultsChan := make(chan []SearchResult, len(filteredFiles))
 	var wg sync.WaitGroup
-	
+
 	for _, fileInfo := range filteredFiles {
 		wg.Add(1)
 		go func(fi FileInfo) {
 			defer wg.Done()
-			
+
 			// ワーカープール制御
 			e.workerPool <- struct{}{}
 			defer func() { <-e.workerPool }()
-			
+
 			fileResults, err := e.searchInFile(fi, searchRegex, options)
 			if err == nil {
 				resultsChan <- fileResults
@@ -262,13 +262,13 @@ func (e *Engine) SearchInFiles(options SearchOptions) ([]SearchResult, error) {
 			}
 		}(fileInfo)
 	}
-	
+
 	// 結果を待機して収集
 	go func() {
 		wg.Wait()
 		close(resultsChan)
 	}()
-	
+
 	for fileResults := range resultsChan {
 		results = append(results, fileResults...)
 		resultCount += len(fileResults)
@@ -304,7 +304,7 @@ func (e *Engine) searchInFile(fileInfo FileInfo, regex *regexp.Regexp, options S
 	}
 
 	var results []SearchResult
-	
+
 	// 各行をパターンマッチング
 	for lineNum, line := range lines {
 		matches := regex.FindAllStringIndex(line, -1)
@@ -337,7 +337,7 @@ func (e *Engine) getFileContentCached(filePath string) ([]string, error) {
 		return cached, nil
 	}
 	e.cacheMu.RUnlock()
-	
+
 	// ファイルを読み込み
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -347,15 +347,15 @@ func (e *Engine) getFileContentCached(filePath string) ([]string, error) {
 
 	var lines []string
 	scanner := bufio.NewScanner(file)
-	
+
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	
+
 	// キャッシュに保存
 	e.cacheMu.Lock()
 	if len(e.fileContentCache) >= e.cacheMaxSize {
@@ -363,7 +363,7 @@ func (e *Engine) getFileContentCached(filePath string) ([]string, error) {
 	}
 	e.fileContentCache[filePath] = lines
 	e.cacheMu.Unlock()
-	
+
 	return lines, nil
 }
 
@@ -701,7 +701,7 @@ func (e *Engine) ClearIntelligentCache() {
 func (e *Engine) ClearFileCache() {
 	e.cacheMu.Lock()
 	defer e.cacheMu.Unlock()
-	
+
 	e.fileContentCache = make(map[string][]string)
 }
 
@@ -709,7 +709,7 @@ func (e *Engine) ClearFileCache() {
 func (e *Engine) GetCacheStats() map[string]interface{} {
 	e.cacheMu.RLock()
 	defer e.cacheMu.RUnlock()
-	
+
 	return map[string]interface{}{
 		"file_cache_size":     len(e.fileContentCache),
 		"file_cache_max_size": e.cacheMaxSize,
@@ -723,7 +723,7 @@ func (e *Engine) IndexProjectParallel(ctx context.Context) error {
 	defer e.mu.Unlock()
 
 	e.indexedFiles = make(map[string]FileInfo)
-	
+
 	// ファイルリストを収集
 	var filePaths []string
 	err := filepath.Walk(e.workspaceDir, func(path string, info os.FileInfo, err error) error {
@@ -737,24 +737,24 @@ func (e *Engine) IndexProjectParallel(ctx context.Context) error {
 		}
 		return nil
 	})
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	// 並列処理でファイル情報を作成
 	resultChan := make(chan FileInfo, len(filePaths))
 	var wg sync.WaitGroup
-	
+
 	for _, path := range filePaths {
 		wg.Add(1)
 		go func(filePath string) {
 			defer wg.Done()
-			
+
 			// ワーカープール制御
 			e.workerPool <- struct{}{}
 			defer func() { <-e.workerPool }()
-			
+
 			if fileInfo, err := e.processFileInfo(filePath); err == nil {
 				select {
 				case resultChan <- fileInfo:
@@ -764,13 +764,13 @@ func (e *Engine) IndexProjectParallel(ctx context.Context) error {
 			}
 		}(path)
 	}
-	
+
 	// 結果を収集
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	
+
 	for {
 		select {
 		case fileInfo, ok := <-resultChan:
@@ -791,7 +791,7 @@ func (e *Engine) processFileInfo(path string) (FileInfo, error) {
 	if err != nil {
 		return FileInfo{}, err
 	}
-	
+
 	relPath, _ := filepath.Rel(e.workspaceDir, path)
 	fileInfo := FileInfo{
 		Path:         path,
@@ -809,6 +809,6 @@ func (e *Engine) processFileInfo(path string) (FileInfo, error) {
 			fileInfo.Indexed = true
 		}
 	}
-	
+
 	return fileInfo, nil
 }

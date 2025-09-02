@@ -276,7 +276,7 @@ func init() {
 	mcpCmd.AddCommand(mcpToolsCmd)
 	mcpCmd.AddCommand(mcpDisconnectCmd)
 	mcpCmd.AddCommand(mcpAddCmd)
-	
+
 	healthCmd.AddCommand(healthCheckCmd)
 	healthCmd.AddCommand(diagnosticsCmd)
 }
@@ -921,12 +921,12 @@ func min(a, b int) int {
 // ヘルスチェック実行の実装関数
 func runHealthCheck() {
 	fmt.Println("🏥 vyb-code ヘルスチェック開始...")
-	
+
 	checker := diagnostic.NewHealthChecker()
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	report := checker.RunHealthChecks(ctx)
 	checker.DisplayHealthStatus(report)
 }
@@ -934,9 +934,9 @@ func runHealthCheck() {
 // 診断実行の実装関数
 func runDiagnostics() {
 	checker := diagnostic.NewHealthChecker()
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	
+
 	checker.RunDiagnostics(ctx)
 }

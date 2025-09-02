@@ -11,9 +11,9 @@ import (
 
 // MCPツールセキュリティバリデーター
 type ToolSecurityValidator struct {
-	constraints   *security.Constraints
-	whitelist     map[string]bool // 許可されたツール名
-	blacklist     map[string]bool // 禁止されたツール名
+	constraints  *security.Constraints
+	whitelist    map[string]bool // 許可されたツール名
+	blacklist    map[string]bool // 禁止されたツール名
 	rateLimiter  *RateLimiter    // レート制限機能
 	auditLogger  *AuditLogger    // 監査ログ機能
 	riskAnalyzer *RiskAnalyzer   // リスク分析機能
@@ -21,8 +21,8 @@ type ToolSecurityValidator struct {
 
 // レート制限機能
 type RateLimiter struct {
-	mu            sync.RWMutex
-	toolCallCount map[string][]time.Time // ツール毎の呼び出し時刻
+	mu                sync.RWMutex
+	toolCallCount     map[string][]time.Time // ツール毎の呼び出し時刻
 	maxCallsPerMinute int
 	windowDuration    time.Duration
 }
@@ -40,7 +40,7 @@ type SecurityEvent struct {
 	EventType   string                 `json:"eventType"`
 	ToolName    string                 `json:"toolName"`
 	Arguments   map[string]interface{} `json:"arguments"`
-	Action      string                 `json:"action"`     // "allowed", "denied", "warning"
+	Action      string                 `json:"action"` // "allowed", "denied", "warning"
 	Reason      string                 `json:"reason"`
 	RiskScore   float64                `json:"riskScore"`
 	SessionInfo string                 `json:"sessionInfo"`
@@ -48,7 +48,7 @@ type SecurityEvent struct {
 
 // リスク分析機能
 type RiskAnalyzer struct {
-	mu                 sync.RWMutex
+	mu                sync.RWMutex
 	recentTools       []string
 	toolCombinations  map[string]float64 // ツール組み合わせのリスクスコア
 	highRiskThreshold float64
@@ -61,8 +61,8 @@ func NewToolSecurityValidator(constraints *security.Constraints) *ToolSecurityVa
 		whitelist:    make(map[string]bool),
 		blacklist:    make(map[string]bool),
 		rateLimiter:  NewRateLimiter(60, time.Minute), // 1分間に60回まで
-		auditLogger:  NewAuditLogger(1000),             // 最大1000イベントを記録
-		riskAnalyzer: NewRiskAnalyzer(8.0),             // 高リスク闾値: 8.0
+		auditLogger:  NewAuditLogger(1000),            // 最大1000イベントを記録
+		riskAnalyzer: NewRiskAnalyzer(8.0),            // 高リスク闾値: 8.0
 	}
 }
 
@@ -278,7 +278,7 @@ func (rl *RateLimiter) AllowCall(toolName string) bool {
 	defer rl.mu.Unlock()
 
 	now := time.Now()
-	
+
 	// 古い呼び出し記録を削除
 	if calls, exists := rl.toolCallCount[toolName]; exists {
 		var validCalls []time.Time
@@ -345,7 +345,7 @@ func (ra *RiskAnalyzer) RecordToolUse(toolName string) {
 	defer ra.mu.Unlock()
 
 	ra.recentTools = append(ra.recentTools, toolName)
-	
+
 	// 最新10件のみ保持
 	if len(ra.recentTools) > 10 {
 		ra.recentTools = ra.recentTools[len(ra.recentTools)-10:]
@@ -397,7 +397,7 @@ func (ra *RiskAnalyzer) getArgumentRisk(arguments map[string]interface{}) float6
 
 	for key, value := range arguments {
 		keyLower := strings.ToLower(key)
-		
+
 		// ファイルパス関連の引数
 		if strings.Contains(keyLower, "path") || strings.Contains(keyLower, "file") {
 			if pathStr, ok := value.(string); ok {
@@ -429,13 +429,13 @@ func (ra *RiskAnalyzer) getArgumentRisk(arguments map[string]interface{}) float6
 func (ra *RiskAnalyzer) containsDangerousPattern(toolName string) bool {
 	dangerousPatterns := []string{"exec", "shell", "system", "admin", "root", "delete", "kill"}
 	toolLower := strings.ToLower(toolName)
-	
+
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(toolLower, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -453,7 +453,7 @@ func initializeRiskCombinations() map[string]float64 {
 // セキュリティ統計情報を取得
 func (v *ToolSecurityValidator) GetSecurityStats() map[string]interface{} {
 	stats := make(map[string]interface{})
-	
+
 	// レート制限統計
 	v.rateLimiter.mu.RLock()
 	stats["rate_limit_tool_count"] = len(v.rateLimiter.toolCallCount)
@@ -462,7 +462,7 @@ func (v *ToolSecurityValidator) GetSecurityStats() map[string]interface{} {
 	// 監査ログ統計
 	v.auditLogger.mu.RLock()
 	stats["total_events"] = len(v.auditLogger.events)
-	
+
 	// イベント種類別集計
 	eventTypes := make(map[string]int)
 	for _, event := range v.auditLogger.events {

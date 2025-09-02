@@ -78,6 +78,26 @@ var listConfigCmd = &cobra.Command{
 	},
 }
 
+// ログレベル設定コマンド
+var setLogLevelCmd = &cobra.Command{
+	Use:   "set-log-level [level]",
+	Short: "Set log level (debug, info, warn, error)",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		setLogLevel(args[0])
+	},
+}
+
+// ログフォーマット設定コマンド
+var setLogFormatCmd = &cobra.Command{
+	Use:   "set-log-format [format]",
+	Short: "Set log format (console, json)",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		setLogFormat(args[0])
+	},
+}
+
 // コマンド実行機能
 var execCmd = &cobra.Command{
 	Use:   "exec [command]",
@@ -218,6 +238,8 @@ func init() {
 	configCmd.AddCommand(setModelCmd)
 	configCmd.AddCommand(setProviderCmd)
 	configCmd.AddCommand(listConfigCmd)
+	configCmd.AddCommand(setLogLevelCmd)
+	configCmd.AddCommand(setLogFormatCmd)
 
 	gitCmd.AddCommand(gitStatusCmd)
 	gitCmd.AddCommand(gitBranchCmd)
@@ -325,6 +347,41 @@ func listConfig() {
 	fmt.Printf("  ベースURL: %s\n", cfg.BaseURL)
 	fmt.Printf("  タイムアウト: %d秒\n", cfg.Timeout)
 	fmt.Printf("  最大ファイルサイズ: %d MB\n", cfg.MaxFileSize/(1024*1024))
+	fmt.Printf("  ログレベル: %s\n", cfg.Logging.Level)
+	fmt.Printf("  ログフォーマット: %s\n", cfg.Logging.Format)
+	fmt.Printf("  ログ出力先: %v\n", cfg.Logging.Output)
+}
+
+// ログレベルを設定する実装関数
+func setLogLevel(level string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	if err := cfg.SetLogLevel(level); err != nil {
+		fmt.Printf("ログレベル設定エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("ログレベルを %s に設定しました\n", level)
+}
+
+// ログフォーマットを設定する実装関数
+func setLogFormat(format string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	if err := cfg.SetLogFormat(format); err != nil {
+		fmt.Printf("ログフォーマット設定エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("ログフォーマットを %s に設定しました\n", format)
 }
 
 // コマンド実行の実装関数

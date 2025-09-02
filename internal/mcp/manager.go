@@ -3,6 +3,8 @@ package mcp
 import (
 	"fmt"
 	"sync"
+
+	"github.com/glkt/vyb-code/internal/logger"
 )
 
 // MCPマネージャー：複数のMCPサーバーを管理
@@ -12,31 +14,36 @@ type Manager struct {
 	logger  Logger
 }
 
-// シンプルなLogger実装
-type SimpleLogger struct{}
-
-func (l *SimpleLogger) Debug(msg string, args ...interface{}) {
-	fmt.Printf("[DEBUG] "+msg+"\n", args...)
-}
-
-func (l *SimpleLogger) Info(msg string, args ...interface{}) {
-	fmt.Printf("[INFO] "+msg+"\n", args...)
-}
-
-func (l *SimpleLogger) Warn(msg string, args ...interface{}) {
-	fmt.Printf("[WARN] "+msg+"\n", args...)
-}
-
-func (l *SimpleLogger) Error(msg string, args ...interface{}) {
-	fmt.Printf("[ERROR] "+msg+"\n", args...)
-}
-
 // 新しいMCPマネージャーを作成
 func NewManager() *Manager {
+	// 構造化ロガーを使用
+	vybLogger := logger.WithComponent("mcp")
+
 	return &Manager{
 		clients: make(map[string]*Client),
-		logger:  &SimpleLogger{},
+		logger:  &StructuredLoggerAdapter{vybLogger: vybLogger},
 	}
+}
+
+// VybLoggerをMCP Logger interfaceに適合させるアダプター
+type StructuredLoggerAdapter struct {
+	vybLogger *logger.VybLogger
+}
+
+func (s *StructuredLoggerAdapter) Debug(msg string, args ...interface{}) {
+	s.vybLogger.Debug(msg, args...)
+}
+
+func (s *StructuredLoggerAdapter) Info(msg string, args ...interface{}) {
+	s.vybLogger.Info(msg, args...)
+}
+
+func (s *StructuredLoggerAdapter) Warn(msg string, args ...interface{}) {
+	s.vybLogger.Warn(msg, args...)
+}
+
+func (s *StructuredLoggerAdapter) Error(msg string, args ...interface{}) {
+	s.vybLogger.Error(msg, args...)
 }
 
 // サーバーに接続

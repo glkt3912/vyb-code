@@ -160,8 +160,8 @@ type VybLogger struct {
 // ログ設定
 type Config struct {
 	Level         Level             `json:"level"`
-	Format        string            `json:"format"`        // "console", "json"
-	Output        []string          `json:"output"`        // "stdout", "stderr", "file:/path/to/log"
+	Format        string            `json:"format"` // "console", "json"
+	Output        []string          `json:"output"` // "stdout", "stderr", "file:/path/to/log"
 	ShowCaller    bool              `json:"show_caller"`
 	ShowTimestamp bool              `json:"show_timestamp"`
 	ColorEnabled  bool              `json:"color_enabled"`
@@ -232,7 +232,7 @@ func parseOutput(output string) (io.Writer, error) {
 	default:
 		if strings.HasPrefix(output, "file:") {
 			filePath := strings.TrimPrefix(output, "file:")
-			
+
 			// ディレクトリが存在しない場合は作成
 			dir := filepath.Dir(filePath)
 			if err := os.MkdirAll(dir, 0755); err != nil {
@@ -267,7 +267,7 @@ func (l *VybLogger) SetComponent(component string) {
 func (l *VybLogger) WithContext(key string, value interface{}) *VybLogger {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	// コンテキストのコピーを作成
 	newContext := make(map[string]interface{})
 	for k, v := range l.context {
@@ -289,7 +289,7 @@ func (l *VybLogger) WithContext(key string, value interface{}) *VybLogger {
 func (l *VybLogger) WithFields(fields map[string]interface{}) *VybLogger {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	// コンテキストのコピーを作成
 	newContext := make(map[string]interface{})
 	for k, v := range l.context {

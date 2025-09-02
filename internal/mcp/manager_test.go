@@ -2,7 +2,7 @@ package mcp
 
 import (
 	"testing"
-	
+
 	"github.com/glkt/vyb-code/internal/logger"
 )
 
@@ -57,12 +57,12 @@ func TestHealthCheck(t *testing.T) {
 func TestStructuredLoggerAdapter(t *testing.T) {
 	config := logger.DefaultConfig()
 	config.Component = "test"
-	
+
 	vybLogger, err := logger.NewLogger(config)
 	if err != nil {
 		t.Fatalf("ロガー作成エラー: %v", err)
 	}
-	
+
 	adapter := &StructuredLoggerAdapter{vybLogger: vybLogger}
 
 	// ログメソッドが正常に実行されることを確認

@@ -18,7 +18,7 @@ type Manager struct {
 func NewManager() *Manager {
 	// 構造化ロガーを使用
 	vybLogger := logger.WithComponent("mcp")
-	
+
 	return &Manager{
 		clients: make(map[string]*Client),
 		logger:  &StructuredLoggerAdapter{vybLogger: vybLogger},

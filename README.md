@@ -6,6 +6,10 @@
 
 ## 特徴
 
+- **🎨 モダンTUI**: Bubble Teaフレームワークによる美しいターミナルUI体験
+- **🔄 後方互換性**: `--no-tui`フラグで従来のテキストモードも利用可能
+- **🎵 ブランドテーマ**: vybオリジナルカラーパレットによる視覚的アイデンティティ
+- **⚡ リアルタイム表示**: プログレスバーとスピナーによる処理状況の可視化
 - **プライバシー重視**: 全ての処理がローカルで実行 - 外部にデータを送信しません
 - **対話型CLI**: 自然な会話形式でのコーディング支援
 - **セキュアなコマンド実行**: ホワイトリスト制御と30秒タイムアウト
@@ -68,23 +72,36 @@ vyb config list
 # モデル設定
 vyb config set-model qwen2.5-coder:14b
 
-# 対話モード開始
+# 🎨 TUIモード（デフォルト）- モダンなターミナルUI体験
+vyb chat
 vyb
-> exit  # 終了
+
+# 📟 レガシーモード - 従来のテキストベース
+vyb chat --no-tui
+vyb --no-tui
+
+# 🎵 テーマ設定
+vyb config set-tui-theme vyb       # vybブランドテーマ
+vyb config set-tui-theme dark      # ダークテーマ  
+vyb config set-tui-theme light     # ライトテーマ
+
+# ⚙️ TUI設定
+vyb config set-tui true            # TUIモード有効化
+vyb config set-tui false           # TUIモード無効化
 
 # 単発質問
 vyb "GoでWebサーバーを作成して"
 
-# コマンド実行
+# コマンド実行（プログレスバー表示）
 vyb exec "ls -la"
 vyb exec "go version"
 
-# Git操作
+# Git操作（スピナー表示）
 vyb git status
 vyb git branch new-feature
 vyb git commit "feat: add new functionality"
 
-# プロジェクト分析
+# プロジェクト分析（進捗表示）
 vyb analyze
 
 # MCP（Model Context Protocol）操作
@@ -155,8 +172,18 @@ docker run -d --name ollama-vyb-gpu --gpus all -p 11434:11434 -v ollama-vyb:/roo
 - ✅ ストリーミング応答処理（リアルタイムLLM出力）
 - ✅ 包括的セキュリティ強化（悪意あるLLM応答対策）
 - ✅ 高度CLI統合（後方互換性維持）
+- ✅ **モダンTUI統合**（Bubble Teaフレームワーク、テーマシステム）
 
 ## 新機能詳細（Phase 4）
+
+### 🎨 モダンTUI (`internal/ui/`)
+
+Bubble Teaフレームワークによる本格的なターミナルUI体験を提供：
+
+- **テーマシステム**: vybブランド、ダーク、ライトテーマの自動切り替え
+- **インタラクティブコンポーネント**: プログレスバー、スピナー、メニューシステム
+- **リアルタイム表示**: 処理状況の視覚的フィードバック
+- **完全後方互換**: `--no-tui`フラグで従来モード継続利用可能
 
 ### 🔧 MCP統合 (`internal/mcp/`)
 

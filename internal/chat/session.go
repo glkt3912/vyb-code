@@ -16,13 +16,13 @@ import (
 
 // 会話セッションを管理する構造体
 type Session struct {
-	provider      llm.Provider      // LLMプロバイダー
-	messages      []llm.ChatMessage // 会話履歴
-	model         string            // 使用するモデル名
-	mcpManager    *mcp.Manager      // MCPマネージャー
-	workDir       string            // 作業ディレクトリ
-	contextFiles  []string          // コンテキストファイル一覧
-	projectInfo   *ProjectContext   // プロジェクト情報
+	provider     llm.Provider      // LLMプロバイダー
+	messages     []llm.ChatMessage // 会話履歴
+	model        string            // 使用するモデル名
+	mcpManager   *mcp.Manager      // MCPマネージャー
+	workDir      string            // 作業ディレクトリ
+	contextFiles []string          // コンテキストファイル一覧
+	projectInfo  *ProjectContext   // プロジェクト情報
 }
 
 // プロジェクトコンテキスト情報
@@ -38,7 +38,7 @@ type ProjectContext struct {
 // 新しい会話セッションを作成
 func NewSession(provider llm.Provider, model string) *Session {
 	workDir, _ := os.Getwd()
-	
+
 	session := &Session{
 		provider:     provider,
 		messages:     make([]llm.ChatMessage, 0),
@@ -47,10 +47,10 @@ func NewSession(provider llm.Provider, model string) *Session {
 		workDir:      workDir,
 		contextFiles: make([]string, 0),
 	}
-	
+
 	// プロジェクト情報を初期化
 	session.initializeProjectContext()
-	
+
 	return session
 }
 
@@ -221,7 +221,7 @@ func (s *Session) StartEnhancedTerminal() error {
 
 		// Claude Code風ストリーミング応答で送信
 		err = s.sendToLLMStreamingWithThinking(stopThinking)
-		
+
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			continue
@@ -238,7 +238,7 @@ func (s *Session) StartEnhancedTerminal() error {
 func (s *Session) readMultilineInput(reader *bufio.Reader) (string, error) {
 	// 日本語入力（IME）対応のため、行ベース入力を使用
 	var lines []string
-	
+
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -263,7 +263,7 @@ func (s *Session) readMultilineInput(reader *bufio.Reader) (string, error) {
 		if line == "" {
 			return strings.Join(lines, "\n"), nil
 		}
-		
+
 		lines = append(lines, line)
 	}
 }
@@ -281,7 +281,7 @@ func (s *Session) readSimpleInput(reader *bufio.Reader) (string, error) {
 func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 	// リクエスト開始時間を記録
 	startTime := time.Now()
-	
+
 	// チャットリクエストを作成
 	req := llm.ChatRequest{
 		Model:    s.model,
@@ -292,26 +292,26 @@ func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 	// LLMプロバイダーにリクエスト送信
 	ctx := context.Background()
 	resp, err := s.provider.Chat(ctx, req)
-	
+
 	// レスポンス受信後、thinking状態を停止
 	stopThinking()
-	
+
 	if err != nil {
 		return fmt.Errorf("LLM request failed: %w", err)
 	}
-	
+
 	// レスポンス時間を計算
 	duration := time.Since(startTime)
-	
+
 	// Claude Code風のクリーンなレスポンス表示
 	content := resp.Message.Content
-	
+
 	// Markdown対応のレスポンス表示
 	s.displayFormattedResponse(content)
 
 	// 最終改行
 	fmt.Println()
-	
+
 	// メタ情報表示（Claude Code風）
 	s.displayMetaInfo(duration, len(content))
 
@@ -326,15 +326,15 @@ func (s *Session) startThinkingAnimation() func() {
 	// アニメーション用の文字列
 	frames := []string{"thinking", "thinking.", "thinking..", "thinking..."}
 	frameIndex := 0
-	
+
 	// 停止チャネル
 	stopCh := make(chan struct{})
-	
+
 	// アニメーションゴルーチンを開始
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-stopCh:
@@ -348,7 +348,7 @@ func (s *Session) startThinkingAnimation() func() {
 			}
 		}
 	}()
-	
+
 	// 停止関数を返す
 	return func() {
 		close(stopCh)
@@ -361,13 +361,13 @@ func (s *Session) startThinkingAnimation() func() {
 // プロジェクトコンテキストを初期化
 func (s *Session) initializeProjectContext() {
 	s.projectInfo = &ProjectContext{}
-	
+
 	// プロジェクト言語を検出
 	s.projectInfo.Language = s.detectProjectLanguage()
-	
+
 	// Gitブランチを取得
 	s.projectInfo.GitBranch = s.getCurrentGitBranch()
-	
+
 	// 依存関係を取得
 	s.projectInfo.Dependencies = s.getProjectDependencies()
 }
@@ -402,19 +402,19 @@ func (s *Session) getCurrentGitBranch() string {
 // プロジェクト依存関係を取得
 func (s *Session) getProjectDependencies() []string {
 	deps := make([]string, 0)
-	
+
 	// Go依存関係
 	if _, err := os.Stat("go.mod"); err == nil {
 		deps = append(deps, "cobra", "bubbletea")
 	}
-	
+
 	return deps
 }
 
 // LLMリクエストにコンテキスト情報を追加
 func (s *Session) buildContextualPrompt(userInput string) string {
 	var contextBuilder strings.Builder
-	
+
 	// プロジェクト情報をコンテキストに追加
 	if s.projectInfo != nil {
 		contextBuilder.WriteString(fmt.Sprintf("# Project Context\n"))
@@ -428,10 +428,10 @@ func (s *Session) buildContextualPrompt(userInput string) string {
 		}
 		contextBuilder.WriteString("\n---\n\n")
 	}
-	
+
 	// ユーザー入力を追加
 	contextBuilder.WriteString(userInput)
-	
+
 	return contextBuilder.String()
 }
 
@@ -442,9 +442,9 @@ func (s *Session) printWelcomeMessage() {
 	blue := "\033[34m"
 	cyan := "\033[36m"
 	reset := "\033[0m"
-	
+
 	fmt.Printf("%s%svyb%s %s- Feel the rhythm of perfect code%s\n\n", bold, blue, reset, cyan, reset)
-	
+
 	// プロジェクト情報を簡潔に表示
 	if s.projectInfo != nil {
 		workDirName := filepath.Base(s.workDir)
@@ -457,7 +457,7 @@ func (s *Session) printColoredPrompt() {
 	// ANSIカラーコード
 	green := "\033[32m"
 	reset := "\033[0m"
-	
+
 	fmt.Printf("%s>%s ", green, reset)
 }
 
@@ -466,15 +466,15 @@ func (s *Session) displayMetaInfo(duration time.Duration, contentLength int) {
 	// ANSIカラーコード
 	gray := "\033[90m"
 	reset := "\033[0m"
-	
+
 	// 簡易的なトークン数推定（文字数÷4）
 	estimatedTokens := contentLength / 4
-	
+
 	// Claude Code風のメタ情報表示（グレー色）
-	fmt.Printf("\n%s🕒 %dms • 📝 ~%d tokens • 🤖 %s%s\n\n", 
+	fmt.Printf("\n%s🕒 %dms • 📝 ~%d tokens • 🤖 %s%s\n\n",
 		gray,
-		duration.Milliseconds(), 
-		estimatedTokens, 
+		duration.Milliseconds(),
+		estimatedTokens,
 		s.model,
 		reset)
 }
@@ -484,7 +484,7 @@ func (s *Session) displayFormattedResponse(content string) {
 	lines := strings.Split(content, "\n")
 	inCodeBlock := false
 	codeLanguage := ""
-	
+
 	for _, line := range lines {
 		// コードブロック開始の検出
 		if strings.HasPrefix(line, "```") {
@@ -500,7 +500,7 @@ func (s *Session) displayFormattedResponse(content string) {
 			}
 			continue
 		}
-		
+
 		if inCodeBlock {
 			// コードブロック内
 			s.printCodeLine(line)
@@ -508,7 +508,7 @@ func (s *Session) displayFormattedResponse(content string) {
 			// 通常テキスト（Markdown強調対応）
 			s.printFormattedLine(line)
 		}
-		
+
 		// Claude風タイピング効果
 		time.Sleep(time.Millisecond * 2)
 	}
@@ -518,7 +518,7 @@ func (s *Session) displayFormattedResponse(content string) {
 func (s *Session) printCodeBlockHeader(language string) {
 	gray := "\033[90m"
 	reset := "\033[0m"
-	
+
 	if language != "" {
 		fmt.Printf("\n%s┌─ %s ─%s\n", gray, language, reset)
 	} else {
@@ -530,7 +530,7 @@ func (s *Session) printCodeBlockHeader(language string) {
 func (s *Session) printCodeBlockFooter() {
 	gray := "\033[90m"
 	reset := "\033[0m"
-	
+
 	fmt.Printf("%s└────────%s\n\n", gray, reset)
 }
 
@@ -540,7 +540,7 @@ func (s *Session) printCodeLine(line string) {
 	yellow := "\033[93m"
 	green := "\033[92m"
 	reset := "\033[0m"
-	
+
 	// 簡易シンタックスハイライト
 	if strings.Contains(line, "func ") {
 		line = strings.ReplaceAll(line, "func ", blue+"func "+reset)
@@ -551,7 +551,7 @@ func (s *Session) printCodeLine(line string) {
 	if strings.Contains(line, "package ") {
 		line = strings.ReplaceAll(line, "package ", green+"package "+reset)
 	}
-	
+
 	fmt.Printf("│ %s\n", line)
 }
 
@@ -574,6 +574,6 @@ func (s *Session) printFormattedLine(line string) {
 		}
 		line = result
 	}
-	
+
 	fmt.Println(line)
 }

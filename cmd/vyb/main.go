@@ -1213,4 +1213,3 @@ func autoTest() {
 
 	fmt.Println("❌ テストフレームワークが検出できませんでした")
 }
-

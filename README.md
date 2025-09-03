@@ -106,6 +106,20 @@ vyb mcp disconnect filesystem
 - Go 1.20以上
 - ローカルLLMプロバイダ（Ollama推奨）
 - 8GB+のRAM（小さなモデル用）、16GB+（大きなモデル用）
+- **GPU加速（推奨）**: NVIDIA GPU 8GB+ VRAM、CUDA 11.8+
+
+### 🚀 GPU加速化セットアップ
+
+GPU加速により **78%のパフォーマンス向上** を実現できます（qwen2.5-coder:14b で 13.4秒 → 3.2秒）。
+
+```bash
+# クイックセットアップ
+docker run -d --name ollama-vyb-gpu --gpus all -p 11434:11434 -v ollama-vyb:/root/.ollama ollama/ollama
+./vyb config set-model qwen2.5-coder:14b
+```
+
+詳細な設定手順: [GPU Setup Guide](docs/gpu-setup.md)  
+パフォーマンス詳細: [Performance Benchmarks](docs/performance-benchmarks.md)
 
 ## プロジェクトステータス
 

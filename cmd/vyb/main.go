@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/diagnostic"
@@ -15,6 +16,7 @@ import (
 	"github.com/glkt/vyb-code/internal/search"
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/tools"
+	"github.com/glkt/vyb-code/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -25,13 +27,16 @@ var rootCmd = &cobra.Command{
 	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
 	Version: GetVersionString(),
 	Run: func(cmd *cobra.Command, args []string) {
+		// --no-tuiフラグをチェック
+		noTUI, _ := cmd.Flags().GetBool("no-tui")
+
 		if len(args) == 0 {
 			// 引数なし：対話モード開始
-			startInteractiveMode()
+			startInteractiveMode(noTUI)
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
-			processSingleQuery(query)
+			processSingleQuery(query, noTUI)
 		}
 	},
 }
@@ -41,7 +46,8 @@ var chatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Start interactive chat mode",
 	Run: func(cmd *cobra.Command, args []string) {
-		startInteractiveMode()
+		noTUI, _ := cmd.Flags().GetBool("no-tui")
+		startInteractiveMode(noTUI)
 	},
 }
 
@@ -98,6 +104,27 @@ var setLogFormatCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		setLogFormat(args[0])
+	},
+}
+
+// TUI有効/無効設定コマンド
+var setTUIEnabledCmd = &cobra.Command{
+	Use:   "set-tui [enabled]",
+	Short: "Enable or disable TUI mode (true, false)",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		enabled := args[0] == "true"
+		setTUIEnabled(enabled)
+	},
+}
+
+// TUIテーマ設定コマンド
+var setTUIThemeCmd = &cobra.Command{
+	Use:   "set-tui-theme [theme]",
+	Short: "Set TUI theme (dark, light, vyb, auto)",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		setTUITheme(args[0])
 	},
 }
 
@@ -256,6 +283,12 @@ func init() {
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(healthCmd)
 
+	// メインコマンドのフラグ
+	rootCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
+
+	// チャットコマンドのフラグ
+	chatCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
+
 	// 検索コマンドのフラグ
 	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
 	searchCmd.Flags().Int("max-results", 50, "Maximum number of results to return")
@@ -266,6 +299,8 @@ func init() {
 	configCmd.AddCommand(listConfigCmd)
 	configCmd.AddCommand(setLogLevelCmd)
 	configCmd.AddCommand(setLogFormatCmd)
+	configCmd.AddCommand(setTUIEnabledCmd)
+	configCmd.AddCommand(setTUIThemeCmd)
 
 	gitCmd.AddCommand(gitStatusCmd)
 	gitCmd.AddCommand(gitBranchCmd)
@@ -289,15 +324,36 @@ func main() {
 }
 
 // 対話モードを開始する実装関数
-func startInteractiveMode() {
-	fmt.Println("🎵 vyb - Feel the rhythm of perfect code")
-
+func startInteractiveMode(noTUI bool) {
 	// 設定を読み込み
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("設定読み込みエラー: %v\n", err)
 		return
 	}
+
+	// TUIモードの判定
+	useTUI := cfg.TUI.Enabled && !noTUI
+
+	if useTUI {
+		// TUIモードで開始
+		app := ui.NewSimpleApp(cfg.TUI)
+		program := tea.NewProgram(app, tea.WithAltScreen())
+
+		if _, err := program.Run(); err != nil {
+			fmt.Printf("TUIエラー: %v\n", err)
+			// フォールバックで通常モード
+			startLegacyInteractiveMode(cfg)
+		}
+	} else {
+		// 従来の対話モード
+		startLegacyInteractiveMode(cfg)
+	}
+}
+
+// 従来の対話モード（TUI無効時）
+func startLegacyInteractiveMode(cfg *config.Config) {
+	fmt.Println("🎵 vyb - Feel the rhythm of perfect code")
 
 	// LLMクライアントを作成
 	provider := llm.NewOllamaClient(cfg.BaseURL)
@@ -310,7 +366,7 @@ func startInteractiveMode() {
 }
 
 // 単発クエリを処理する実装関数
-func processSingleQuery(query string) {
+func processSingleQuery(query string, noTUI bool) {
 	fmt.Printf("Processing: %s\n", query)
 
 	// 設定を読み込み
@@ -379,6 +435,17 @@ func listConfig() {
 	fmt.Printf("  ログレベル: %s\n", cfg.Logging.Level)
 	fmt.Printf("  ログフォーマット: %s\n", cfg.Logging.Format)
 	fmt.Printf("  ログ出力先: %v\n", cfg.Logging.Output)
+
+	fmt.Println("\nTUI設定:")
+	tuiStatus := "無効"
+	if cfg.TUI.Enabled {
+		tuiStatus = "有効"
+	}
+	fmt.Printf("  TUIモード: %s\n", tuiStatus)
+	fmt.Printf("  テーマ: %s\n", cfg.TUI.Theme)
+	fmt.Printf("  スピナー表示: %t\n", cfg.TUI.ShowSpinner)
+	fmt.Printf("  プログレスバー表示: %t\n", cfg.TUI.ShowProgress)
+	fmt.Printf("  アニメーション: %t\n", cfg.TUI.Animation)
 }
 
 // ログレベルを設定する実装関数
@@ -411,6 +478,42 @@ func setLogFormat(format string) {
 	}
 
 	fmt.Printf("ログフォーマットを %s に設定しました\n", format)
+}
+
+// TUI有効/無効を設定する実装関数
+func setTUIEnabled(enabled bool) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	if err := cfg.SetTUIEnabled(enabled); err != nil {
+		fmt.Printf("TUI設定エラー: %v\n", err)
+		return
+	}
+
+	status := "無効"
+	if enabled {
+		status = "有効"
+	}
+	fmt.Printf("TUIモードを %s に設定しました\n", status)
+}
+
+// TUIテーマを設定する実装関数
+func setTUITheme(theme string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	if err := cfg.SetTUITheme(theme); err != nil {
+		fmt.Printf("TUIテーマ設定エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("TUIテーマを %s に設定しました\n", theme)
 }
 
 // コマンド実行の実装関数

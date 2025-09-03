@@ -337,13 +337,26 @@ func startInteractiveMode(noTUI bool) {
 
 	if useTUI {
 		// TUIモードで開始
-		app := ui.NewSimpleApp(cfg.TUI)
-		program := tea.NewProgram(app, tea.WithAltScreen())
+		// LLMクライアントとセッションを作成
+		provider := llm.NewOllamaClient(cfg.BaseURL)
+		session := chat.NewSession(provider, cfg.Model)
+		
+		// チャット機能付きTUIアプリを作成
+		app := ui.NewChatApp(cfg.TUI, session)
+		program := tea.NewProgram(app, 
+			// tea.WithAltScreen() を削除 - 通常のターミナル選択を有効化
+			tea.WithMouseCellMotion(), // マウスサポート
+			tea.WithMouseAllMotion(),   // すべてのマウス動作
+		)
 
 		if _, err := program.Run(); err != nil {
-			fmt.Printf("TUIエラー: %v\n", err)
-			// フォールバックで通常モード
-			startLegacyInteractiveMode(cfg)
+			// TTYがない環境（CI、SSH等）では自動的にレガシーモードに切り替え
+			if strings.Contains(err.Error(), "/dev/tty") || strings.Contains(err.Error(), "inappropriate ioctl") {
+				startLegacyInteractiveMode(cfg)
+			} else {
+				fmt.Printf("TUIエラー: %v\n", err)
+				startLegacyInteractiveMode(cfg)
+			}
 		}
 	} else {
 		// 従来の対話モード

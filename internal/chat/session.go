@@ -125,6 +125,36 @@ func (s *Session) GetMessageCount() int {
 	return len(s.messages)
 }
 
+// メッセージを送信してレスポンスを取得（TUI用）
+func (s *Session) SendMessage(userInput string) (string, error) {
+	// ユーザーメッセージを履歴に追加
+	s.messages = append(s.messages, llm.ChatMessage{
+		Role:    "user",
+		Content: userInput,
+	})
+
+	// チャットリクエストを作成
+	req := llm.ChatRequest{
+		Model:    s.model,
+		Messages: s.messages,
+	}
+
+	// LLMプロバイダーに送信
+	ctx := context.Background()
+	response, err := s.provider.Chat(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	// レスポンスを履歴に追加
+	s.messages = append(s.messages, llm.ChatMessage{
+		Role:    "assistant",
+		Content: response.Message.Content,
+	})
+
+	return response.Message.Content, nil
+}
+
 // MCPサーバーに接続
 func (s *Session) ConnectMCPServer(name string, config mcp.ClientConfig) error {
 	return s.mcpManager.ConnectServer(name, config)

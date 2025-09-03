@@ -226,6 +226,15 @@ func (c *Config) SetLogOutput(outputs []string) error {
 // TUI有効/無効を設定して保存する
 func (c *Config) SetTUIEnabled(enabled bool) error {
 	c.TUI.Enabled = enabled
+	// デフォルト値を設定
+	if c.TUI.Theme == "" {
+		c.TUI.Theme = "vyb"
+	}
+	if !c.TUI.ShowSpinner && !c.TUI.ShowProgress {
+		c.TUI.ShowSpinner = true
+		c.TUI.ShowProgress = true
+		c.TUI.Animation = true
+	}
 	return c.Save()
 }
 

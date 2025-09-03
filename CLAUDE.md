@@ -81,6 +81,8 @@ go test ./internal/config -v -run TestMCPServerConfig
 
 - **Language**: Go (chosen for performance, single binary distribution, concurrency)
 - **LLM Integration**: HTTP API via Ollama (primary), LM Studio, vLLM
+- **UI Framework**: Bubble Tea (charmbracelet/bubbletea) for modern TUI
+- **Clipboard Integration**: github.com/atotto/clipboard for direct system clipboard access
 - **Recommended Models**:
   - Qwen2.5-Coder 32B/14B (primary)
   - DeepSeek-Coder-V2 16B (balanced)
@@ -142,6 +144,7 @@ go test ./internal/config -v -run TestMCPServerConfig
 - ✅ Enhanced CLI integration with backward compatibility
 - ✅ Intelligent search with AST-based code structure analysis
 - ✅ **Modern TUI integration** (Bubble Tea framework, theme system, interactive components)
+- ✅ **Direct clipboard integration** (system clipboard access for seamless copy operations)
 
 ## Development Priorities
 
@@ -182,6 +185,13 @@ vyb                                # Start interactive mode (TUI enabled by defa
 vyb chat                           # Start interactive mode explicitly
 vyb chat --no-tui                  # Start in legacy text mode
 vyb --no-tui                       # Force legacy mode for any command
+
+# TUI mode clipboard operations (during interactive session)
+# F2                               # Copy all chat history to clipboard
+# Right-click                      # Copy last assistant response to clipboard  
+# Ctrl+Y                           # Copy last assistant response to clipboard
+# Ctrl+E                           # Export chat history to file
+# Ctrl+P                           # Print chat history to stdout
 
 # Search and discovery
 vyb search <pattern>               # Search across project files
@@ -241,3 +251,4 @@ vyb mcp disconnect [server]        # Disconnect from MCP server
 
 - 🤖 Added a new memory to track project insights and development context
 - 🚀 Phase 4 completed: Achieved Claude Code feature parity with MCP, advanced search, persistent sessions, and streaming responses
+- 📋 Direct clipboard integration implemented for TUI mode with visual feedback and multiple copy mechanisms (F2, right-click, Ctrl+Y)

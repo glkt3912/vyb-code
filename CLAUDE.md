@@ -8,7 +8,7 @@ vyb-code is a local AI coding assistant that provides Claude Code-equivalent fun
 
 **Core Concept**: "Feel the rhythm of perfect code" - Local LLM-based coding assistant prioritizing privacy and developer experience.
 
-**Current Status**: Phase 4 completed with Claude Code feature parity including MCP protocol, advanced search, persistent sessions, and streaming responses. Enterprise-ready with comprehensive security enhancements.
+**Current Status**: Phase 4+ completed with enhanced Claude Code-style terminal mode. Features include colored UI, Markdown formatting, automatic project context, Japanese IME support, and convenient shortcuts. Enterprise-ready with comprehensive security enhancements.
 
 ## Architecture
 
@@ -141,6 +141,17 @@ go test ./internal/config -v -run TestMCPServerConfig
 - ✅ Comprehensive security enhancements against malicious LLM responses
 - ✅ Enhanced CLI integration with backward compatibility
 - ✅ Intelligent search with AST-based code structure analysis
+
+### Phase 4+ Enhanced Terminal Mode (✅ Completed)
+
+- ✅ **Claude Code-style terminal interface** (`--terminal-mode`)
+- ✅ **Japanese IME support** (resolved character disappearing issues)
+- ✅ **Colored UI components** (ANSI color codes for prompts, logos, metadata)
+- ✅ **Markdown formatting** (code blocks with syntax highlighting, bold text)
+- ✅ **Automatic project context** (language detection, dependencies, Git info)
+- ✅ **Real-time metadata display** (response time, token count, model name)
+- ✅ **Convenient shortcuts** (`vyb s`, `vyb build`, `vyb test`)
+- ✅ **Auto-detection systems** (Makefile/Go/Node.js build and test commands)
 - ✅ **Modern TUI integration** (Bubble Tea framework, theme system, interactive components)
 
 ## Development Priorities
@@ -179,7 +190,9 @@ vyb config set-tui-theme <theme>   # Set TUI theme (vyb, dark, light, auto)
 ```bash
 # Interactive sessions
 vyb                                # Start interactive mode (TUI enabled by default)
+vyb --terminal-mode               # Claude Code-style terminal mode (RECOMMENDED)
 vyb chat                           # Start interactive mode explicitly
+vyb chat --terminal-mode          # Claude Code-style terminal in chat mode
 vyb chat --no-tui                  # Start in legacy text mode
 vyb --no-tui                       # Force legacy mode for any command
 
@@ -214,6 +227,14 @@ vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
 
+# Convenient shortcuts (NEW)
+vyb s                              # Quick git status
+vyb build                          # Auto-detect and build project
+vyb test                           # Auto-detect and run tests
+vyb quick explain <file>           # Explain file (development)
+vyb quick gen <description>        # Generate code (development)
+vyb quick summarize                # Summarize conversation (development)
+
 # MCP (Model Context Protocol) operations
 vyb mcp list                       # List configured MCP servers
 vyb mcp add <name> <command>       # Add new MCP server
@@ -240,4 +261,4 @@ vyb mcp disconnect [server]        # Disconnect from MCP server
 ## Memories
 
 - 🤖 Added a new memory to track project insights and development context
-- 🚀 Phase 4 completed: Achieved Claude Code feature parity with MCP, advanced search, persistent sessions, and streaming responses
+- 🚀 Phase 4+ completed: Enhanced Claude Code-style terminal mode with Japanese IME support, colored UI, Markdown formatting, automatic project context, and convenient shortcuts

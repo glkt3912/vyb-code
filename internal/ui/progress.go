@@ -141,10 +141,11 @@ func (p *Progress) SetColors(colors []string) {
 	}
 
 	if len(lipglossColors) >= 2 {
+		currentWidth := p.progress.Width
 		p.progress = progress.New(
 			progress.WithGradient(string(lipglossColors[0]), string(lipglossColors[1])),
 		)
-		p.progress.Width = p.progress.Width
+		p.progress.Width = currentWidth
 	}
 }
 

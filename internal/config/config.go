@@ -31,6 +31,15 @@ type LogConfig struct {
 	Context       map[string]string `json:"context"`        // デフォルトコンテキスト
 }
 
+// TUI設定
+type TUIConfig struct {
+	Enabled      bool   `json:"enabled"`       // TUI有効/無効
+	Theme        string `json:"theme"`         // カラーテーマ (dark, light, auto, vyb)
+	ShowSpinner  bool   `json:"show_spinner"`  // スピナー表示
+	ShowProgress bool   `json:"show_progress"` // プログレスバー表示
+	Animation    bool   `json:"animation"`     // アニメーション有効
+}
+
 // vybの設定情報を管理する構造体
 type Config struct {
 	Provider      string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
@@ -41,6 +50,7 @@ type Config struct {
 	WorkspaceMode string                     `json:"workspace_mode"` // ワークスペースモード（project_only等）
 	MCPServers    map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
 	Logging       LogConfig                  `json:"logging"`        // ログ設定
+	TUI           TUIConfig                  `json:"tui"`            // TUI設定
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -63,6 +73,13 @@ func DefaultConfig() *Config {
 			FileRotation:  false,
 			MaxFileSize:   10 * 1024 * 1024, // 10MB
 			Context:       make(map[string]string),
+		},
+		TUI: TUIConfig{
+			Enabled:      true,
+			Theme:        "vyb",
+			ShowSpinner:  true,
+			ShowProgress: true,
+			Animation:    true,
 		},
 	}
 }
@@ -203,5 +220,23 @@ func (c *Config) SetLogFormat(format string) error {
 // ログ出力先を設定して保存する
 func (c *Config) SetLogOutput(outputs []string) error {
 	c.Logging.Output = outputs
+	return c.Save()
+}
+
+// TUI有効/無効を設定して保存する
+func (c *Config) SetTUIEnabled(enabled bool) error {
+	c.TUI.Enabled = enabled
+	return c.Save()
+}
+
+// TUIテーマを設定して保存する
+func (c *Config) SetTUITheme(theme string) error {
+	c.TUI.Theme = theme
+	return c.Save()
+}
+
+// TUIアニメーションを設定して保存する
+func (c *Config) SetTUIAnimation(enabled bool) error {
+	c.TUI.Animation = enabled
 	return c.Save()
 }

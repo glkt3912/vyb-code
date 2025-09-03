@@ -141,6 +141,7 @@ go test ./internal/config -v -run TestMCPServerConfig
 - ✅ Comprehensive security enhancements against malicious LLM responses
 - ✅ Enhanced CLI integration with backward compatibility
 - ✅ Intelligent search with AST-based code structure analysis
+- ✅ **Modern TUI integration** (Bubble Tea framework, theme system, interactive components)
 
 ## Development Priorities
 
@@ -150,6 +151,7 @@ go test ./internal/config -v -run TestMCPServerConfig
 4. **Claude Code Parity**: Feature equivalence with enterprise capabilities
 5. **Extensibility**: MCP protocol and plugin architecture
 6. **Developer Experience**: Intuitive workflows and intelligent assistance
+7. **Modern UI/UX**: Terminal user interface with brand identity and accessibility
 
 ## Configuration
 
@@ -160,6 +162,7 @@ go test ./internal/config -v -run TestMCPServerConfig
 - ✅ Workspace mode restrictions
 - ✅ Security settings and command restrictions
 - ✅ Performance optimization settings
+- ✅ **TUI configuration** (`vyb config set-tui`, `vyb config set-tui-theme`)
 
 **Current config commands:**
 
@@ -167,15 +170,18 @@ go test ./internal/config -v -run TestMCPServerConfig
 vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
+vyb config set-tui <true/false>    # Enable/disable TUI mode
+vyb config set-tui-theme <theme>   # Set TUI theme (vyb, dark, light, auto)
 ```
 
 **All implemented commands:**
 
 ```bash
 # Interactive sessions
-vyb                                # Start interactive mode (new session)
+vyb                                # Start interactive mode (TUI enabled by default)
 vyb chat                           # Start interactive mode explicitly
-vyb chat --session <id>            # Resume specific session
+vyb chat --no-tui                  # Start in legacy text mode
+vyb --no-tui                       # Force legacy mode for any command
 
 # Search and discovery
 vyb search <pattern>               # Search across project files

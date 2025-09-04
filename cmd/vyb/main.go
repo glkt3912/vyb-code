@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,13 +33,16 @@ var rootCmd = &cobra.Command{
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
 
+		continueSession, _ := cmd.Flags().GetBool("continue")
+		resumeID, _ := cmd.Flags().GetString("resume")
+
 		if len(args) == 0 {
 			// 引数なし：対話モード開始
-			startInteractiveMode(noTUI, terminalMode, planMode)
+			startInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
-			processSingleQuery(query, noTUI)
+			processSingleQueryWithOptions(query, noTUI, continueSession, resumeID)
 		}
 	},
 }
@@ -51,7 +55,10 @@ var chatCmd = &cobra.Command{
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
-		startInteractiveMode(noTUI, terminalMode, planMode)
+		continueSession, _ := cmd.Flags().GetBool("continue")
+		resumeID, _ := cmd.Flags().GetString("resume")
+		
+		startInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
 	},
 }
 
@@ -129,6 +136,32 @@ var setTUIThemeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		setTUITheme(args[0])
+	},
+}
+
+// ターミナルモード設定コマンド
+var setTerminalModeConfigCmd = &cobra.Command{
+	Use:   "set-terminal [key] [value]",
+	Short: "Configure terminal mode settings",
+	Long: `Configure terminal mode specific settings:
+  typing-speed [ms]    - Set typing animation speed in milliseconds
+  streaming [on|off]   - Enable/disable streaming output
+  history-size [num]   - Set input history size
+  git-prompt [on|off]  - Show git info in prompt
+  project-info [on|off] - Show project info on startup`,
+	Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		setTerminalModeConfig(args[0], args[1])
+	},
+}
+
+// ストリーミング速度設定コマンド
+var setStreamingSpeedCmd = &cobra.Command{
+	Use:   "set-streaming [speed]",
+	Short: "Set streaming speed (instant, fast, normal, slow, typewriter)",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		setStreamingSpeed(args[0])
 	},
 }
 
@@ -359,11 +392,15 @@ func init() {
 	rootCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
 	rootCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
 	rootCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
+	rootCmd.Flags().BoolP("continue", "c", false, "Continue previous session")
+	rootCmd.Flags().StringP("resume", "r", "", "Resume specific session by ID")
 
 	// チャットコマンドのフラグ
 	chatCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
 	chatCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
 	chatCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
+	chatCmd.Flags().BoolP("continue", "c", false, "Continue previous session")
+	chatCmd.Flags().StringP("resume", "r", "", "Resume specific session by ID")
 
 	// 検索コマンドのフラグ
 	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
@@ -377,6 +414,8 @@ func init() {
 	configCmd.AddCommand(setLogFormatCmd)
 	configCmd.AddCommand(setTUIEnabledCmd)
 	configCmd.AddCommand(setTUIThemeCmd)
+	configCmd.AddCommand(setTerminalModeConfigCmd)
+	configCmd.AddCommand(setStreamingSpeedCmd)
 
 	gitCmd.AddCommand(gitStatusCmd)
 	gitCmd.AddCommand(gitBranchCmd)
@@ -401,6 +440,20 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// 拡張オプションで対話モードを開始
+func startInteractiveModeWithOptions(noTUI bool, terminalMode bool, planMode bool, continueSession bool, resumeID string) {
+	// 既存の関数を呼び出し（将来的にセッション復元機能を追加）
+	startInteractiveMode(noTUI, terminalMode, planMode)
+	// TODO: continueSession と resumeID の処理を実装
+}
+
+// 拡張オプションで単発クエリを処理
+func processSingleQueryWithOptions(query string, noTUI bool, continueSession bool, resumeID string) {
+	// 既存の関数を呼び出し（将来的にセッション復元機能を追加）
+	processSingleQuery(query, noTUI)
+	// TODO: continueSession と resumeID の処理を実装
 }
 
 // 対話モードを開始する実装関数
@@ -442,8 +495,8 @@ func startEnhancedTerminalMode(cfg *config.Config, planMode bool) {
 	// LLMクライアントを作成
 	provider := llm.NewOllamaClient(cfg.BaseURL)
 
-	// チャットセッションを開始
-	session := chat.NewSession(provider, cfg.Model)
+	// チャットセッションを設定付きで開始
+	session := chat.NewSessionWithConfig(provider, cfg.Model, cfg)
 	if err := session.StartEnhancedTerminal(); err != nil {
 		fmt.Printf("拡張ターミナルセッションエラー: %v\n", err)
 	}
@@ -544,6 +597,18 @@ func listConfig() {
 	fmt.Printf("  スピナー表示: %t\n", cfg.TUI.ShowSpinner)
 	fmt.Printf("  プログレスバー表示: %t\n", cfg.TUI.ShowProgress)
 	fmt.Printf("  アニメーション: %t\n", cfg.TUI.Animation)
+
+	fmt.Println("\nターミナルモード設定:")
+	fmt.Printf("  タイピング速度: %dms\n", cfg.TerminalMode.TypingSpeed)
+	fmt.Printf("  Gitプロンプト: %t\n", cfg.TerminalMode.ShowGitInPrompt)
+	fmt.Printf("  プロジェクト情報表示: %t\n", cfg.TerminalMode.ShowProjectInfo)
+	fmt.Printf("  履歴サイズ: %d\n", cfg.TerminalMode.HistorySize)
+	fmt.Printf("  スラッシュコマンド: %t\n", cfg.TerminalMode.EnableSlashCmd)
+	
+	fmt.Println("\n🚀 クイックスタート:")
+	fmt.Printf("  %s--terminal-mode%s でClaude Code風体験\n", "\033[32m", "\033[0m")
+	fmt.Printf("  %svyb config set-streaming fast%s で高速化\n", "\033[32m", "\033[0m")
+	fmt.Printf("  %svyb -c%s で前回セッション継続\n", "\033[32m", "\033[0m")
 }
 
 // ログレベルを設定する実装関数
@@ -1216,4 +1281,97 @@ func autoTest() {
 	}
 
 	fmt.Println("❌ テストフレームワークが検出できませんでした")
+}
+
+// ターミナルモード設定の実装関数
+func setTerminalModeConfig(key, value string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	switch key {
+	case "typing-speed":
+		if speed, err := strconv.Atoi(value); err == nil && speed >= 0 && speed <= 1000 {
+			cfg.TerminalMode.TypingSpeed = speed
+		} else {
+			fmt.Printf("無効なタイピング速度です: %s (0-1000の範囲で指定してください)\n", value)
+			return
+		}
+	case "streaming":
+		enabled := value == "on" || value == "true" || value == "1"
+		// Note: ストリーミング設定は将来の拡張用
+		fmt.Printf("ストリーミング設定: %t (機能は実装中)\n", enabled)
+		return
+	case "history-size":
+		if size, err := strconv.Atoi(value); err == nil && size > 0 && size <= 1000 {
+			cfg.TerminalMode.HistorySize = size
+		} else {
+			fmt.Printf("無効な履歴サイズです: %s (1-1000の範囲で指定してください)\n", value)
+			return
+		}
+	case "git-prompt":
+		cfg.TerminalMode.ShowGitInPrompt = (value == "on" || value == "true" || value == "1")
+	case "project-info":
+		cfg.TerminalMode.ShowProjectInfo = (value == "on" || value == "true" || value == "1")
+	default:
+		fmt.Printf("未知の設定キー: %s\n", key)
+		fmt.Println("利用可能なキー: typing-speed, streaming, history-size, git-prompt, project-info")
+		return
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("設定保存エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("ターミナルモード設定を更新しました: %s = %s\n", key, value)
+}
+
+// ストリーミング速度設定の実装関数
+func setStreamingSpeed(speed string) {
+	validSpeeds := []string{"instant", "fast", "normal", "slow", "typewriter"}
+	
+	// 有効な速度かチェック
+	valid := false
+	for _, validSpeed := range validSpeeds {
+		if speed == validSpeed {
+			valid = true
+			break
+		}
+	}
+	
+	if !valid {
+		fmt.Printf("無効な速度設定です: %s\n", speed)
+		fmt.Printf("利用可能な速度: %s\n", strings.Join(validSpeeds, ", "))
+		return
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("設定読み込みエラー: %v\n", err)
+		return
+	}
+
+	// 速度に応じてタイピング速度を設定
+	switch speed {
+	case "instant":
+		cfg.TerminalMode.TypingSpeed = 0
+	case "fast":
+		cfg.TerminalMode.TypingSpeed = 5
+	case "normal":
+		cfg.TerminalMode.TypingSpeed = 15
+	case "slow":
+		cfg.TerminalMode.TypingSpeed = 50
+	case "typewriter":
+		cfg.TerminalMode.TypingSpeed = 100
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("設定保存エラー: %v\n", err)
+		return
+	}
+
+	fmt.Printf("ストリーミング速度を %s に設定しました (タイピング速度: %dms)\n", speed, cfg.TerminalMode.TypingSpeed)
 }

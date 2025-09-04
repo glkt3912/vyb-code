@@ -40,17 +40,28 @@ type TUIConfig struct {
 	Animation    bool   `json:"animation"`     // アニメーション有効
 }
 
+// ターミナルモード専用設定
+type TerminalModeConfig struct {
+	TypingSpeed      int  `json:"typing_speed"`      // タイピング速度（ミリ秒）
+	ShowGitInPrompt  bool `json:"show_git_prompt"`   // プロンプトにGit情報表示
+	ShowProjectInfo  bool `json:"show_project_info"` // プロジェクト情報表示
+	HistorySize      int  `json:"history_size"`      // 入力履歴サイズ
+	EnableSlashCmd   bool `json:"enable_slash_cmd"`  // スラッシュコマンド有効
+	AutoSaveSession  bool `json:"auto_save_session"` // セッション自動保存
+}
+
 // vybの設定情報を管理する構造体
 type Config struct {
-	Provider      string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
-	Model         string                     `json:"model"`          // 使用するモデル名
-	BaseURL       string                     `json:"base_url"`       // LLMサーバーのURL
-	Timeout       int                        `json:"timeout"`        // リクエストタイムアウト（秒）
-	MaxFileSize   int64                      `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
-	WorkspaceMode string                     `json:"workspace_mode"` // ワークスペースモード（project_only等）
-	MCPServers    map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
-	Logging       LogConfig                  `json:"logging"`        // ログ設定
-	TUI           TUIConfig                  `json:"tui"`            // TUI設定
+	Provider     string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
+	Model        string                     `json:"model"`          // 使用するモデル名
+	BaseURL      string                     `json:"base_url"`       // LLMサーバーのURL
+	Timeout      int                        `json:"timeout"`        // リクエストタイムアウト（秒）
+	MaxFileSize  int64                      `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
+	WorkspaceMode string                    `json:"workspace_mode"` // ワークスペースモード（project_only等）
+	MCPServers   map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
+	Logging      LogConfig                  `json:"logging"`        // ログ設定
+	TUI          TUIConfig                  `json:"tui"`            // TUI設定
+	TerminalMode TerminalModeConfig         `json:"terminal_mode"`  // ターミナルモード設定
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -80,6 +91,14 @@ func DefaultConfig() *Config {
 			ShowSpinner:  true,
 			ShowProgress: true,
 			Animation:    true,
+		},
+		TerminalMode: TerminalModeConfig{
+			TypingSpeed:      15,   // 15ms per character
+			ShowGitInPrompt:  true,
+			ShowProjectInfo:  true,
+			HistorySize:      100,
+			EnableSlashCmd:   true,
+			AutoSaveSession:  false,
 		},
 	}
 }

@@ -6,10 +6,14 @@
 
 ## 特徴
 
+- **🎯 Claude Code風ターミナルモード**: 新しい`--terminal-mode`でClaude Code相当の体験
+- **🌈 カラー対応UI**: 緑色プロンプト、青色ロゴ、カラフルなコードハイライト
+- **📝 Markdown対応**: コードブロック枠線、シンタックスハイライト、太字表示
+- **🏗️ 自動プロジェクト認識**: 言語・依存関係・Git情報の自動コンテキスト追加
+- **📊 リアルタイムメタ情報**: 応答時間、トークン数、モデル名の表示
+- **🇯🇵 日本語IME完全対応**: 日本語入力時の文字消失問題を解決
 - **🎨 モダンTUI**: Bubble Teaフレームワークによる美しいターミナルUI体験
-- **🔄 後方互換性**: `--no-tui`フラグで従来のテキストモードも利用可能
-- **🎵 ブランドテーマ**: vybオリジナルカラーパレットによる視覚的アイデンティティ
-- **⚡ リアルタイム表示**: プログレスバーとスピナーによる処理状況の可視化
+- **⚡ 便利ショートカット**: `vyb s`（git status）、`vyb build`、`vyb test`等
 - **プライバシー重視**: 全ての処理がローカルで実行 - 外部にデータを送信しません
 - **対話型CLI**: 自然な会話形式でのコーディング支援
 - **セキュアなコマンド実行**: ホワイトリスト制御と30秒タイムアウト
@@ -19,7 +23,6 @@
 - **多言語サポート**: Go、JavaScript/Node.js、Python対応基盤
 - **設定管理**: 永続化された設定でモデルとプロバイダーを管理
 - **Ollama統合**: HTTP API経由でのローカルLLM連携
-- **セキュリティ重視**: ワークスペース制限と環境変数フィルタリング
 
 ## インストール
 
@@ -72,7 +75,11 @@ vyb config list
 # モデル設定
 vyb config set-model qwen2.5-coder:14b
 
-# 🎨 TUIモード（デフォルト）- モダンなターミナルUI体験
+# 🎯 Claude Code風ターミナルモード（推奨）- Claude Code相当の体験
+vyb --terminal-mode
+vyb chat --terminal-mode
+
+# 🎨 TUIモード - モダンなターミナルUI体験
 vyb chat
 vyb
 
@@ -92,6 +99,11 @@ vyb config set-tui false           # TUIモード無効化
 # 単発質問
 vyb "GoでWebサーバーを作成して"
 
+# ⚡ 便利ショートカット
+vyb s                              # git status の短縮形
+vyb build                          # プロジェクト自動ビルド（Makefile/Go/Node.js対応）
+vyb test                           # プロジェクト自動テスト
+
 # コマンド実行（プログレスバー表示）
 vyb exec "ls -la"
 vyb exec "go version"
@@ -103,6 +115,11 @@ vyb git commit "feat: add new functionality"
 
 # プロジェクト分析（進捗表示）
 vyb analyze
+
+# 🚀 便利機能（開発中）
+vyb quick explain main.go          # ファイル説明
+vyb quick gen "HTTPクライアント"    # コード生成
+vyb quick summarize                # 会話要約
 
 # MCP（Model Context Protocol）操作
 vyb mcp add filesystem npx @modelcontextprotocol/server-filesystem
@@ -173,6 +190,16 @@ docker run -d --name ollama-vyb-gpu --gpus all -p 11434:11434 -v ollama-vyb:/roo
 - ✅ 包括的セキュリティ強化（悪意あるLLM応答対策）
 - ✅ 高度CLI統合（後方互換性維持）
 - ✅ **モダンTUI統合**（Bubble Teaフレームワーク、テーマシステム）
+- ✅ **Claude Code風ターミナルモード**（カラー対応、Markdown表示、自動コンテキスト）
+
+### 最新アップデート（v1.4.0+）
+
+- ✅ **Claude Code相当体験**: `--terminal-mode`で本家同等のインターフェース
+- ✅ **日本語IME完全対応**: 日本語入力時の問題解決
+- ✅ **カラー対応UI**: ANSIカラーコードによる美しい表示
+- ✅ **Markdown・シンタックスハイライト**: コードブロック枠線、言語別ハイライト
+- ✅ **自動プロジェクトコンテキスト**: 言語・依存関係・Git情報の自動追加
+- ✅ **便利ショートカット**: `vyb s`、`vyb build`、`vyb test`等
 
 ## 新機能詳細（Phase 4）
 

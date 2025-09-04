@@ -27,12 +27,13 @@ var rootCmd = &cobra.Command{
 	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
 	Version: GetVersionString(),
 	Run: func(cmd *cobra.Command, args []string) {
-		// --no-tuiフラグをチェック
+		// フラグをチェック
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
+		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
 
 		if len(args) == 0 {
 			// 引数なし：対話モード開始
-			startInteractiveMode(noTUI)
+			startInteractiveMode(noTUI, terminalMode)
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
@@ -47,7 +48,8 @@ var chatCmd = &cobra.Command{
 	Short: "Start interactive chat mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
-		startInteractiveMode(noTUI)
+		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
+		startInteractiveMode(noTUI, terminalMode)
 	},
 }
 
@@ -257,6 +259,70 @@ var healthCmd = &cobra.Command{
 	Short: "System health check and diagnostics",
 }
 
+// 便利なショートカットコマンド群
+var quickCmd = &cobra.Command{
+	Use:   "quick",
+	Short: "Quick shortcuts for common operations",
+}
+
+// 最後の会話を要約
+var summarizeCmd = &cobra.Command{
+	Use:   "summarize",
+	Short: "Summarize the last conversation",
+	Run: func(cmd *cobra.Command, args []string) {
+		summarizeLastConversation()
+	},
+}
+
+// 現在のファイルを分析
+var explainCmd = &cobra.Command{
+	Use:   "explain [file]",
+	Short: "Explain current file or specified file",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			explainFile(args[0])
+		} else {
+			explainCurrentContext()
+		}
+	},
+}
+
+// 簡易コード生成
+var generateCmd = &cobra.Command{
+	Use:   "gen [description]",
+	Short: "Generate code from description",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		description := strings.Join(args, " ")
+		generateCode(description)
+	},
+}
+
+// よく使用される短縮コマンド
+var statusCmd = &cobra.Command{
+	Use:   "s",
+	Short: "Quick git status (shortcut for 'vyb git status')",
+	Run: func(cmd *cobra.Command, args []string) {
+		gitStatus()
+	},
+}
+
+var buildCmd = &cobra.Command{
+	Use:   "build",
+	Short: "Build project (detects build system automatically)",
+	Run: func(cmd *cobra.Command, args []string) {
+		autoBuild()
+	},
+}
+
+var testCmd = &cobra.Command{
+	Use:   "test",
+	Short: "Run tests (detects test framework automatically)",
+	Run: func(cmd *cobra.Command, args []string) {
+		autoTest()
+	},
+}
+
 var healthCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Run health checks for all components",
@@ -282,12 +348,18 @@ func init() {
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(healthCmd)
+	rootCmd.AddCommand(quickCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(buildCmd)
+	rootCmd.AddCommand(testCmd)
 
 	// メインコマンドのフラグ
 	rootCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
+	rootCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
 
 	// チャットコマンドのフラグ
 	chatCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
+	chatCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
 
 	// 検索コマンドのフラグ
 	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
@@ -314,6 +386,10 @@ func init() {
 
 	healthCmd.AddCommand(healthCheckCmd)
 	healthCmd.AddCommand(diagnosticsCmd)
+
+	quickCmd.AddCommand(summarizeCmd)
+	quickCmd.AddCommand(explainCmd)
+	quickCmd.AddCommand(generateCmd)
 }
 
 func main() {
@@ -324,7 +400,7 @@ func main() {
 }
 
 // 対話モードを開始する実装関数
-func startInteractiveMode(noTUI bool) {
+func startInteractiveMode(noTUI bool, terminalMode bool) {
 	// 設定を読み込み
 	cfg, err := config.Load()
 	if err != nil {
@@ -332,22 +408,40 @@ func startInteractiveMode(noTUI bool) {
 		return
 	}
 
-	// TUIモードの判定
-	useTUI := cfg.TUI.Enabled && !noTUI
+	// モードの判定
+	if terminalMode {
+		// Claude Code風ターミナルモード
+		startEnhancedTerminalMode(cfg)
+	} else {
+		// TUIモードの判定
+		useTUI := cfg.TUI.Enabled && !noTUI
 
-	if useTUI {
-		// TUIモードで開始
-		app := ui.NewSimpleApp(cfg.TUI)
-		program := tea.NewProgram(app, tea.WithAltScreen())
+		if useTUI {
+			// TUIモードで開始
+			app := ui.NewSimpleApp(cfg.TUI)
+			program := tea.NewProgram(app, tea.WithAltScreen())
 
-		if _, err := program.Run(); err != nil {
-			fmt.Printf("TUIエラー: %v\n", err)
-			// フォールバックで通常モード
+			if _, err := program.Run(); err != nil {
+				fmt.Printf("TUIエラー: %v\n", err)
+				// フォールバックで通常モード
+				startLegacyInteractiveMode(cfg)
+			}
+		} else {
+			// 従来の対話モード
 			startLegacyInteractiveMode(cfg)
 		}
-	} else {
-		// 従来の対話モード
-		startLegacyInteractiveMode(cfg)
+	}
+}
+
+// Claude Code風拡張ターミナルモードを開始
+func startEnhancedTerminalMode(cfg *config.Config) {
+	// LLMクライアントを作成
+	provider := llm.NewOllamaClient(cfg.BaseURL)
+
+	// チャットセッションを開始
+	session := chat.NewSession(provider, cfg.Model)
+	if err := session.StartEnhancedTerminal(); err != nil {
+		fmt.Printf("拡張ターミナルセッションエラー: %v\n", err)
 	}
 }
 
@@ -1042,4 +1136,80 @@ func runDiagnostics() {
 	defer cancel()
 
 	checker.RunDiagnostics(ctx)
+}
+
+// 最後の会話を要約する実装関数
+func summarizeLastConversation() {
+	fmt.Println("会話要約機能は開発中です")
+	// TODO: セッション履歴から最後の会話を取得して要約
+}
+
+// ファイルを説明する実装関数
+func explainFile(filePath string) {
+	fmt.Printf("ファイル '%s' の説明機能は開発中です\n", filePath)
+	// TODO: 指定ファイルをLLMで分析・説明
+}
+
+// 現在のコンテキストを説明する実装関数
+func explainCurrentContext() {
+	fmt.Println("現在のコンテキスト説明機能は開発中です")
+	// TODO: 現在のディレクトリやGit状態をLLMで説明
+}
+
+// コードを生成する実装関数
+func generateCode(description string) {
+	fmt.Printf("コード生成機能は開発中です: %s\n", description)
+	// TODO: 説明からコードを生成してファイルに出力
+}
+
+// 自動ビルド実装関数
+func autoBuild() {
+	// Makefileの存在確認
+	if _, err := os.Stat("Makefile"); err == nil {
+		fmt.Println("🔨 Makefileでビルド中...")
+		executeCommand([]string{"make", "build"})
+		return
+	}
+
+	// go.modの存在確認
+	if _, err := os.Stat("go.mod"); err == nil {
+		fmt.Println("🔨 Goプロジェクトをビルド中...")
+		executeCommand([]string{"go", "build", "./..."})
+		return
+	}
+
+	// package.jsonの存在確認
+	if _, err := os.Stat("package.json"); err == nil {
+		fmt.Println("🔨 Node.jsプロジェクトをビルド中...")
+		executeCommand([]string{"npm", "run", "build"})
+		return
+	}
+
+	fmt.Println("❌ ビルドシステムが検出できませんでした")
+}
+
+// 自動テスト実装関数
+func autoTest() {
+	// Makefileの存在確認
+	if _, err := os.Stat("Makefile"); err == nil {
+		fmt.Println("🧪 Makefileでテスト中...")
+		executeCommand([]string{"make", "test"})
+		return
+	}
+
+	// go.modの存在確認
+	if _, err := os.Stat("go.mod"); err == nil {
+		fmt.Println("🧪 Goテスト中...")
+		executeCommand([]string{"go", "test", "./..."})
+		return
+	}
+
+	// package.jsonの存在確認
+	if _, err := os.Stat("package.json"); err == nil {
+		fmt.Println("🧪 Node.jsテスト中...")
+		executeCommand([]string{"npm", "test"})
+		return
+	}
+
+	fmt.Println("❌ テストフレームワークが検出できませんでした")
 }

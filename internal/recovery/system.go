@@ -58,9 +58,9 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 
 	errStr := strings.ToLower(err.Error())
 
-	// 接続エラー
+	// 接続エラー（connection/dial/refusedが含まれる場合は優先）
 	if strings.Contains(errStr, "connection") || strings.Contains(errStr, "dial") ||
-		strings.Contains(errStr, "refused") || strings.Contains(errStr, "timeout") {
+		strings.Contains(errStr, "refused") {
 		return &ErrorInfo{
 			Type:       ErrorConnection,
 			Original:   err,
@@ -68,6 +68,18 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 			Suggestion: "Ollamaサーバーが起動しているか確認してください。 `ollama serve` でサーバーを起動できます。",
 			CanRecover: true,
 			RetryAfter: 5 * time.Second,
+		}
+	}
+
+	// タイムアウトエラー（connection関連でない場合）
+	if strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline") {
+		return &ErrorInfo{
+			Type:       ErrorTimeout,
+			Original:   err,
+			Severity:   5,
+			Suggestion: "タイムアウトが発生しました。ネットワークやサーバーの状態を確認してください。",
+			CanRecover: true,
+			RetryAfter: 3 * time.Second,
 		}
 	}
 
@@ -81,18 +93,6 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 			Suggestion: fmt.Sprintf("モデル '%s' が見つかりません。`ollama pull %s` でインストールするか、別のモデルを試してください。", r.config.Model, r.config.Model),
 			CanRecover: true,
 			RetryAfter: 1 * time.Second,
-		}
-	}
-
-	// タイムアウトエラー
-	if strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline") {
-		return &ErrorInfo{
-			Type:       ErrorTimeout,
-			Original:   err,
-			Severity:   5,
-			Suggestion: "リクエストがタイムアウトしました。ネットワークやサーバーの状態を確認してください。",
-			CanRecover: true,
-			RetryAfter: 3 * time.Second,
 		}
 	}
 

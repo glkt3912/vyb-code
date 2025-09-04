@@ -59,8 +59,17 @@ func GetGlobalHandler() *Handler {
 
 // シグナル処理
 func (h *Handler) handleSignals() {
+	// signalChannelの安全な読み取り
+	h.mutex.Lock()
+	sigChan := h.signalChannel
+	h.mutex.Unlock()
+	
+	if sigChan == nil {
+		return
+	}
+	
 	select {
-	case sig := <-h.signalChannel:
+	case sig := <-sigChan:
 		h.mutex.Lock()
 		h.interrupted = true
 		h.mutex.Unlock()
@@ -68,12 +77,19 @@ func (h *Handler) handleSignals() {
 		fmt.Printf("\n\033[90m[中断シグナルを受信: %v]\033[0m\n", sig)
 
 		// 登録されたコールバックを実行
-		for _, callback := range h.callbacks {
+		h.mutex.Lock()
+		callbacks := make([]func(), len(h.callbacks))
+		copy(callbacks, h.callbacks)
+		h.mutex.Unlock()
+		
+		for _, callback := range callbacks {
 			callback()
 		}
 
 		// コンテキストをキャンセル
-		h.cancel()
+		if h.cancel != nil {
+			h.cancel()
+		}
 
 	case <-h.ctx.Done():
 		// コンテキストがキャンセルされた場合
@@ -90,6 +106,8 @@ func (h *Handler) IsInterrupted() bool {
 
 // コンテキストを取得
 func (h *Handler) Context() context.Context {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
 	return h.ctx
 }
 

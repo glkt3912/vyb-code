@@ -294,9 +294,12 @@ func TestHandler_SignalHandling(t *testing.T) {
 	handler := NewHandler()
 	defer handler.Close()
 
-	callbackExecuted := false
+	var callbackExecuted bool
+	var callbackMutex sync.Mutex
 	handler.AddCallback(func() {
+		callbackMutex.Lock()
 		callbackExecuted = true
+		callbackMutex.Unlock()
 	})
 
 	// 自分自身にSIGINTを送信
@@ -318,7 +321,11 @@ func TestHandler_SignalHandling(t *testing.T) {
 	// コールバックが実行されるまで少し待機
 	time.Sleep(50 * time.Millisecond)
 
-	if !callbackExecuted {
+	callbackMutex.Lock()
+	executed := callbackExecuted
+	callbackMutex.Unlock()
+	
+	if !executed {
 		t.Error("Expected callback to be executed after signal")
 	}
 }
@@ -388,9 +395,12 @@ func TestHandler_MultipleSignals(t *testing.T) {
 	handler := NewHandler()
 	defer handler.Close()
 
-	signalCount := 0
+	var signalCount int
+	var signalMutex sync.Mutex
 	handler.AddCallback(func() {
+		signalMutex.Lock()
 		signalCount++
+		signalMutex.Unlock()
 	})
 
 	// 複数のシグナルを短時間で送信
@@ -411,7 +421,11 @@ func TestHandler_MultipleSignals(t *testing.T) {
 
 	// 最初のシグナルでコンテキストがキャンセルされるため、
 	// 2番目のシグナルは処理されない可能性が高い
-	if signalCount == 0 {
+	signalMutex.Lock()
+	count := signalCount
+	signalMutex.Unlock()
+	
+	if count == 0 {
 		t.Error("Expected at least one signal to be processed")
 	}
 }

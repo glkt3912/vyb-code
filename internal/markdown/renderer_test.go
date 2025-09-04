@@ -185,11 +185,21 @@ func TestRenderer_ProcessLists(t *testing.T) {
 					t.Errorf("Expected list processing to modify the line")
 				}
 
-				// Unicode記号が含まれているかチェック
-				hasUnicodeSymbol := strings.Contains(result, "▶") || strings.Contains(result, "•") ||
-					strings.Contains(result, "✓") || strings.Contains(result, "☐")
-				if !hasUnicodeSymbol {
-					t.Errorf("Expected list item to contain Unicode symbol")
+				// listTypeに応じてUnicode記号をチェック
+				if tt.listType == "bullet" || tt.listType == "checkbox_checked" || tt.listType == "checkbox_unchecked" {
+					// Unicode記号が含まれているかチェック
+					hasUnicodeSymbol := strings.Contains(result, "▶") || strings.Contains(result, "•") ||
+						strings.Contains(result, "✓") || strings.Contains(result, "☐")
+					if !hasUnicodeSymbol {
+						t.Errorf("Expected list item to contain Unicode symbol for %s", tt.listType)
+					}
+				}
+				// 番号付きリストは数字のフォーマットをチェック
+				if tt.listType == "numbered" {
+					// 数字と点が含まれているかチェック
+					if !strings.Contains(result, "1.") {
+						t.Errorf("Expected numbered list to contain formatted number")
+					}
 				}
 			} else {
 				// リストでない場合は変更されないはず

@@ -59,12 +59,13 @@ func GetGlobalHandler() *Handler {
 
 // シグナル処理
 func (h *Handler) handleSignals() {
-	// signalChannelの安全な読み取り
+	// signalChannelとcontextの安全な読み取り
 	h.mutex.Lock()
 	sigChan := h.signalChannel
+	ctx := h.ctx
 	h.mutex.Unlock()
 
-	if sigChan == nil {
+	if sigChan == nil || ctx == nil {
 		return
 	}
 
@@ -91,7 +92,7 @@ func (h *Handler) handleSignals() {
 			h.cancel()
 		}
 
-	case <-h.ctx.Done():
+	case <-ctx.Done():
 		// コンテキストがキャンセルされた場合
 		return
 	}

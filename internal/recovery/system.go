@@ -21,22 +21,22 @@ type System struct {
 type ErrorType string
 
 const (
-	ErrorConnection    ErrorType = "connection"
-	ErrorModel         ErrorType = "model"
-	ErrorTimeout       ErrorType = "timeout"
-	ErrorRateLimit     ErrorType = "rate_limit"
+	ErrorConnection     ErrorType = "connection"
+	ErrorModel          ErrorType = "model"
+	ErrorTimeout        ErrorType = "timeout"
+	ErrorRateLimit      ErrorType = "rate_limit"
 	ErrorAuthentication ErrorType = "auth"
-	ErrorUnknown       ErrorType = "unknown"
+	ErrorUnknown        ErrorType = "unknown"
 )
 
 // エラー情報
 type ErrorInfo struct {
-	Type        ErrorType
-	Original    error
-	Severity    int
-	Suggestion  string
-	CanRecover  bool
-	RetryAfter  time.Duration
+	Type       ErrorType
+	Original   error
+	Severity   int
+	Suggestion string
+	CanRecover bool
+	RetryAfter time.Duration
 }
 
 // 回復システムを作成
@@ -57,10 +57,10 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 	}
 
 	errStr := strings.ToLower(err.Error())
-	
+
 	// 接続エラー
-	if strings.Contains(errStr, "connection") || strings.Contains(errStr, "dial") || 
-	   strings.Contains(errStr, "refused") || strings.Contains(errStr, "timeout") {
+	if strings.Contains(errStr, "connection") || strings.Contains(errStr, "dial") ||
+		strings.Contains(errStr, "refused") || strings.Contains(errStr, "timeout") {
 		return &ErrorInfo{
 			Type:       ErrorConnection,
 			Original:   err,
@@ -72,8 +72,8 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 	}
 
 	// モデルエラー
-	if strings.Contains(errStr, "model") && (strings.Contains(errStr, "not found") || 
-	   strings.Contains(errStr, "not available")) {
+	if strings.Contains(errStr, "model") && (strings.Contains(errStr, "not found") ||
+		strings.Contains(errStr, "not available")) {
 		return &ErrorInfo{
 			Type:       ErrorModel,
 			Original:   err,
@@ -175,25 +175,25 @@ func (r *System) AttemptRecovery(errorInfo *ErrorInfo, operation func() error) e
 // フォールバックモデルを試行
 func (r *System) tryFallbackModel(operation func() error) error {
 	originalModel := r.config.Model
-	
+
 	fmt.Printf("\033[33m🔄 フォールバックモデルに切り替え中: %s\033[0m\n", r.fallbackModel)
-	
+
 	// 一時的にモデルを変更
 	r.config.Model = r.fallbackModel
-	
+
 	err := operation()
-	
+
 	// 元のモデル設定を復元
 	r.config.Model = originalModel
-	
+
 	if err != nil {
 		fmt.Printf("\033[31m❌ フォールバックモデルでも失敗しました\033[0m\n")
 		return err
 	}
-	
+
 	fmt.Printf("\033[32m✅ フォールバックモデルで成功しました\033[0m\n")
 	fmt.Printf("\033[33m💡 元のモデル '%s' は利用できません。設定を確認してください。\033[0m\n", originalModel)
-	
+
 	return nil
 }
 
@@ -203,7 +203,7 @@ func (r *System) displayErrorGuidance(errorInfo *ErrorInfo) error {
 	fmt.Printf("\033[31m種類:\033[0m %s\n", r.getErrorTypeDescription(errorInfo.Type))
 	fmt.Printf("\033[31mメッセージ:\033[0m %s\n", errorInfo.Original.Error())
 	fmt.Printf("\033[33m提案:\033[0m %s\n", errorInfo.Suggestion)
-	
+
 	// タイプ別の詳細ガイダンス
 	switch errorInfo.Type {
 	case ErrorConnection:
@@ -211,20 +211,20 @@ func (r *System) displayErrorGuidance(errorInfo *ErrorInfo) error {
 		fmt.Printf("  1. \033[32mollama serve\033[0m でOllamaサーバーを起動\n")
 		fmt.Printf("  2. \033[32mvyb config set-provider lmstudio\033[0m で別プロバイダーを試行\n")
 		fmt.Printf("  3. \033[32mvyb config list\033[0m で設定を確認\n")
-		
+
 	case ErrorModel:
 		fmt.Printf("\n\033[36m🤖 モデル問題の解決方法:\033[0m\n")
 		fmt.Printf("  1. \033[32mollama list\033[0m でインストール済みモデルを確認\n")
 		fmt.Printf("  2. \033[32mollama pull %s\033[0m でモデルをインストール\n", r.config.Model)
 		fmt.Printf("  3. \033[32mvyb config set-model qwen2.5-coder:7b\033[0m で軽量モデルに変更\n")
-		
+
 	case ErrorTimeout:
 		fmt.Printf("\n\033[36m⏱️ タイムアウト問題の解決方法:\033[0m\n")
 		fmt.Printf("  1. より軽量なモデルを使用\n")
 		fmt.Printf("  2. リクエスト内容を短縮\n")
 		fmt.Printf("  3. ネットワーク環境を確認\n")
 	}
-	
+
 	return errorInfo.Original
 }
 

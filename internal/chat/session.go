@@ -770,7 +770,7 @@ func (s *Session) printUserMessageWithContent(content string) {
 
 	// 前の行（プロンプト+入力）を完全にクリア
 	fmt.Printf("\r\033[K\033[A\r\033[K")
-	
+
 	// 質問ヘッダーと内容を表示
 	fmt.Printf("%s%s💬 質問:%s\n%s\n", blue, bold, reset, content)
 }

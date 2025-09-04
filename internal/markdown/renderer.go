@@ -2,10 +2,10 @@ package markdown
 
 import (
 	"fmt"
+	"golang.org/x/term"
 	"os"
 	"regexp"
 	"strings"
-	"golang.org/x/term"
 )
 
 // ANSIカラーコード定数
@@ -31,7 +31,6 @@ const (
 	BgGray  = "\033[100m"
 )
 
-
 // Markdown レンダラー
 type Renderer struct {
 	config RenderConfig
@@ -46,7 +45,7 @@ type RenderConfig struct {
 	IndentSize        int
 	MaxTableWidth     int
 	UseUnicodeSymbols bool
-	AutoWidth         bool   // ターミナル幅に自動調整
+	AutoWidth         bool // ターミナル幅に自動調整
 }
 
 // デフォルト設定でレンダラーを作成
@@ -70,25 +69,23 @@ func NewRendererWithConfig(config RenderConfig) *Renderer {
 	return &Renderer{config: config}
 }
 
-
 // ターミナル幅を取得（リアルタイム）
 func (r *Renderer) getTerminalWidth() int {
 	if !r.config.AutoWidth {
 		return 80 // デフォルト幅
 	}
-	
+
 	// 標準出力がターミナルかチェック
 	if !term.IsTerminal(int(os.Stdout.Fd())) {
 		return 80 // パイプや非ターミナル環境では固定幅
 	}
-	
+
 	// 毎回リアルタイムでターミナル幅を取得
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		return 80 // エラー時はデフォルト幅
 	}
-	
-	
+
 	// 最小・最大幅を設定
 	if width < 40 {
 		width = 40
@@ -96,7 +93,7 @@ func (r *Renderer) getTerminalWidth() int {
 	if width > 120 {
 		width = 120
 	}
-	
+
 	return width
 }
 
@@ -168,7 +165,7 @@ func (r *Renderer) Render(content string) string {
 
 		// 通常の行処理
 		processedLine := r.processInlineFormatting(line)
-		
+
 		// ヘッダー処理
 		if processedLine = r.processHeaders(processedLine); processedLine != line {
 			result.WriteString(processedLine + "\n")
@@ -293,7 +290,7 @@ func (r *Renderer) processHeaders(line string) string {
 // リストを処理
 func (r *Renderer) processLists(line string) string {
 	trimmed := strings.TrimSpace(line)
-	
+
 	// 番号付きリスト
 	numberedRegex := regexp.MustCompile(`^(\d+)\.\s+(.*)$`)
 	if matches := numberedRegex.FindStringSubmatch(trimmed); len(matches) == 3 {
@@ -324,7 +321,7 @@ func (r *Renderer) processLists(line string) string {
 	if matches := checkboxRegex.FindStringSubmatch(trimmed); len(matches) == 3 {
 		checked := matches[1] == "x"
 		text := matches[2]
-		
+
 		var checkbox string
 		if r.config.EnableColors {
 			if checked {
@@ -364,7 +361,7 @@ func (r *Renderer) processQuotes(line string) string {
 
 	// 引用テキストを抽出
 	quoteText := strings.TrimSpace(trimmed[level:])
-	
+
 	if !r.config.EnableColors {
 		return fmt.Sprintf("%s %s", strings.Repeat(">", level), quoteText)
 	}
@@ -372,7 +369,7 @@ func (r *Renderer) processQuotes(line string) string {
 	// インデントと境界線
 	indent := strings.Repeat("  ", level-1)
 	border := fmt.Sprintf("%s▌%s", Blue, Reset)
-	
+
 	return fmt.Sprintf("%s%s %s%s", indent, border, Gray, r.processInlineFormatting(quoteText)) + Reset
 }
 
@@ -388,16 +385,16 @@ func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int
 	}
 
 	var result strings.Builder
-	
+
 	// 最小幅を確保（言語名 + 装飾を考慮）
 	minWidth := 20
 	if language != "" {
 		minWidth = len(language) + 8 // "╭─  ─╮" の分
 	}
-	
+
 	// ターミナル幅を取得して調整
 	terminalWidth := r.getTerminalWidth()
-	
+
 	// 実際のコンテンツ幅を決定（ボーダー + マージンを考慮）
 	maxAllowedWidth := terminalWidth - 6 // 両側の余白とボーダーを考慮
 	contentWidth := maxWidth
@@ -407,7 +404,6 @@ func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int
 	if contentWidth > maxAllowedWidth {
 		contentWidth = maxAllowedWidth
 	}
-	
 
 	// 上部境界線（言語名を含む）
 	switch r.config.CodeBlockStyle {
@@ -415,18 +411,18 @@ func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int
 		if language != "" {
 			// 色コードを除いた実際の表示長を計算
 			headerDisplayLen := len(fmt.Sprintf("─ %s ", language))
-			
+
 			// コンテンツ幅に合わせて調整
-			totalBorderLen := contentWidth + 2 // "│ " の分
+			totalBorderLen := contentWidth + 2                       // "│ " の分
 			remainingDashes := totalBorderLen - headerDisplayLen - 2 // ╭╮の分
 			if remainingDashes < 1 {
 				remainingDashes = 1
 			}
-			
-			result.WriteString(fmt.Sprintf("\n%s╭─ %s%s%s %s─╮%s\n", 
+
+			result.WriteString(fmt.Sprintf("\n%s╭─ %s%s%s %s─╮%s\n",
 				Gray, Blue, language, Gray, strings.Repeat("─", remainingDashes), Reset))
 		} else {
-			result.WriteString(fmt.Sprintf("\n%s╭%s╮%s\n", 
+			result.WriteString(fmt.Sprintf("\n%s╭%s╮%s\n",
 				Gray, strings.Repeat("─", contentWidth+2), Reset))
 		}
 	default:
@@ -437,10 +433,10 @@ func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int
 			if remainingDashes < 1 {
 				remainingDashes = 1
 			}
-			result.WriteString(fmt.Sprintf("\n%s┌─ %s %s─┐%s\n", 
+			result.WriteString(fmt.Sprintf("\n%s┌─ %s %s─┐%s\n",
 				Gray, language, strings.Repeat("─", remainingDashes), Reset))
 		} else {
-			result.WriteString(fmt.Sprintf("\n%s┌%s┐%s\n", 
+			result.WriteString(fmt.Sprintf("\n%s┌%s┐%s\n",
 				Gray, strings.Repeat("─", contentWidth+2), Reset))
 		}
 	}
@@ -453,10 +449,10 @@ func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int
 	// 下部境界線
 	switch r.config.CodeBlockStyle {
 	case "bordered":
-		result.WriteString(fmt.Sprintf("%s╰%s╯%s\n\n", 
+		result.WriteString(fmt.Sprintf("%s╰%s╯%s\n\n",
 			Gray, strings.Repeat("─", contentWidth+2), Reset))
 	default:
-		result.WriteString(fmt.Sprintf("%s└%s┘%s\n\n", 
+		result.WriteString(fmt.Sprintf("%s└%s┘%s\n\n",
 			Gray, strings.Repeat("─", contentWidth+2), Reset))
 	}
 
@@ -484,10 +480,10 @@ func (r *Renderer) renderCodeLine(line string) string {
 func (r *Renderer) applySyntaxHighlighting(line string) string {
 	// Go のキーワード
 	goKeywords := []string{"package", "import", "func", "var", "const", "type", "struct", "interface", "if", "else", "for", "range", "return", "defer", "go", "select", "case", "default", "switch"}
-	
+
 	// JavaScript/TypeScript のキーワード
 	jsKeywords := []string{"function", "const", "let", "var", "class", "interface", "type", "import", "export", "default", "if", "else", "for", "while", "return", "async", "await"}
-	
+
 	// Python のキーワード
 	pyKeywords := []string{"def", "class", "import", "from", "if", "elif", "else", "for", "while", "return", "try", "except", "finally", "with", "as"}
 
@@ -535,13 +531,13 @@ func (r *Renderer) isTableSeparator(line string) bool {
 	if !strings.Contains(trimmed, "|") {
 		return false
 	}
-	
+
 	// セパレータには主に |-: の文字が含まれる
 	cleaned := strings.ReplaceAll(trimmed, "|", "")
 	cleaned = strings.ReplaceAll(cleaned, "-", "")
 	cleaned = strings.ReplaceAll(cleaned, ":", "")
 	cleaned = strings.ReplaceAll(cleaned, " ", "")
-	
+
 	return cleaned == ""
 }
 
@@ -554,12 +550,12 @@ func (r *Renderer) parseTableRow(line string) []string {
 	if strings.HasSuffix(trimmed, "|") {
 		trimmed = trimmed[:len(trimmed)-1]
 	}
-	
+
 	parts := strings.Split(trimmed, "|")
 	for i, part := range parts {
 		parts[i] = strings.TrimSpace(part)
 	}
-	
+
 	return parts
 }
 
@@ -655,16 +651,16 @@ func (r *Renderer) renderTable(headers []string, rows [][]string) string {
 // シンプルテーブル描画（カラー無効時）
 func (r *Renderer) renderSimpleTable(headers []string, rows [][]string) string {
 	var result strings.Builder
-	
+
 	// ヘッダー
 	result.WriteString(strings.Join(headers, " | ") + "\n")
 	result.WriteString(strings.Repeat("-", len(strings.Join(headers, " | "))) + "\n")
-	
+
 	// データ行
 	for _, row := range rows {
 		result.WriteString(strings.Join(row, " | ") + "\n")
 	}
-	
+
 	return result.String() + "\n"
 }
 

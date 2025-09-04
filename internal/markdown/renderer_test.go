@@ -21,7 +21,7 @@ func TestRenderer_ProcessInlineFormatting(t *testing.T) {
 			hasANSI:  true,
 		},
 		{
-			name:     "Italic text", 
+			name:     "Italic text",
 			input:    "This is *italic* text",
 			expected: "italic",
 			hasANSI:  true,
@@ -53,17 +53,17 @@ func TestRenderer_ProcessInlineFormatting(t *testing.T) {
 	}
 
 	renderer := NewRenderer()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := renderer.processInlineFormatting(tt.input)
-			
+
 			// ANSIコードが含まれているかチェック
 			hasANSI := strings.Contains(result, "\033[")
 			if hasANSI != tt.hasANSI {
 				t.Errorf("Expected ANSI codes: %v, got: %v", tt.hasANSI, hasANSI)
 			}
-			
+
 			// 期待するテキストが含まれているかチェック
 			if !strings.Contains(result, tt.expected) {
 				t.Errorf("Expected result to contain %q, got: %q", tt.expected, result)
@@ -86,7 +86,7 @@ func TestRenderer_ProcessHeaders(t *testing.T) {
 			level:    1,
 		},
 		{
-			name:     "H2 header", 
+			name:     "H2 header",
 			input:    "## Subtitle",
 			expected: "Subtitle",
 			level:    2,
@@ -112,19 +112,19 @@ func TestRenderer_ProcessHeaders(t *testing.T) {
 	}
 
 	renderer := NewRenderer()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := renderer.processHeaders(tt.input)
-			
+
 			// ヘッダーテキストが含まれているかチェック
 			if !strings.Contains(result, tt.expected) {
 				t.Errorf("Expected result to contain %q, got: %q", tt.expected, result)
 			}
-			
+
 			// ヘッダーレベルに応じたUnicode記号のチェック
 			if tt.level > 0 {
-				hasUnicodeSymbol := strings.Contains(result, "━") || strings.Contains(result, "─") || 
+				hasUnicodeSymbol := strings.Contains(result, "━") || strings.Contains(result, "─") ||
 					strings.Contains(result, "▶") || strings.Contains(result, "•")
 				if !hasUnicodeSymbol {
 					t.Errorf("Expected header to contain Unicode symbol")
@@ -136,10 +136,10 @@ func TestRenderer_ProcessHeaders(t *testing.T) {
 
 func TestRenderer_ProcessLists(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
+		name       string
+		input      string
 		isListItem bool
-		listType string
+		listType   string
 	}{
 		{
 			name:       "Numbered list",
@@ -148,7 +148,7 @@ func TestRenderer_ProcessLists(t *testing.T) {
 			listType:   "numbered",
 		},
 		{
-			name:       "Bullet list", 
+			name:       "Bullet list",
 			input:      "- Bullet item",
 			isListItem: true,
 			listType:   "bullet",
@@ -174,19 +174,19 @@ func TestRenderer_ProcessLists(t *testing.T) {
 	}
 
 	renderer := NewRenderer()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := renderer.processLists(tt.input)
-			
+
 			if tt.isListItem {
 				// リストアイテムは元の行と異なるはず
 				if result == tt.input {
 					t.Errorf("Expected list processing to modify the line")
 				}
-				
+
 				// Unicode記号が含まれているかチェック
-				hasUnicodeSymbol := strings.Contains(result, "▶") || strings.Contains(result, "•") || 
+				hasUnicodeSymbol := strings.Contains(result, "▶") || strings.Contains(result, "•") ||
 					strings.Contains(result, "✓") || strings.Contains(result, "☐")
 				if !hasUnicodeSymbol {
 					t.Errorf("Expected list item to contain Unicode symbol")
@@ -203,41 +203,41 @@ func TestRenderer_ProcessLists(t *testing.T) {
 
 func TestRenderer_TableProcessing(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  string
+		name    string
+		input   string
 		isTable bool
 	}{
 		{
-			name:   "Table row",
-			input:  "| Column 1 | Column 2 | Column 3 |",
+			name:    "Table row",
+			input:   "| Column 1 | Column 2 | Column 3 |",
 			isTable: true,
 		},
 		{
-			name:   "Table separator",
-			input:  "|----------|----------|----------|",
+			name:    "Table separator",
+			input:   "|----------|----------|----------|",
 			isTable: true,
 		},
 		{
-			name:   "Not a table",
-			input:  "Regular text with | pipe symbol",
+			name:    "Not a table",
+			input:   "Regular text with | pipe symbol",
 			isTable: false,
 		},
 		{
-			name:   "Single pipe",
-			input:  "Just one | pipe",
+			name:    "Single pipe",
+			input:   "Just one | pipe",
 			isTable: false,
 		},
 	}
 
 	renderer := NewRenderer()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isTableRow := renderer.isTableRow(tt.input)
 			if isTableRow != tt.isTable {
 				t.Errorf("Expected isTableRow: %v, got: %v", tt.isTable, isTableRow)
 			}
-			
+
 			if tt.isTable {
 				// テーブル行の解析テスト
 				parsed := renderer.parseTableRow(tt.input)
@@ -283,17 +283,17 @@ func TestRenderer_SyntaxHighlighting(t *testing.T) {
 	}
 
 	renderer := NewRenderer()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := renderer.applySyntaxHighlighting(tt.input)
-			
+
 			for _, expectedKeyword := range tt.expected {
 				if !strings.Contains(result, expectedKeyword) {
 					t.Errorf("Expected result to contain highlighted %q, got: %q", expectedKeyword, result)
 				}
 			}
-			
+
 			// ANSIカラーコードが含まれているかチェック
 			if !strings.Contains(result, "\033[") {
 				t.Errorf("Expected syntax highlighting to add ANSI color codes")
@@ -372,7 +372,7 @@ func main() {
 
 	t.Run("Contains list formatting", func(t *testing.T) {
 		// Check for Unicode list symbols
-		hasListSymbols := strings.Contains(result, "▶") || strings.Contains(result, "•") || 
+		hasListSymbols := strings.Contains(result, "▶") || strings.Contains(result, "•") ||
 			strings.Contains(result, "✓") || strings.Contains(result, "☐")
 		if !hasListSymbols {
 			t.Errorf("Expected list formatting with Unicode symbols")
@@ -431,7 +431,7 @@ func TestRenderer_ConfigurableOptions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			renderer := NewRendererWithConfig(tt.config)
 			result := renderer.Render(tt.input)
-			
+
 			if !tt.check(result) {
 				t.Errorf("Configuration check failed for input: %q, result: %q", tt.input, result)
 			}
@@ -441,7 +441,7 @@ func TestRenderer_ConfigurableOptions(t *testing.T) {
 
 func TestRenderer_EdgeCases(t *testing.T) {
 	renderer := NewRenderer()
-	
+
 	t.Run("Empty content", func(t *testing.T) {
 		result := renderer.Render("")
 		// 空入力は空文字または改行のみを返す可能性がある
@@ -480,22 +480,22 @@ func TestRenderer_EdgeCases(t *testing.T) {
 func TestRenderer_PerformanceInlineFormatting(t *testing.T) {
 	// パフォーマンステスト：大きなMarkdownドキュメントの処理
 	largeContent := strings.Repeat("This is **bold** text with *italic* and `code` formatting.\n", 1000)
-	
+
 	renderer := NewRenderer()
-	
+
 	// 処理時間を測定
 	start := time.Now()
 	result := renderer.Render(largeContent)
 	duration := time.Since(start)
-	
+
 	if duration > 5*time.Second {
 		t.Errorf("Rendering took too long: %v", duration)
 	}
-	
+
 	if len(result) == 0 {
 		t.Errorf("Expected non-empty result for large content")
 	}
-	
+
 	// メモリリークがないことを確認（基本的なチェック）
 	if len(result) > len(largeContent)*10 {
 		t.Errorf("Result size suggests possible memory leak: input=%d, output=%d", len(largeContent), len(result))
@@ -541,7 +541,7 @@ func TestRenderer_TableRendering(t *testing.T) {
 func BenchmarkRenderer_SimpleText(b *testing.B) {
 	renderer := NewRenderer()
 	content := "Simple text without any formatting."
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		renderer.Render(content)
@@ -551,7 +551,7 @@ func BenchmarkRenderer_SimpleText(b *testing.B) {
 func BenchmarkRenderer_ComplexMarkdown(b *testing.B) {
 	renderer := NewRenderer()
 	content := "# Header\n\n**Bold** and *italic* text with " + "`" + "code" + "`" + ".\n\n" + "```" + "go\nfunc main() {\n    fmt.Println(\"Hello\")\n}\n" + "```" + "\n\n| Col1 | Col2 |\n|------|------|\n| Data | More |\n"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		renderer.Render(content)
@@ -568,7 +568,7 @@ func BenchmarkRenderer_LargeDocument(b *testing.B) {
 		builder.WriteString("```go\nfunc example() { return nil }\n```\n\n")
 	}
 	content := builder.String()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		renderer.Render(content)

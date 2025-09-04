@@ -49,14 +49,14 @@ type Token struct {
 type TokenType string
 
 const (
-	TokenText      TokenType = "text"
-	TokenKeyword   TokenType = "keyword"
-	TokenString    TokenType = "string"
-	TokenComment   TokenType = "comment"
-	TokenNumber    TokenType = "number"
+	TokenText        TokenType = "text"
+	TokenKeyword     TokenType = "keyword"
+	TokenString      TokenType = "string"
+	TokenComment     TokenType = "comment"
+	TokenNumber      TokenType = "number"
 	TokenPunctuation TokenType = "punctuation"
-	TokenMarkdown  TokenType = "markdown"
-	TokenCode      TokenType = "code"
+	TokenMarkdown    TokenType = "markdown"
+	TokenCode        TokenType = "code"
 )
 
 // デフォルト設定でプロセッサーを作成
@@ -76,7 +76,7 @@ func NewProcessor() *Processor {
 	}
 }
 
-// 設定付きプロセッサーを作成  
+// 設定付きプロセッサーを作成
 func NewProcessorWithConfig(cfg StreamConfig) *Processor {
 	return &Processor{
 		config: cfg,
@@ -93,7 +93,7 @@ func (p *Processor) StreamContent(content string) error {
 
 	// コンテンツをトークンに分解
 	tokens := p.tokenizeContent(content)
-	
+
 	// ページング準備
 	if p.config.EnablePaging {
 		p.state.TotalLines = strings.Count(content, "\n")
@@ -132,7 +132,7 @@ func (p *Processor) StreamContent(content string) error {
 func (p *Processor) tokenizeContent(content string) []Token {
 	var tokens []Token
 	lines := strings.Split(content, "\n")
-	
+
 	for lineIndex, line := range lines {
 		// コードブロック判定
 		if strings.HasPrefix(strings.TrimSpace(line), "```") {
@@ -140,7 +140,7 @@ func (p *Processor) tokenizeContent(content string) []Token {
 			if p.state.InCodeBlock {
 				p.state.CodeLanguage = strings.TrimPrefix(strings.TrimSpace(line), "```")
 			}
-			
+
 			// コードブロック境界をそのまま出力
 			tokens = append(tokens, Token{
 				Content:   line,
@@ -168,7 +168,7 @@ func (p *Processor) tokenizeContent(content string) []Token {
 // テキスト行を処理
 func (p *Processor) processTextLine(line string, lineIndex int) []Token {
 	var tokens []Token
-	
+
 	if strings.TrimSpace(line) == "" {
 		// 空行：段落区切りとして処理
 		return []Token{{
@@ -182,13 +182,13 @@ func (p *Processor) processTextLine(line string, lineIndex int) []Token {
 
 	// Markdownフォーマットを考慮した単語分割
 	words := p.smartWordSplit(line)
-	
+
 	for wordIndex, word := range words {
 		tokenType := p.identifyTokenType(word)
 		delay := p.calculateDelay(word, tokenType)
-		
+
 		isLastWord := wordIndex == len(words)-1
-		
+
 		tokens = append(tokens, Token{
 			Content:   word,
 			Type:      tokenType,
@@ -225,13 +225,13 @@ func (p *Processor) processCodeLine(line string, lineIndex int) Token {
 func (p *Processor) smartWordSplit(line string) []string {
 	// Markdown要素を保持しながら分割
 	var words []string
-	
+
 	// 正規表現でMarkdown要素と通常テキストを分離
-	markdownRegex := regexp.MustCompile(`(\*\*[^*]+\*\*|\*[^*]+\*|`+"`"+`[^`+"`"+`]+`+"`"+`|~~[^~]+~~)`)
-	
+	markdownRegex := regexp.MustCompile(`(\*\*[^*]+\*\*|\*[^*]+\*|` + "`" + `[^` + "`" + `]+` + "`" + `|~~[^~]+~~)`)
+
 	parts := markdownRegex.Split(line, -1)
 	matches := markdownRegex.FindAllString(line, -1)
-	
+
 	matchIndex := 0
 	for i, part := range parts {
 		// 通常テキスト部分を単語分割
@@ -239,14 +239,14 @@ func (p *Processor) smartWordSplit(line string) []string {
 			normalWords := strings.Fields(part)
 			words = append(words, normalWords...)
 		}
-		
+
 		// Markdown要素を追加
 		if matchIndex < len(matches) && i < len(parts)-1 {
 			words = append(words, matches[matchIndex])
 			matchIndex++
 		}
 	}
-	
+
 	return words
 }
 
@@ -319,7 +319,7 @@ func (p *Processor) shouldPageBreak(lineIndex int) bool {
 	if !p.config.EnablePaging {
 		return false
 	}
-	
+
 	return lineIndex > 0 && lineIndex%p.config.PageSize == 0
 }
 
@@ -330,24 +330,24 @@ func (p *Processor) handlePaging() error {
 	}
 
 	p.state.CurrentPage++
-	
+
 	// ページ継続の確認
-	fmt.Printf("\n\033[90m--- ページ %d/%d ---\033[0m", 
-		p.state.CurrentPage, 
+	fmt.Printf("\n\033[90m--- ページ %d/%d ---\033[0m",
+		p.state.CurrentPage,
 		(p.state.TotalLines/p.config.PageSize)+1)
 	fmt.Printf("\033[90m (Enter: 継続, q: 終了)\033[0m ")
 
 	// ユーザー入力を待機
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if response == "q" || response == "quit" {
 		return fmt.Errorf("ユーザーによって中断されました")
 	}
 
 	// 画面をクリアしてページ表示を削除
 	fmt.Print("\033[G\033[K")
-	
+
 	return nil
 }
 
@@ -395,19 +395,19 @@ func (p *Processor) StreamParagraphs(content string) error {
 	}
 
 	paragraphs := strings.Split(content, "\n\n")
-	
+
 	for i, paragraph := range paragraphs {
 		if err := p.StreamContent(paragraph); err != nil {
 			return err
 		}
-		
+
 		// 段落間の遅延
 		if i < len(paragraphs)-1 {
 			time.Sleep(p.config.ParagraphDelay)
 			fmt.Print("\n\n")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -434,7 +434,7 @@ func (p *Processor) StreamContentInterruptible(content string, interrupt <-chan 
 	}
 
 	tokens := p.tokenizeContent(content)
-	
+
 	for i, token := range tokens {
 		// 中断チェック
 		select {

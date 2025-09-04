@@ -33,7 +33,7 @@ var rootCmd = &cobra.Command{
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
 		noTerminalMode, _ := cmd.Flags().GetBool("no-terminal-mode")
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
-		
+
 		// terminal-modeのロジック調整（デフォルトtrue、no-terminal-modeでfalse）
 		if noTerminalMode {
 			terminalMode = false
@@ -64,12 +64,12 @@ var chatCmd = &cobra.Command{
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
 		continueSession, _ := cmd.Flags().GetBool("continue")
 		resumeID, _ := cmd.Flags().GetString("resume")
-		
+
 		// terminal-modeのロジック調整（デフォルトtrue、no-terminal-modeでfalse）
 		if noTerminalMode {
 			terminalMode = false
 		}
-		
+
 		startInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
 	},
 }
@@ -618,7 +618,7 @@ func listConfig() {
 	fmt.Printf("  プロジェクト情報表示: %t\n", cfg.TerminalMode.ShowProjectInfo)
 	fmt.Printf("  履歴サイズ: %d\n", cfg.TerminalMode.HistorySize)
 	fmt.Printf("  スラッシュコマンド: %t\n", cfg.TerminalMode.EnableSlashCmd)
-	
+
 	fmt.Println("\n🚀 クイックスタート:")
 	fmt.Printf("  %s--terminal-mode%s でClaude Code風体験\n", "\033[32m", "\033[0m")
 	fmt.Printf("  %svyb config set-streaming fast%s で高速化\n", "\033[32m", "\033[0m")
@@ -1346,7 +1346,7 @@ func setTerminalModeConfig(key, value string) {
 // ストリーミング速度設定の実装関数
 func setStreamingSpeed(speed string) {
 	validSpeeds := []string{"instant", "fast", "normal", "slow", "typewriter"}
-	
+
 	// 有効な速度かチェック
 	valid := false
 	for _, validSpeed := range validSpeeds {
@@ -1355,7 +1355,7 @@ func setStreamingSpeed(speed string) {
 			break
 		}
 	}
-	
+
 	if !valid {
 		fmt.Printf("無効な速度設定です: %s\n", speed)
 		fmt.Printf("利用可能な速度: %s\n", strings.Join(validSpeeds, ", "))

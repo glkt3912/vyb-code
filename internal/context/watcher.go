@@ -10,14 +10,14 @@ import (
 
 // コンテキスト監視器
 type Watcher struct {
-	workDir        string
-	lastGitCommit  string
-	lastFileCount  int
-	lastModTime    time.Time
-	watchedFiles   map[string]time.Time
-	gitBranch      string
-	projectLang    string
-	isWatching     bool
+	workDir       string
+	lastGitCommit string
+	lastFileCount int
+	lastModTime   time.Time
+	watchedFiles  map[string]time.Time
+	gitBranch     string
+	projectLang   string
+	isWatching    bool
 }
 
 // プロジェクト状態の変更情報
@@ -38,7 +38,7 @@ const (
 	ChangeFileModify ChangeType = "file_modify"
 	ChangeFileDelete ChangeType = "file_delete"
 	ChangeDependency ChangeType = "dependency"
-	
+
 	SeverityLow    ChangeSeverity = "low"
 	SeverityMedium ChangeSeverity = "medium"
 	SeverityHigh   ChangeSeverity = "high"
@@ -73,14 +73,14 @@ func (w *Watcher) captureInitialState() error {
 	// Git情報
 	w.gitBranch = w.getCurrentGitBranch()
 	w.lastGitCommit = w.getLastGitCommit()
-	
+
 	// プロジェクト言語
 	w.projectLang = w.detectProjectLanguage()
-	
+
 	// ファイル状態
 	w.lastFileCount = w.countProjectFiles()
 	w.lastModTime = time.Now()
-	
+
 	return nil
 }
 
@@ -91,17 +91,17 @@ func (w *Watcher) CheckChanges() []ChangeInfo {
 	}
 
 	var changes []ChangeInfo
-	
+
 	// Git変更をチェック
 	if gitChanges := w.checkGitChanges(); len(gitChanges) > 0 {
 		changes = append(changes, gitChanges...)
 	}
-	
+
 	// ファイル変更をチェック
 	if fileChanges := w.checkFileChanges(); len(fileChanges) > 0 {
 		changes = append(changes, fileChanges...)
 	}
-	
+
 	// 依存関係変更をチェック
 	if depChanges := w.checkDependencyChanges(); len(depChanges) > 0 {
 		changes = append(changes, depChanges...)
@@ -113,7 +113,7 @@ func (w *Watcher) CheckChanges() []ChangeInfo {
 // Git変更をチェック
 func (w *Watcher) checkGitChanges() []ChangeInfo {
 	var changes []ChangeInfo
-	
+
 	// ブランチ変更チェック
 	currentBranch := w.getCurrentGitBranch()
 	if currentBranch != w.gitBranch && currentBranch != "" {
@@ -124,7 +124,7 @@ func (w *Watcher) checkGitChanges() []ChangeInfo {
 		})
 		w.gitBranch = currentBranch
 	}
-	
+
 	// コミット変更チェック
 	currentCommit := w.getLastGitCommit()
 	if currentCommit != w.lastGitCommit && currentCommit != "" {
@@ -142,7 +142,7 @@ func (w *Watcher) checkGitChanges() []ChangeInfo {
 // ファイル変更をチェック
 func (w *Watcher) checkFileChanges() []ChangeInfo {
 	var changes []ChangeInfo
-	
+
 	// プロジェクトファイル数をチェック
 	currentFileCount := w.countProjectFiles()
 	if currentFileCount != w.lastFileCount {
@@ -150,7 +150,7 @@ func (w *Watcher) checkFileChanges() []ChangeInfo {
 		if currentFileCount < w.lastFileCount {
 			changeType = ChangeFileDelete
 		}
-		
+
 		changes = append(changes, ChangeInfo{
 			Type:        changeType,
 			Description: fmt.Sprintf("ファイル数が %d から %d に変更されました", w.lastFileCount, currentFileCount),
@@ -165,7 +165,7 @@ func (w *Watcher) checkFileChanges() []ChangeInfo {
 // 依存関係変更をチェック
 func (w *Watcher) checkDependencyChanges() []ChangeInfo {
 	var changes []ChangeInfo
-	
+
 	// go.mod の変更チェック
 	if w.hasFileChanged("go.mod") {
 		changes = append(changes, ChangeInfo{
@@ -175,7 +175,7 @@ func (w *Watcher) checkDependencyChanges() []ChangeInfo {
 			Severity:    SeverityHigh,
 		})
 	}
-	
+
 	// package.json の変更チェック
 	if w.hasFileChanged("package.json") {
 		changes = append(changes, ChangeInfo{
@@ -224,12 +224,12 @@ func (w *Watcher) detectProjectLanguage() string {
 // プロジェクトファイル数を数える
 func (w *Watcher) countProjectFiles() int {
 	count := 0
-	
+
 	filepath.Walk(w.workDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
-		
+
 		// 隠しディレクトリやnode_modules等をスキップ
 		relativePath := strings.TrimPrefix(path, w.workDir)
 		if strings.Contains(relativePath, "/.") || strings.Contains(relativePath, "node_modules") {
@@ -238,14 +238,14 @@ func (w *Watcher) countProjectFiles() int {
 			}
 			return nil
 		}
-		
+
 		if !info.IsDir() {
 			count++
 		}
-		
+
 		return nil
 	})
-	
+
 	return count
 }
 
@@ -256,10 +256,10 @@ func (w *Watcher) hasFileChanged(filename string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	lastMod, exists := w.watchedFiles[fullPath]
 	w.watchedFiles[fullPath] = info.ModTime()
-	
+
 	return !exists || info.ModTime().After(lastMod)
 }
 
@@ -279,7 +279,7 @@ func (w *Watcher) isDirectory(path string) bool {
 func (w *Watcher) FormatChange(change ChangeInfo) string {
 	var color string
 	var icon string
-	
+
 	switch change.Severity {
 	case SeverityHigh:
 		color = "\033[31m" // 赤
@@ -291,9 +291,9 @@ func (w *Watcher) FormatChange(change ChangeInfo) string {
 		color = "\033[36m" // シアン
 		icon = "ℹ️"
 	}
-	
+
 	reset := "\033[0m"
-	
+
 	return fmt.Sprintf("%s%s %s%s", color, icon, change.Description, reset)
 }
 

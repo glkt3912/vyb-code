@@ -27,7 +27,7 @@ var globalMutex sync.Mutex
 // 新しい中断ハンドラーを作成
 func NewHandler() *Handler {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	handler := &Handler{
 		ctx:           ctx,
 		cancel:        cancel,
@@ -104,9 +104,9 @@ func (h *Handler) AddCallback(callback func()) {
 func (h *Handler) Reset() {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	h.interrupted = false
-	
+
 	// 新しいコンテキストを作成
 	if h.cancel != nil {
 		h.cancel()
@@ -129,12 +129,12 @@ func (h *Handler) Reset() {
 func (h *Handler) Close() {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	if h.cancel != nil {
 		h.cancel()
 		h.cancel = nil
 	}
-	
+
 	if h.signalChannel != nil {
 		signal.Stop(h.signalChannel)
 		// チャネルがまだ開いている場合のみ閉じる
@@ -151,17 +151,17 @@ func (h *Handler) Close() {
 // 中断可能な操作のヘルパー関数
 func WithInterruption(operation func(context.Context) error) error {
 	handler := GetGlobalHandler()
-	
+
 	// 操作前に中断状態をリセット
 	handler.Reset()
-	
+
 	return operation(handler.Context())
 }
 
 // 中断可能なスリープ
 func InterruptibleSleep(duration time.Duration) error {
 	handler := GetGlobalHandler()
-	
+
 	select {
 	case <-time.After(duration):
 		return nil
@@ -173,7 +173,7 @@ func InterruptibleSleep(duration time.Duration) error {
 // 段階的中断（警告 → 強制終了）
 func (h *Handler) HandleGracefulInterruption(operation func() error, timeout time.Duration) error {
 	done := make(chan error, 1)
-	
+
 	// 操作を別ゴルーチンで実行
 	go func() {
 		done <- operation()
@@ -184,7 +184,7 @@ func (h *Handler) HandleGracefulInterruption(operation func() error, timeout tim
 		return err
 	case <-h.Context().Done():
 		fmt.Printf("\n\033[33m⚠️  中断中... (操作完了まで最大 %v 待機)\033[0m\n", timeout)
-		
+
 		// タイムアウト付きで操作完了を待機
 		select {
 		case err := <-done:

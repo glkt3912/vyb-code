@@ -43,7 +43,7 @@ type Completer struct {
 // 特殊キーコード
 const (
 	KeyUp    = 65  // ↑
-	KeyDown  = 66  // ↓  
+	KeyDown  = 66  // ↓
 	KeyRight = 67  // →
 	KeyLeft  = 68  // ←
 	KeyEnter = 13  // Enter
@@ -59,7 +59,7 @@ const (
 // 新しいリーダーを作成
 func NewReader() *Reader {
 	currentDir, _ := os.Getwd()
-	
+
 	return &Reader{
 		history:   NewHistory(100),
 		completer: NewCompleter(currentDir),
@@ -205,7 +205,7 @@ func (r *Reader) readLineRaw() (string, error) {
 	r.cursorPos = 0
 
 	buffer := make([]byte, 1)
-	
+
 	for {
 		n, err := os.Stdin.Read(buffer)
 		if err == io.EOF {
@@ -369,7 +369,7 @@ func (r *Reader) handleUTF8Input(firstByte byte) error {
 
 	// UTF-8文字列に変換
 	char := string(utf8Bytes)
-	
+
 	// 現在の行に文字を挿入
 	r.currentLine = r.currentLine[:r.cursorPos] + char + r.currentLine[r.cursorPos:]
 	r.cursorPos += len(char)
@@ -382,13 +382,13 @@ func (r *Reader) handleUTF8Input(firstByte byte) error {
 func (r *Reader) redrawLine() {
 	// カーソルを行頭に移動
 	fmt.Print("\033[G")
-	
+
 	// プロンプトと現在の行を表示
 	fmt.Printf("%s%s", r.prompt, r.currentLine)
-	
+
 	// 行末まで削除
 	fmt.Print("\033[K")
-	
+
 	// カーソルを正しい位置に移動
 	if r.cursorPos < len(r.currentLine) {
 		// カーソルが行末でない場合、正しい位置に移動
@@ -405,15 +405,15 @@ func (r *Reader) clearCurrentLine() {
 func (r *Reader) showSuggestions(suggestions []string) {
 	// 現在の行を保存
 	fmt.Print("\033[s")
-	
+
 	// 新しい行に移動
 	fmt.Print("\n")
-	
+
 	// 候補を表示
 	gray := "\033[90m"
 	green := "\033[32m"
 	reset := "\033[0m"
-	
+
 	fmt.Printf("%s候補:%s", gray, reset)
 	for i, suggestion := range suggestions {
 		if i > 0 {
@@ -426,7 +426,7 @@ func (r *Reader) showSuggestions(suggestions []string) {
 		}
 	}
 	fmt.Print("\n")
-	
+
 	// 元の位置に戻る
 	fmt.Print("\033[u")
 }
@@ -438,7 +438,7 @@ func (r *Reader) readLineFallback() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	line = strings.TrimSuffix(line, "\n")
 	r.history.Add(line)
 	return line, nil
@@ -513,15 +513,15 @@ func (c *Completer) getFilePathSuggestions(input string) []string {
 // マルチライン入力の読み取り
 func (r *Reader) ReadMultiLine() (string, error) {
 	var lines []string
-	
+
 	fmt.Printf("マルチライン入力モード (空行で送信, Ctrl+C でキャンセル):\n")
-	
+
 	for {
 		// 継続プロンプト
 		if len(lines) > 0 {
 			r.SetPrompt("... ")
 		}
-		
+
 		line, err := r.ReadLine()
 		if err != nil {
 			if err == io.EOF || strings.Contains(err.Error(), "interrupted") {

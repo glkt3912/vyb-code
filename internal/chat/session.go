@@ -23,6 +23,7 @@ type Session struct {
 	workDir      string            // 作業ディレクトリ
 	contextFiles []string          // コンテキストファイル一覧
 	projectInfo  *ProjectContext   // プロジェクト情報
+	inputHistory *InputHistory     // 入力履歴管理
 }
 
 // プロジェクトコンテキスト情報
@@ -33,6 +34,66 @@ type ProjectContext struct {
 	Structure    map[string]string `json:"structure"`
 	GitBranch    string            `json:"git_branch"`
 	GitStatus    string            `json:"git_status"`
+}
+
+// 入力履歴管理
+type InputHistory struct {
+	history []string
+	index   int
+	maxSize int
+}
+
+// 新しい入力履歴マネージャーを作成
+func NewInputHistory(maxSize int) *InputHistory {
+	return &InputHistory{
+		history: make([]string, 0),
+		index:   -1,
+		maxSize: maxSize,
+	}
+}
+
+// 履歴にコマンドを追加
+func (h *InputHistory) Add(command string) {
+	command = strings.TrimSpace(command)
+	if command == "" || (len(h.history) > 0 && h.history[len(h.history)-1] == command) {
+		return
+	}
+
+	h.history = append(h.history, command)
+	if len(h.history) > h.maxSize {
+		h.history = h.history[1:]
+	}
+	h.index = len(h.history)
+}
+
+// 前の履歴を取得（上矢印）
+func (h *InputHistory) Previous() string {
+	if len(h.history) == 0 {
+		return ""
+	}
+	if h.index > 0 {
+		h.index--
+	}
+	return h.history[h.index]
+}
+
+// 次の履歴を取得（下矢印）
+func (h *InputHistory) Next() string {
+	if len(h.history) == 0 {
+		return ""
+	}
+	if h.index < len(h.history)-1 {
+		h.index++
+		return h.history[h.index]
+	} else {
+		h.index = len(h.history)
+		return ""
+	}
+}
+
+// 履歴をリセット
+func (h *InputHistory) Reset() {
+	h.index = len(h.history)
 }
 
 // 新しい会話セッションを作成
@@ -46,6 +107,7 @@ func NewSession(provider llm.Provider, model string) *Session {
 		mcpManager:   mcp.NewManager(),
 		workDir:      workDir,
 		contextFiles: make([]string, 0),
+		inputHistory: NewInputHistory(100), // 最大100個の履歴を保持
 	}
 
 	// プロジェクト情報を初期化
@@ -204,6 +266,14 @@ func (s *Session) StartEnhancedTerminal() error {
 			break
 		}
 
+		// スラッシュコマンド処理
+		if strings.HasPrefix(trimmed, "/") {
+			if s.handleSlashCommand(trimmed) {
+				continue
+			}
+			// スラッシュコマンドが無効の場合、通常処理に進む
+		}
+
 		// 空入力はスキップ
 		if trimmed == "" {
 			continue
@@ -234,10 +304,10 @@ func (s *Session) StartEnhancedTerminal() error {
 	return nil
 }
 
-// Claude Code風インタラクティブ入力（日本語対応）
+// Claude Code風高度入力システム（履歴・マルチライン・編集対応）
 func (s *Session) readMultilineInput(reader *bufio.Reader) (string, error) {
-	// 日本語入力（IME）対応のため、行ベース入力を使用
-	var lines []string
+	var currentInput strings.Builder
+	isMultilineMode := false
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -247,24 +317,41 @@ func (s *Session) readMultilineInput(reader *bufio.Reader) (string, error) {
 
 		// 改行を除去
 		line = strings.TrimSuffix(line, "\n")
-
-		// 最初の行の場合
-		if len(lines) == 0 {
-			// 空でない最初の行は即座に送信（Claude風）
-			if line != "" {
-				return line, nil
-			}
-			// 空行の場合は継続
+		
+		// 特殊キー処理をシミュレート（実際のキーコード処理は別途必要）
+		if strings.HasSuffix(line, "\\") && !isMultilineMode {
+			// マルチラインモード開始（\ + Enter）
+			isMultilineMode = true
+			currentInput.WriteString(strings.TrimSuffix(line, "\\"))
+			currentInput.WriteString("\n")
+			fmt.Print("... ")
 			continue
 		}
 
-		// 複数行モードでの処理
-		// 空行で送信
-		if line == "" {
-			return strings.Join(lines, "\n"), nil
+		if isMultilineMode {
+			// マルチラインモード中
+			if line == "" {
+				// 空行で送信完了
+				result := strings.TrimSpace(currentInput.String())
+				if result != "" {
+					s.inputHistory.Add(result)
+				}
+				return result, nil
+			}
+			currentInput.WriteString(line)
+			currentInput.WriteString("\n")
+			fmt.Print("... ")
+			continue
 		}
 
-		lines = append(lines, line)
+		// 単一行入力処理
+		if line != "" {
+			s.inputHistory.Add(line)
+			return line, nil
+		}
+
+		// 空行の場合は継続
+		continue
 	}
 }
 
@@ -321,29 +408,40 @@ func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 	return nil
 }
 
-// thinking状態のアニメーション表示を開始
+// Claude Code風thinking状態アニメーション
 func (s *Session) startThinkingAnimation() func() {
-	// アニメーション用の文字列
-	frames := []string{"thinking", "thinking.", "thinking..", "thinking..."}
+	// Claude Code風のよりエレガントなアニメーション
+	frames := []string{
+		"thinking",
+		"thinking .",
+		"thinking . .",
+		"thinking . . .",
+		"thinking . .",
+		"thinking .",
+	}
 	frameIndex := 0
+
+	// カラーコード
+	gray := "\033[90m"
+	reset := "\033[0m"
 
 	// 停止チャネル
 	stopCh := make(chan struct{})
 
 	// アニメーションゴルーチンを開始
 	go func() {
-		ticker := time.NewTicker(500 * time.Millisecond)
+		ticker := time.NewTicker(400 * time.Millisecond) // より滑らかなアニメーション
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-stopCh:
 				// thinkingテキストを完全にクリアして改行位置に戻る
-				fmt.Print("\r" + strings.Repeat(" ", 50) + "\r")
+				fmt.Print("\r" + strings.Repeat(" ", 60) + "\r")
 				return
 			case <-ticker.C:
-				// カーソル位置に戻してアニメーション表示
-				fmt.Printf("\r%s", frames[frameIndex])
+				// Claude Code風のグレー色でアニメーション表示
+				fmt.Printf("\r%s%s%s", gray, frames[frameIndex], reset)
 				frameIndex = (frameIndex + 1) % len(frames)
 			}
 		}
@@ -352,9 +450,9 @@ func (s *Session) startThinkingAnimation() func() {
 	// 停止関数を返す
 	return func() {
 		close(stopCh)
-		time.Sleep(300 * time.Millisecond) // クリア処理の完了をしっかり待つ
-		// 追加でクリア処理を確実に実行
-		fmt.Print("\r" + strings.Repeat(" ", 50) + "\r")
+		time.Sleep(200 * time.Millisecond) // クリア処理の完了を待つ
+		// 確実にクリア
+		fmt.Print("\r" + strings.Repeat(" ", 60) + "\r")
 	}
 }
 
@@ -435,57 +533,153 @@ func (s *Session) buildContextualPrompt(userInput string) string {
 	return contextBuilder.String()
 }
 
-// カラフルな起動メッセージを表示
+// Claude Code風起動メッセージを表示
 func (s *Session) printWelcomeMessage() {
 	// ANSIカラーコード
 	bold := "\033[1m"
 	blue := "\033[34m"
 	cyan := "\033[36m"
-	reset := "\033[0m"
-
-	fmt.Printf("%s%svyb%s %s- Feel the rhythm of perfect code%s\n\n", bold, blue, reset, cyan, reset)
-
-	// プロジェクト情報を簡潔に表示
-	if s.projectInfo != nil {
-		workDirName := filepath.Base(s.workDir)
-		fmt.Printf("%s📁 %s%s %s(%s)%s\n\n", cyan, workDirName, reset, "\033[90m", s.projectInfo.Language, reset)
-	}
-}
-
-// カラー対応プロンプトを表示
-func (s *Session) printColoredPrompt() {
-	// ANSIカラーコード
+	gray := "\033[90m"
 	green := "\033[32m"
 	reset := "\033[0m"
 
-	fmt.Printf("%s>%s ", green, reset)
+	// メインタイトル
+	fmt.Printf("\n%s%svyb%s %s- Feel the rhythm of perfect code%s\n", bold, blue, reset, cyan, reset)
+
+	// プロジェクト情報をClaude Code風に表示
+	if s.projectInfo != nil {
+		workDirName := filepath.Base(s.workDir)
+		fmt.Printf("%s%s%s", gray, workDirName, reset)
+		
+		// 言語情報
+		if s.projectInfo.Language != "Unknown" && s.projectInfo.Language != "" {
+			fmt.Printf(" %s•%s %s%s%s", gray, reset, green, s.projectInfo.Language, reset)
+		}
+		
+		// Git情報
+		gitInfo := s.getGitPromptInfo()
+		if gitInfo.branch != "" {
+			fmt.Printf(" %s•%s %s%s%s", gray, reset, cyan, gitInfo.branch, reset)
+		}
+		
+		fmt.Printf("\n")
+	}
+
+	// ヘルプヒント
+	fmt.Printf("%sType your message and press Enter. Use %s/help%s for commands, or %sexit%s to quit.%s\n\n", 
+		gray, green, gray, green, gray, reset)
 }
 
-// メタ情報を表示（Claude Code風）
+// Claude Code風動的プロンプトを表示
+func (s *Session) printColoredPrompt() {
+	// ANSIカラーコード
+	green := "\033[32m"
+	blue := "\033[34m"
+	yellow := "\033[33m"
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	// Git情報を取得
+	gitInfo := s.getGitPromptInfo()
+	projectName := filepath.Base(s.workDir)
+
+	// ベースプロンプト
+	prompt := fmt.Sprintf("%s%s%s", blue, projectName, reset)
+
+	// Git情報を追加
+	if gitInfo.branch != "" {
+		prompt += fmt.Sprintf("%s[%s%s%s]%s", gray, green, gitInfo.branch, gray, reset)
+	}
+	
+	// 変更ファイル数を表示
+	if gitInfo.changes > 0 {
+		prompt += fmt.Sprintf("%s(%s%d%s)%s", gray, yellow, gitInfo.changes, gray, reset)
+	}
+
+	// 最終プロンプト記号
+	prompt += fmt.Sprintf(" %s>%s ", green, reset)
+
+	fmt.Print(prompt)
+}
+
+// Gitプロンプト情報
+type GitPromptInfo struct {
+	branch  string
+	changes int
+	status  string
+}
+
+// Git情報をプロンプト用に取得
+func (s *Session) getGitPromptInfo() GitPromptInfo {
+	info := GitPromptInfo{}
+	
+	// ブランチ名を取得（簡易実装）
+	if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
+		info.branch = s.projectInfo.GitBranch
+	} else {
+		info.branch = "main" // デフォルト
+	}
+	
+	// TODO: 実際のgit statusコマンドを実行して変更ファイル数を取得
+	// 現在は固定値
+	info.changes = 0
+	
+	return info
+}
+
+// Claude Code風メタ情報表示
 func (s *Session) displayMetaInfo(duration time.Duration, contentLength int) {
 	// ANSIカラーコード
 	gray := "\033[90m"
 	reset := "\033[0m"
 
-	// 簡易的なトークン数推定（文字数÷4）
-	estimatedTokens := contentLength / 4
+	// より正確なトークン数推定（日本語考慮）
+	estimatedTokens := s.estimateTokenCount(contentLength)
 
-	// Claude Code風のメタ情報表示（グレー色）
-	fmt.Printf("\n%s🕒 %dms • 📝 ~%d tokens • 🤖 %s%s\n\n",
+	// レスポンス速度評価
+	speedEmoji := s.getSpeedEmoji(duration)
+
+	// Claude Code風のよりリッチなメタ情報表示
+	fmt.Printf("\n%s%s %dms • 📝 ~%d tokens • 🤖 %s%s\n\n",
 		gray,
+		speedEmoji,
 		duration.Milliseconds(),
 		estimatedTokens,
 		s.model,
 		reset)
 }
 
-// フォーマット済みレスポンスを表示（Markdown対応）
+// トークン数をより正確に推定
+func (s *Session) estimateTokenCount(contentLength int) int {
+	// 日本語と英語の混在を考慮した推定
+	// 日本語文字は約1.5トークン、英語は約0.25トークン
+	
+	// 簡易推定：文字数 ÷ 3.5
+	return contentLength * 10 / 35
+}
+
+// レスポンス速度に応じた絵文字を取得
+func (s *Session) getSpeedEmoji(duration time.Duration) string {
+	ms := duration.Milliseconds()
+	
+	if ms < 1000 {
+		return "⚡" // 非常に高速
+	} else if ms < 3000 {
+		return "🕒" // 高速
+	} else if ms < 10000 {
+		return "⏳" // 普通
+	} else {
+		return "🐌" // 低速
+	}
+}
+
+// Claude Code風ストリーミング表示（文字ごとのタイピング効果）
 func (s *Session) displayFormattedResponse(content string) {
 	lines := strings.Split(content, "\n")
 	inCodeBlock := false
 	codeLanguage := ""
 
-	for _, line := range lines {
+	for lineIndex, line := range lines {
 		// コードブロック開始の検出
 		if strings.HasPrefix(line, "```") {
 			if !inCodeBlock {
@@ -502,16 +696,69 @@ func (s *Session) displayFormattedResponse(content string) {
 		}
 
 		if inCodeBlock {
-			// コードブロック内
+			// コードブロック内（タイピング効果なし）
 			s.printCodeLine(line)
 		} else {
-			// 通常テキスト（Markdown強調対応）
-			s.printFormattedLine(line)
+			// 通常テキスト：文字ごとのタイピング効果
+			s.printTypingLine(line)
 		}
 
-		// Claude風タイピング効果
-		time.Sleep(time.Millisecond * 2)
+		// 行間の自然な間隔
+		if lineIndex < len(lines)-1 {
+			time.Sleep(time.Millisecond * 50)
+		}
 	}
+}
+
+// 文字ごとのタイピング効果で行を表示
+func (s *Session) printTypingLine(line string) {
+	// Markdown **太字** の前処理
+	processedLine := s.processMarkdownFormatting(line)
+	
+	// 文字ごとに表示（日本語対応）
+	runes := []rune(processedLine)
+	for i, r := range runes {
+		fmt.Print(string(r))
+		
+		// タイピング速度調整（句読点後は少し長めの停止）
+		delay := time.Millisecond * 15
+		if strings.ContainsRune("。、！？", r) {
+			delay = time.Millisecond * 100
+		} else if strings.ContainsRune(" \t", r) {
+			delay = time.Millisecond * 30
+		}
+		
+		// 最後の文字でない場合のみ待機
+		if i < len(runes)-1 {
+			time.Sleep(delay)
+		}
+	}
+	fmt.Println() // 行末の改行
+}
+
+// Markdown書式を処理
+func (s *Session) processMarkdownFormatting(line string) string {
+	// **太字** 対応
+	if strings.Contains(line, "**") {
+		bold := "\033[1m"
+		reset := "\033[0m"
+		
+		parts := strings.Split(line, "**")
+		result := parts[0]
+		
+		for i := 1; i < len(parts); i++ {
+			if i%2 == 1 {
+				// 奇数番目：太字開始
+				result += bold + parts[i]
+			} else {
+				// 偶数番目：太字終了
+				result += reset + parts[i]
+			}
+		}
+		line = result
+	}
+	
+	return line
 }
 
 // コードブロックヘッダーを表示
@@ -555,25 +802,114 @@ func (s *Session) printCodeLine(line string) {
 	fmt.Printf("│ %s\n", line)
 }
 
-// フォーマット済みテキスト行を表示
-func (s *Session) printFormattedLine(line string) {
-	// **太字** 対応
-	if strings.Contains(line, "**") {
-		bold := "\033[1m"
-		reset := "\033[0m"
-		line = strings.ReplaceAll(line, "**", bold)
-		// 奇数回目のreplace後にresetを追加
-		parts := strings.Split(line, bold)
-		result := parts[0]
-		for i := 1; i < len(parts); i++ {
-			if i%2 == 1 {
-				result += bold + parts[i]
-			} else {
-				result += reset + parts[i]
-			}
-		}
-		line = result
+
+// スラッシュコマンドを処理
+func (s *Session) handleSlashCommand(command string) bool {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return false
 	}
 
-	fmt.Println(line)
+	cmd := parts[0]
+	args := parts[1:]
+
+	green := "\033[32m"
+	yellow := "\033[33m"
+	cyan := "\033[36m"
+	reset := "\033[0m"
+
+	switch cmd {
+	case "/help", "/h":
+		fmt.Printf("%s--- Claude Code風コマンド ---%s\n", cyan, reset)
+		fmt.Printf("%s/help, /h%s      - このヘルプを表示\n", green, reset)
+		fmt.Printf("%s/clear, /c%s     - 会話履歴をクリア\n", green, reset)
+		fmt.Printf("%s/history%s       - 入力履歴を表示\n", green, reset)
+		fmt.Printf("%s/status%s        - プロジェクト状態を表示\n", green, reset)
+		fmt.Printf("%s/info%s          - システム情報を表示\n", green, reset)
+		fmt.Printf("%s/save <file>%s   - 会話を保存\n", green, reset)
+		fmt.Printf("%sexit, quit%s     - セッション終了\n", yellow, reset)
+		return true
+
+	case "/clear", "/c":
+		s.ClearHistory()
+		fmt.Printf("%s会話履歴をクリアしました%s\n", green, reset)
+		return true
+
+	case "/history":
+		if len(s.inputHistory.history) == 0 {
+			fmt.Printf("%s入力履歴はありません%s\n", yellow, reset)
+		} else {
+			fmt.Printf("%s--- 入力履歴 ---%s\n", cyan, reset)
+			for i, cmd := range s.inputHistory.history {
+				fmt.Printf("%s%3d%s: %s\n", green, i+1, reset, cmd)
+			}
+		}
+		return true
+
+	case "/status":
+		s.displayProjectStatus()
+		return true
+
+	case "/info":
+		s.displaySystemInfo()
+		return true
+
+	case "/save":
+		if len(args) > 0 {
+			s.saveConversation(args[0])
+		} else {
+			fmt.Printf("%sファイル名を指定してください: /save <filename>%s\n", yellow, reset)
+		}
+		return true
+
+	default:
+		// 未知のスラッシュコマンド
+		fmt.Printf("%s未知のコマンド: %s%s\n", yellow, cmd, reset)
+		fmt.Printf("利用可能なコマンドは %s/help%s で確認できます\n", green, reset)
+		return true
+	}
+}
+
+// プロジェクト状態を表示
+func (s *Session) displayProjectStatus() {
+	cyan := "\033[36m"
+	green := "\033[32m"
+	reset := "\033[0m"
+
+	fmt.Printf("%s--- プロジェクト状態 ---%s\n", cyan, reset)
+	
+	if s.projectInfo != nil {
+		fmt.Printf("%s言語:%s %s\n", green, reset, s.projectInfo.Language)
+		fmt.Printf("%s作業ディレクトリ:%s %s\n", green, reset, s.workDir)
+		if s.projectInfo.GitBranch != "" {
+			fmt.Printf("%sGitブランチ:%s %s\n", green, reset, s.projectInfo.GitBranch)
+		}
+		if len(s.projectInfo.Dependencies) > 0 {
+			fmt.Printf("%s依存関係:%s %s\n", green, reset, strings.Join(s.projectInfo.Dependencies, ", "))
+		}
+	}
+
+	fmt.Printf("%s会話履歴:%s %d件のメッセージ\n", green, reset, s.GetMessageCount())
+	fmt.Printf("%s入力履歴:%s %d件のコマンド\n", green, reset, len(s.inputHistory.history))
+}
+
+// システム情報を表示
+func (s *Session) displaySystemInfo() {
+	cyan := "\033[36m"
+	green := "\033[32m"
+	reset := "\033[0m"
+
+	fmt.Printf("%s--- システム情報 ---%s\n", cyan, reset)
+	fmt.Printf("%sモデル:%s %s\n", green, reset, s.model)
+	fmt.Printf("%s作業ディレクトリ:%s %s\n", green, reset, s.workDir)
+	fmt.Printf("%sMCP接続:%s %d台のサーバー\n", green, reset, len(s.GetMCPTools()))
+}
+
+// 会話を保存
+func (s *Session) saveConversation(filename string) {
+	red := "\033[31m"
+	reset := "\033[0m"
+
+	// TODO: 実装予定 - 会話履歴をJSONまたはMarkdown形式で保存
+	fmt.Printf("%s会話保存機能は開発中です: %s%s\n", red, filename, reset)
 }

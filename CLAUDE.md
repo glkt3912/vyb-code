@@ -144,7 +144,7 @@ go test ./internal/config -v -run TestMCPServerConfig
 
 ### Phase 4+ Enhanced Terminal Mode (✅ Completed)
 
-- ✅ **Claude Code-style terminal interface** (`--terminal-mode`)
+- ✅ **Claude Code-style terminal interface** (now **default mode**)
 - ✅ **Japanese IME support** (resolved character disappearing issues)
 - ✅ **Colored UI components** (ANSI color codes for prompts, logos, metadata)
 - ✅ **Markdown formatting** (code blocks with syntax highlighting, bold text)
@@ -188,13 +188,12 @@ vyb config set-tui-theme <theme>   # Set TUI theme (vyb, dark, light, auto)
 **All implemented commands:**
 
 ```bash
-# Interactive sessions
-vyb                                # Start interactive mode (TUI enabled by default)
-vyb --terminal-mode               # Claude Code-style terminal mode (RECOMMENDED)
-vyb chat                           # Start interactive mode explicitly
-vyb chat --terminal-mode          # Claude Code-style terminal in chat mode
-vyb chat --no-tui                  # Start in legacy text mode
-vyb --no-tui                       # Force legacy mode for any command
+# Interactive sessions (Terminal mode is now default!)
+vyb                                # Start Claude Code-style terminal mode (DEFAULT)
+vyb chat                           # Start terminal mode in chat command (DEFAULT)
+vyb --no-terminal-mode            # Use legacy TUI mode instead
+vyb --no-tui                       # Force plain text mode
+vyb --no-terminal-mode --no-tui    # Force legacy text mode
 
 # Search and discovery
 vyb search <pattern>               # Search across project files
@@ -262,3 +261,4 @@ vyb mcp disconnect [server]        # Disconnect from MCP server
 
 - 🤖 Added a new memory to track project insights and development context
 - 🚀 Phase 4+ completed: Enhanced Claude Code-style terminal mode with Japanese IME support, colored UI, Markdown formatting, automatic project context, and convenient shortcuts
+- ✨ Terminal-mode is now the **default experience** - no flags needed for Claude Code-style interface

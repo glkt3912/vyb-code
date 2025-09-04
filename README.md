@@ -2,11 +2,11 @@
 
 > Feel the rhythm of perfect code
 
-ローカルLLMベースのコーディングアシスタント。プライバシーを重視しながら、ClaudeCode相当の機能をローカル環境で実現します。
+ローカルLLMベースのコーディングアシスタント。プライバシーを重視しながら、Claude Code相当の機能をローカル環境で実現します。**Claude Code風ターミナルモードがデフォルト体験**として利用できます。
 
 ## 特徴
 
-- **🎯 Claude Code風ターミナルモード**: 新しい`--terminal-mode`でClaude Code相当の体験
+- **🎯 Claude Code風ターミナルモード**: **デフォルト体験** - Claude Code相当のインターフェース
 - **🌈 カラー対応UI**: 緑色プロンプト、青色ロゴ、カラフルなコードハイライト
 - **📝 Markdown対応**: コードブロック枠線、シンタックスハイライト、太字表示
 - **🏗️ 自動プロジェクト認識**: 言語・依存関係・Git情報の自動コンテキスト追加
@@ -75,17 +75,17 @@ vyb config list
 # モデル設定
 vyb config set-model qwen2.5-coder:14b
 
-# 🎯 Claude Code風ターミナルモード（推奨）- Claude Code相当の体験
-vyb --terminal-mode
-vyb chat --terminal-mode
+# 🎯 Claude Code風ターミナルモード（デフォルト）- Claude Code相当の体験  
+vyb                               # ターミナルモードで開始（推奨）
+vyb chat                          # チャットコマンドでも同じ
 
 # 🎨 TUIモード - モダンなターミナルUI体験
-vyb chat
-vyb
+vyb --no-terminal-mode            # TUIモード（レガシー）  
+vyb chat --no-terminal-mode
 
-# 📟 レガシーモード - 従来のテキストベース
-vyb chat --no-tui
-vyb --no-tui
+# 📟 プレーンテキストモード - 従来のシンプル表示
+vyb --no-tui                      # 完全テキストモード
+vyb --no-terminal-mode --no-tui   # レガシー + テキスト
 
 # 🎵 テーマ設定
 vyb config set-tui-theme vyb       # vybブランドテーマ

@@ -10,20 +10,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glkt/vyb-code/internal/config"
+	"github.com/glkt/vyb-code/internal/input"
+	"github.com/glkt/vyb-code/internal/interrupt"
 	"github.com/glkt/vyb-code/internal/llm"
+	"github.com/glkt/vyb-code/internal/markdown"
 	"github.com/glkt/vyb-code/internal/mcp"
+	"github.com/glkt/vyb-code/internal/security"
+	"github.com/glkt/vyb-code/internal/streaming"
+	"github.com/glkt/vyb-code/internal/tools"
 )
 
 // 会話セッションを管理する構造体
 type Session struct {
-	provider     llm.Provider      // LLMプロバイダー
-	messages     []llm.ChatMessage // 会話履歴
-	model        string            // 使用するモデル名
-	mcpManager   *mcp.Manager      // MCPマネージャー
-	workDir      string            // 作業ディレクトリ
-	contextFiles []string          // コンテキストファイル一覧
-	projectInfo  *ProjectContext   // プロジェクト情報
-	inputHistory *InputHistory     // 入力履歴管理
+	provider        llm.Provider         // LLMプロバイダー
+	messages        []llm.ChatMessage    // 会話履歴
+	model           string               // 使用するモデル名
+	mcpManager      *mcp.Manager         // MCPマネージャー
+	workDir         string               // 作業ディレクトリ
+	contextFiles    []string             // コンテキストファイル一覧
+	projectInfo     *ProjectContext      // プロジェクト情報
+	inputHistory    *InputHistory        // 入力履歴管理（後方互換性のため保持）
+	markdownRender  *markdown.Renderer   // Markdownレンダラー
+	inputReader     *input.Reader        // 拡張入力リーダー
+	streamProcessor *streaming.Processor // ストリーミングプロセッサー
+	gitOps          *tools.GitOperations // Git操作
 }
 
 // プロジェクトコンテキスト情報
@@ -100,18 +111,53 @@ func (h *InputHistory) Reset() {
 func NewSession(provider llm.Provider, model string) *Session {
 	workDir, _ := os.Getwd()
 
+	// Git操作を初期化
+	constraints := security.NewDefaultConstraints(workDir)
+	gitOps := tools.NewGitOperations(constraints, workDir)
+
 	session := &Session{
-		provider:     provider,
-		messages:     make([]llm.ChatMessage, 0),
-		model:        model,
-		mcpManager:   mcp.NewManager(),
-		workDir:      workDir,
-		contextFiles: make([]string, 0),
-		inputHistory: NewInputHistory(100), // 最大100個の履歴を保持
+		provider:        provider,
+		messages:        make([]llm.ChatMessage, 0),
+		model:           model,
+		mcpManager:      mcp.NewManager(),
+		workDir:         workDir,
+		contextFiles:    make([]string, 0),
+		inputHistory:    NewInputHistory(100),     // 後方互換性のため保持
+		markdownRender:  markdown.NewRenderer(),   // Markdownレンダラーを初期化
+		inputReader:     input.NewReader(),        // 拡張入力リーダーを初期化
+		streamProcessor: streaming.NewProcessor(), // ストリーミングプロセッサーを初期化
+		gitOps:          gitOps,                   // Git操作を初期化
 	}
 
 	// プロジェクト情報を初期化
 	session.initializeProjectContext()
+
+	return session
+}
+
+// 設定に基づいてセッションを作成
+func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Config) *Session {
+	session := NewSession(provider, model)
+
+	// 設定に基づいてストリーミングプロセッサーを調整
+	if cfg != nil {
+		streamConfig := streaming.StreamConfig{
+			TokenDelay:      time.Duration(cfg.TerminalMode.TypingSpeed) * time.Millisecond,
+			SentenceDelay:   time.Duration(cfg.TerminalMode.TypingSpeed*6) * time.Millisecond,
+			ParagraphDelay:  time.Duration(cfg.TerminalMode.TypingSpeed*12) * time.Millisecond,
+			CodeBlockDelay:  time.Duration(cfg.TerminalMode.TypingSpeed/3) * time.Millisecond,
+			EnableStreaming: cfg.TerminalMode.TypingSpeed > 0,
+			MaxLineLength:   100,
+			EnablePaging:    false,
+			PageSize:        25,
+		}
+		session.streamProcessor.UpdateConfig(streamConfig)
+
+		// 入力履歴サイズを設定
+		if cfg.TerminalMode.HistorySize > 0 {
+			session.inputHistory = NewInputHistory(cfg.TerminalMode.HistorySize)
+		}
+	}
 
 	return session
 }
@@ -167,6 +213,9 @@ func (s *Session) StartInteractive() error {
 
 // 単発クエリを処理する
 func (s *Session) ProcessQuery(query string) error {
+	// 質問ヘッダーと内容を同じ行に表示
+	s.printUserMessageWithContent(query)
+
 	// クエリをメッセージ履歴に追加
 	s.messages = append(s.messages, llm.ChatMessage{
 		Role:    "user",
@@ -207,6 +256,89 @@ func (s *Session) ClearHistory() {
 	s.messages = make([]llm.ChatMessage, 0)
 }
 
+// メモリ効率的な履歴管理（長い会話を圧縮）
+func (s *Session) optimizeHistory() {
+	const maxMessages = 20      // 最大保持メッセージ数
+	const summaryThreshold = 30 // 要約開始の閾値
+
+	if len(s.messages) <= maxMessages {
+		return
+	}
+
+	// 古いメッセージを要約
+	if len(s.messages) > summaryThreshold {
+		oldMessages := s.messages[:len(s.messages)-maxMessages]
+		recentMessages := s.messages[len(s.messages)-maxMessages:]
+
+		// 要約を作成（簡易実装）
+		summary := s.createConversationSummary(oldMessages)
+
+		// 要約メッセージで置換
+		summaryMessage := llm.ChatMessage{
+			Role:    "user",
+			Content: fmt.Sprintf("# 前回までの会話要約\n%s\n\n--- 以下、最近の会話 ---", summary),
+		}
+
+		s.messages = append([]llm.ChatMessage{summaryMessage}, recentMessages...)
+	}
+}
+
+// 会話要約を作成
+func (s *Session) createConversationSummary(messages []llm.ChatMessage) string {
+	if len(messages) == 0 {
+		return "（前回の会話なし）"
+	}
+
+	var topics []string
+	var codeFiles []string
+
+	for _, msg := range messages {
+		if msg.Role == "user" {
+			// ユーザーの質問から主要トピックを抽出
+			content := strings.ToLower(msg.Content)
+
+			// ファイル名の抽出
+			if strings.Contains(content, ".go") || strings.Contains(content, ".js") ||
+				strings.Contains(content, ".py") || strings.Contains(content, ".ts") {
+				// 簡易ファイル名抽出
+				words := strings.Fields(msg.Content)
+				for _, word := range words {
+					if strings.Contains(word, ".") && len(word) < 50 {
+						codeFiles = append(codeFiles, word)
+					}
+				}
+			}
+
+			// 主要アクション動詞を抽出
+			actions := []string{"作成", "修正", "追加", "削除", "実装", "改善", "分析", "説明"}
+			for _, action := range actions {
+				if strings.Contains(content, action) {
+					topics = append(topics, action)
+					break
+				}
+			}
+		}
+	}
+
+	summary := fmt.Sprintf("過去 %d 件のメッセージ", len(messages))
+	if len(topics) > 0 {
+		summary += fmt.Sprintf("（主な作業: %s）", strings.Join(topics[:min(3, len(topics))], "、"))
+	}
+	if len(codeFiles) > 0 {
+		summary += fmt.Sprintf("（関連ファイル: %s）", strings.Join(codeFiles[:min(3, len(codeFiles))], "、"))
+	}
+
+	return summary
+}
+
+// minヘルパー関数
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // 会話履歴の件数を取得
 func (s *Session) GetMessageCount() int {
 	return len(s.messages)
@@ -242,18 +374,26 @@ func (s *Session) StartEnhancedTerminal() error {
 	// カラフルな起動メッセージ
 	s.printWelcomeMessage()
 
-	// 高度な入力読み込み用
-	reader := bufio.NewReader(os.Stdin)
+	// クリーンアップを保証
+	defer func() {
+		if s.inputReader != nil {
+			s.inputReader.Close()
+		}
+	}()
 
 	for {
-		// Claude風カラープロンプト
-		s.printColoredPrompt()
+		// Claude風カラープロンプトを設定
+		s.inputReader.SetPrompt(s.buildColoredPrompt())
 
-		// マルチライン入力サポート
-		input, err := s.readMultilineInput(reader)
+		// 拡張入力システムで読み込み
+		input, err := s.inputReader.ReadLine()
 		if err != nil {
 			if err == io.EOF {
 				break
+			}
+			if strings.Contains(err.Error(), "interrupted") {
+				fmt.Printf("\n^C\n")
+				continue
 			}
 			fmt.Printf("入力エラー: %v\n", err)
 			continue
@@ -279,6 +419,9 @@ func (s *Session) StartEnhancedTerminal() error {
 			continue
 		}
 
+		// 質問ヘッダーと内容を同じ行に表示
+		s.printUserMessageWithContent(input)
+
 		// コンテキスト情報付きでユーザーメッセージを履歴に追加
 		contextualInput := s.buildContextualPrompt(input)
 		s.messages = append(s.messages, llm.ChatMessage{
@@ -297,8 +440,8 @@ func (s *Session) StartEnhancedTerminal() error {
 			continue
 		}
 
-		// レスポンス後に区切り線
-		fmt.Println()
+		// レスポンス後に視覚的区切り
+		s.printMessageSeparator()
 	}
 
 	return nil
@@ -364,48 +507,82 @@ func (s *Session) readSimpleInput(reader *bufio.Reader) (string, error) {
 	return strings.TrimSuffix(line, "\n"), nil
 }
 
-// Claude Code風ストリーミング応答でLLMに送信（thinking制御付き）
+// Claude Code風ストリーミング応答でLLMに送信（thinking制御付き・中断対応）
 func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
-	// リクエスト開始時間を記録
-	startTime := time.Now()
+	// 中断可能な操作として実行
+	return interrupt.WithInterruption(func(ctx context.Context) error {
+		// リクエスト開始時間を記録
+		startTime := time.Now()
 
-	// チャットリクエストを作成
-	req := llm.ChatRequest{
-		Model:    s.model,
-		Messages: s.messages,
-		Stream:   false, // 既存API構造を活用
-	}
+		// チャットリクエストを作成
+		req := llm.ChatRequest{
+			Model:    s.model,
+			Messages: s.messages,
+			Stream:   false, // 既存API構造を活用
+		}
 
-	// LLMプロバイダーにリクエスト送信
-	ctx := context.Background()
-	resp, err := s.provider.Chat(ctx, req)
+		// 中断可能なLLMリクエスト
+		respCh := make(chan *llm.ChatResponse, 1)
+		errCh := make(chan error, 1)
 
-	// レスポンス受信後、thinking状態を停止
-	stopThinking()
+		go func() {
+			resp, err := s.provider.Chat(context.Background(), req)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			respCh <- resp
+		}()
 
-	if err != nil {
-		return fmt.Errorf("LLM request failed: %w", err)
-	}
+		// レスポンス待機（中断可能）
+		var resp *llm.ChatResponse
+		var err error
 
-	// レスポンス時間を計算
-	duration := time.Since(startTime)
+		select {
+		case resp = <-respCh:
+			// 正常レスポンス受信
+		case err = <-errCh:
+			// エラー受信
+		case <-ctx.Done():
+			// 中断された
+			stopThinking()
+			fmt.Printf("\n\033[33m⚠️  リクエストが中断されました\033[0m\n")
+			return fmt.Errorf("request interrupted")
+		}
 
-	// Claude Code風のクリーンなレスポンス表示
-	content := resp.Message.Content
+		// thinking状態を停止
+		stopThinking()
 
-	// Markdown対応のレスポンス表示
-	s.displayFormattedResponse(content)
+		if err != nil {
+			return fmt.Errorf("LLM request failed: %w", err)
+		}
 
-	// 最終改行
-	fmt.Println()
+		// レスポンス時間を計算
+		duration := time.Since(startTime)
 
-	// メタ情報表示（Claude Code風）
-	s.displayMetaInfo(duration, len(content))
+		// 回答ヘッダーを表示
+		s.printAssistantMessageHeader()
 
-	// レスポンスメッセージを履歴に追加
-	s.messages = append(s.messages, resp.Message)
+		// Claude Code風のクリーンなレスポンス表示（中断可能）
+		content := resp.Message.Content
 
-	return nil
+		// 中断可能なレスポンス表示
+		if err := s.displayFormattedResponseInterruptible(content, ctx); err != nil {
+			// 中断された場合、部分的な応答も保存
+			fmt.Printf("\n\033[33m⚠️  表示が中断されましたが、応答は保存されました\033[0m\n")
+		}
+
+		// メタ情報表示
+		s.displayMetaInfo(duration, len(content))
+
+		// レスポンスメッセージを履歴に追加
+		s.messages = append(s.messages, resp.Message)
+
+		// 長い会話の場合、メモリ効率化を実行
+		s.optimizeHistory()
+
+		return nil
+	})
 }
 
 // Claude Code風thinking状態アニメーション
@@ -472,28 +649,30 @@ func (s *Session) initializeProjectContext() {
 
 // プロジェクト言語を検出
 func (s *Session) detectProjectLanguage() string {
-	// go.modの存在確認
-	if _, err := os.Stat("go.mod"); err == nil {
-		return "Go"
+	// 言語マネージャーを使用して動的に検出
+	languageManager := tools.NewLanguageManager()
+	languages, err := languageManager.DetectProjectLanguages(s.workDir)
+	if err != nil {
+		return "Unknown"
 	}
-	// package.jsonの存在確認
-	if _, err := os.Stat("package.json"); err == nil {
-		return "JavaScript/TypeScript"
+
+	// 最も使用されている言語を返す
+	if len(languages) > 0 {
+		return languages[0].GetName()
 	}
-	// requirements.txtやsetup.pyの確認
-	if _, err := os.Stat("requirements.txt"); err == nil {
-		return "Python"
-	}
-	// Cargo.tomlの確認
-	if _, err := os.Stat("Cargo.toml"); err == nil {
-		return "Rust"
-	}
+
 	return "Unknown"
 }
 
 // 現在のGitブランチを取得
 func (s *Session) getCurrentGitBranch() string {
-	// 簡易Git情報取得（実装簡素化）
+	// 実際のGitブランチ名を取得
+	if s.gitOps != nil {
+		if branch, err := s.gitOps.GetCurrentBranch(); err == nil {
+			return branch
+		}
+	}
+	// フォールバック
 	return "main"
 }
 
@@ -536,41 +715,90 @@ func (s *Session) buildContextualPrompt(userInput string) string {
 // Claude Code風起動メッセージを表示
 func (s *Session) printWelcomeMessage() {
 	// ANSIカラーコード
-	bold := "\033[1m"
-	blue := "\033[34m"
 	cyan := "\033[36m"
 	gray := "\033[90m"
-	green := "\033[32m"
+	magenta := "\033[35m"
 	reset := "\033[0m"
 
-	// メインタイトル
-	fmt.Printf("\n%s%svyb%s %s- Feel the rhythm of perfect code%s\n", bold, blue, reset, cyan, reset)
+	// エレガントなロゴ表示
+	fmt.Printf("\n%s⚡ %svyb%s %s- AI coding assistant%s\n",
+		cyan, magenta, reset, gray, reset)
 
 	// プロジェクト情報をClaude Code風に表示
 	if s.projectInfo != nil {
 		workDirName := filepath.Base(s.workDir)
-		fmt.Printf("%s%s%s", gray, workDirName, reset)
+		fmt.Printf("\n%s📁 %s%s%s", "\033[34m", "\033[1m", workDirName, reset)
 
 		// 言語情報
 		if s.projectInfo.Language != "Unknown" && s.projectInfo.Language != "" {
-			fmt.Printf(" %s•%s %s%s%s", gray, reset, green, s.projectInfo.Language, reset)
+			fmt.Printf(" %s•%s %s🔧 %s%s", gray, reset, "\033[32m", s.projectInfo.Language, reset)
 		}
 
 		// Git情報
 		gitInfo := s.getGitPromptInfo()
 		if gitInfo.branch != "" {
-			fmt.Printf(" %s•%s %s%s%s", gray, reset, cyan, gitInfo.branch, reset)
+			fmt.Printf(" %s•%s %s🌿 %s%s", gray, reset, cyan, gitInfo.branch, reset)
 		}
 
 		fmt.Printf("\n")
 	}
-
-	// ヘルプヒント
-	fmt.Printf("%sType your message and press Enter. Use %s/help%s for commands, or %sexit%s to quit.%s\n\n",
-		gray, green, gray, green, gray, reset)
 }
 
-// Claude Code風動的プロンプトを表示
+// メッセージ間の視覚的区切りを表示
+func (s *Session) printMessageSeparator() {
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	// さりげない区切り線
+	fmt.Printf("\n%s────────────────────────────────────────%s\n\n", gray, reset)
+}
+
+// 質問の開始を表示
+func (s *Session) printUserMessageHeader() {
+	blue := "\033[34m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s%s💬 質問:%s\n", blue, bold, reset)
+}
+
+// 質問ヘッダーと内容を同じ行に表示
+func (s *Session) printUserMessageWithContent(content string) {
+	blue := "\033[34m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	// 前の行（プロンプト+入力）を完全にクリア
+	fmt.Printf("\r\033[K\033[A\r\033[K")
+
+	// 質問ヘッダーと内容を表示
+	fmt.Printf("%s%s💬 質問:%s\n%s\n", blue, bold, reset, content)
+}
+
+// 回答の開始を表示
+func (s *Session) printAssistantMessageHeader() {
+	green := "\033[32m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s%s🤖 回答:%s\n", green, bold, reset)
+}
+
+// Claude Code風プロンプト文字列を構築
+func (s *Session) buildColoredPrompt() string {
+	// ANSIカラーコード
+	green := "\033[32m"
+	blue := "\033[34m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	// シンプルなプロンプト
+	prompt := fmt.Sprintf("%s%svyb%s %s>%s ", blue, bold, reset, green, reset)
+
+	return prompt
+}
+
+// Claude Code風動的プロンプトを表示（廃止予定）
 func (s *Session) printColoredPrompt() {
 	// ANSIカラーコード
 	green := "\033[32m"
@@ -613,11 +841,17 @@ type GitPromptInfo struct {
 func (s *Session) getGitPromptInfo() GitPromptInfo {
 	info := GitPromptInfo{}
 
-	// ブランチ名を取得（簡易実装）
-	if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
-		info.branch = s.projectInfo.GitBranch
+	// 実際のGitブランチ名を取得
+	if s.gitOps != nil {
+		if currentBranch, err := s.gitOps.GetCurrentBranch(); err == nil {
+			info.branch = currentBranch
+		} else if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
+			info.branch = s.projectInfo.GitBranch
+		} else {
+			info.branch = "main" // フォールバック
+		}
 	} else {
-		info.branch = "main" // デフォルト
+		info.branch = "main" // gitOpsが利用できない場合
 	}
 
 	// TODO: 実際のgit statusコマンドを実行して変更ファイル数を取得
@@ -673,52 +907,46 @@ func (s *Session) getSpeedEmoji(duration time.Duration) string {
 	}
 }
 
-// Claude Code風ストリーミング表示（文字ごとのタイピング効果）
+// Claude Code風ストリーミング表示（拡張Markdown対応）
 func (s *Session) displayFormattedResponse(content string) {
-	lines := strings.Split(content, "\n")
-	inCodeBlock := false
-	codeLanguage := ""
+	// Markdownレンダリングされたコンテンツを取得
+	rendered := s.markdownRender.Render(content)
 
-	for lineIndex, line := range lines {
-		// コードブロック開始の検出
-		if strings.HasPrefix(line, "```") {
-			if !inCodeBlock {
-				// コードブロック開始
-				inCodeBlock = true
-				codeLanguage = strings.TrimPrefix(line, "```")
-				s.printCodeBlockHeader(codeLanguage)
-			} else {
-				// コードブロック終了
-				inCodeBlock = false
-				s.printCodeBlockFooter()
-			}
-			continue
-		}
-
-		if inCodeBlock {
-			// コードブロック内（タイピング効果なし）
-			s.printCodeLine(line)
-		} else {
-			// 通常テキスト：文字ごとのタイピング効果
-			s.printTypingLine(line)
-		}
-
-		// 行間の自然な間隔
-		if lineIndex < len(lines)-1 {
-			time.Sleep(time.Millisecond * 50)
-		}
+	// 高度なストリーミング処理で表示
+	if err := s.streamProcessor.StreamContent(rendered); err != nil {
+		// ストリーミングエラー時はフォールバック
+		fmt.Print(rendered)
 	}
 }
 
-// 文字ごとのタイピング効果で行を表示
-func (s *Session) printTypingLine(line string) {
-	// Markdown **太字** の前処理
-	processedLine := s.processMarkdownFormatting(line)
+// 中断可能なレスポンス表示
+func (s *Session) displayFormattedResponseInterruptible(content string, ctx context.Context) error {
+	// Markdownレンダリングされたコンテンツを取得
+	rendered := s.markdownRender.Render(content)
 
-	// 文字ごとに表示（日本語対応）
-	runes := []rune(processedLine)
+	// 中断チャネルを作成
+	interruptCh := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		close(interruptCh)
+	}()
+
+	// 中断可能なストリーミング処理で表示
+	return s.streamProcessor.StreamContentInterruptible(rendered, interruptCh)
+}
+
+// 文字ごとのタイピング効果で行を表示（既にレンダリング済みの行に対して）
+func (s *Session) printTypingLine(line string) {
+	// 既にMarkdownレンダリング済みなので、タイピング効果のみ適用
+	runes := []rune(line)
 	for i, r := range runes {
 		fmt.Print(string(r))
+
+		// ANSIエスケープシーケンスはスキップ
+		if r == '\033' {
+			// エスケープシーケンス中は高速表示
+			continue
+		}
 
 		// タイピング速度調整（句読点後は少し長めの停止）
 		delay := time.Millisecond * 15
@@ -734,72 +962,6 @@ func (s *Session) printTypingLine(line string) {
 		}
 	}
 	fmt.Println() // 行末の改行
-}
-
-// Markdown書式を処理
-func (s *Session) processMarkdownFormatting(line string) string {
-	// **太字** 対応
-	if strings.Contains(line, "**") {
-		bold := "\033[1m"
-		reset := "\033[0m"
-
-		parts := strings.Split(line, "**")
-		result := parts[0]
-
-		for i := 1; i < len(parts); i++ {
-			if i%2 == 1 {
-				// 奇数番目：太字開始
-				result += bold + parts[i]
-			} else {
-				// 偶数番目：太字終了
-				result += reset + parts[i]
-			}
-		}
-		line = result
-	}
-
-	return line
-}
-
-// コードブロックヘッダーを表示
-func (s *Session) printCodeBlockHeader(language string) {
-	gray := "\033[90m"
-	reset := "\033[0m"
-
-	if language != "" {
-		fmt.Printf("\n%s┌─ %s ─%s\n", gray, language, reset)
-	} else {
-		fmt.Printf("\n%s┌─ code ─%s\n", gray, reset)
-	}
-}
-
-// コードブロックフッターを表示
-func (s *Session) printCodeBlockFooter() {
-	gray := "\033[90m"
-	reset := "\033[0m"
-
-	fmt.Printf("%s└────────%s\n\n", gray, reset)
-}
-
-// コード行を表示（シンタックスハイライト風）
-func (s *Session) printCodeLine(line string) {
-	blue := "\033[94m"
-	yellow := "\033[93m"
-	green := "\033[92m"
-	reset := "\033[0m"
-
-	// 簡易シンタックスハイライト
-	if strings.Contains(line, "func ") {
-		line = strings.ReplaceAll(line, "func ", blue+"func "+reset)
-	}
-	if strings.Contains(line, "import ") {
-		line = strings.ReplaceAll(line, "import ", yellow+"import "+reset)
-	}
-	if strings.Contains(line, "package ") {
-		line = strings.ReplaceAll(line, "package ", green+"package "+reset)
-	}
-
-	fmt.Printf("│ %s\n", line)
 }
 
 // スラッシュコマンドを処理
@@ -822,10 +984,13 @@ func (s *Session) handleSlashCommand(command string) bool {
 		fmt.Printf("%s--- Claude Code風コマンド ---%s\n", cyan, reset)
 		fmt.Printf("%s/help, /h%s      - このヘルプを表示\n", green, reset)
 		fmt.Printf("%s/clear, /c%s     - 会話履歴をクリア\n", green, reset)
+		fmt.Printf("%s/retry%s         - 最後のレスポンスを再生成\n", green, reset)
+		fmt.Printf("%s/edit%s          - マルチライン入力モード\n", green, reset)
 		fmt.Printf("%s/history%s       - 入力履歴を表示\n", green, reset)
 		fmt.Printf("%s/status%s        - プロジェクト状態を表示\n", green, reset)
 		fmt.Printf("%s/info%s          - システム情報を表示\n", green, reset)
 		fmt.Printf("%s/save <file>%s   - 会話を保存\n", green, reset)
+		fmt.Printf("\n%s矢印キー%s: ↑↓で履歴 • %sTab%s: 補完 • %sCtrl+C%s: キャンセル\n", cyan, reset, cyan, reset, cyan, reset)
 		fmt.Printf("%sexit, quit%s     - セッション終了\n", yellow, reset)
 		return true
 
@@ -851,6 +1016,63 @@ func (s *Session) handleSlashCommand(command string) bool {
 
 	case "/info":
 		s.displaySystemInfo()
+		return true
+
+	case "/retry":
+		// 最後のユーザーメッセージを再送信
+		if len(s.messages) >= 2 && s.messages[len(s.messages)-1].Role == "assistant" {
+			// 最後のアシスタント応答を削除
+			s.messages = s.messages[:len(s.messages)-1]
+
+			fmt.Printf("%s最後のレスポンスを再生成中...%s\n", green, reset)
+
+			// thinking状態表示を開始
+			stopThinking := s.startThinkingAnimation()
+
+			// 再送信
+			if err := s.sendToLLMStreamingWithThinking(stopThinking); err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+		} else {
+			fmt.Printf("%s再生成する前のメッセージがありません%s\n", yellow, reset)
+		}
+		return true
+
+	case "/edit":
+		// マルチライン入力モード
+		fmt.Printf("%sマルチライン入力モード (空行で送信):%s\n", green, reset)
+		multilineInput, err := s.inputReader.ReadMultiLine()
+		if err != nil {
+			if strings.Contains(err.Error(), "interrupted") {
+				fmt.Printf("%sマルチライン入力がキャンセルされました%s\n", yellow, reset)
+			} else {
+				fmt.Printf("%sマルチライン入力エラー: %v%s\n", yellow, err, reset)
+			}
+			return true
+		}
+
+		if strings.TrimSpace(multilineInput) != "" {
+			// 質問ヘッダーと内容を表示
+			s.printUserMessageWithContent(multilineInput)
+
+			// マルチライン入力を処理
+			contextualInput := s.buildContextualPrompt(multilineInput)
+			s.messages = append(s.messages, llm.ChatMessage{
+				Role:    "user",
+				Content: contextualInput,
+			})
+
+			// thinking状態表示を開始
+			stopThinking := s.startThinkingAnimation()
+
+			// 送信
+			if err := s.sendToLLMStreamingWithThinking(stopThinking); err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+
+			// レスポンス後に区切り線
+			fmt.Println()
+		}
 		return true
 
 	case "/save":

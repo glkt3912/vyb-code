@@ -2,7 +2,6 @@ package recovery
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 	"time"

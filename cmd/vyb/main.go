@@ -30,10 +30,11 @@ var rootCmd = &cobra.Command{
 		// フラグをチェック
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
+		planMode, _ := cmd.Flags().GetBool("plan-mode")
 
 		if len(args) == 0 {
 			// 引数なし：対話モード開始
-			startInteractiveMode(noTUI, terminalMode)
+			startInteractiveMode(noTUI, terminalMode, planMode)
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
@@ -49,7 +50,8 @@ var chatCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
-		startInteractiveMode(noTUI, terminalMode)
+		planMode, _ := cmd.Flags().GetBool("plan-mode")
+		startInteractiveMode(noTUI, terminalMode, planMode)
 	},
 }
 
@@ -356,10 +358,12 @@ func init() {
 	// メインコマンドのフラグ
 	rootCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
 	rootCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
+	rootCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
 
 	// チャットコマンドのフラグ
 	chatCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
 	chatCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
+	chatCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
 
 	// 検索コマンドのフラグ
 	searchCmd.Flags().Bool("smart", false, "Use intelligent search with AST analysis")
@@ -400,7 +404,7 @@ func main() {
 }
 
 // 対話モードを開始する実装関数
-func startInteractiveMode(noTUI bool, terminalMode bool) {
+func startInteractiveMode(noTUI bool, terminalMode bool, planMode bool) {
 	// 設定を読み込み
 	cfg, err := config.Load()
 	if err != nil {
@@ -411,7 +415,7 @@ func startInteractiveMode(noTUI bool, terminalMode bool) {
 	// モードの判定
 	if terminalMode {
 		// Claude Code風ターミナルモード
-		startEnhancedTerminalMode(cfg)
+		startEnhancedTerminalMode(cfg, planMode)
 	} else {
 		// TUIモードの判定
 		useTUI := cfg.TUI.Enabled && !noTUI
@@ -434,7 +438,7 @@ func startInteractiveMode(noTUI bool, terminalMode bool) {
 }
 
 // Claude Code風拡張ターミナルモードを開始
-func startEnhancedTerminalMode(cfg *config.Config) {
+func startEnhancedTerminalMode(cfg *config.Config, planMode bool) {
 	// LLMクライアントを作成
 	provider := llm.NewOllamaClient(cfg.BaseURL)
 

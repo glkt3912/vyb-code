@@ -2,8 +2,10 @@ package markdown
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
+	"golang.org/x/term"
 )
 
 // ANSIカラーコード定数
@@ -29,6 +31,7 @@ const (
 	BgGray  = "\033[100m"
 )
 
+
 // Markdown レンダラー
 type Renderer struct {
 	config RenderConfig
@@ -43,6 +46,7 @@ type RenderConfig struct {
 	IndentSize        int
 	MaxTableWidth     int
 	UseUnicodeSymbols bool
+	AutoWidth         bool   // ターミナル幅に自動調整
 }
 
 // デフォルト設定でレンダラーを作成
@@ -56,6 +60,7 @@ func NewRenderer() *Renderer {
 			IndentSize:        2,
 			MaxTableWidth:     80,
 			UseUnicodeSymbols: true,
+			AutoWidth:         true,
 		},
 	}
 }
@@ -63,6 +68,36 @@ func NewRenderer() *Renderer {
 // 設定付きレンダラーを作成
 func NewRendererWithConfig(config RenderConfig) *Renderer {
 	return &Renderer{config: config}
+}
+
+
+// ターミナル幅を取得（リアルタイム）
+func (r *Renderer) getTerminalWidth() int {
+	if !r.config.AutoWidth {
+		return 80 // デフォルト幅
+	}
+	
+	// 標準出力がターミナルかチェック
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return 80 // パイプや非ターミナル環境では固定幅
+	}
+	
+	// 毎回リアルタイムでターミナル幅を取得
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return 80 // エラー時はデフォルト幅
+	}
+	
+	
+	// 最小・最大幅を設定
+	if width < 40 {
+		width = 40
+	}
+	if width > 120 {
+		width = 120
+	}
+	
+	return width
 }
 
 // メインレンダリング関数
@@ -74,6 +109,8 @@ func (r *Renderer) Render(content string) string {
 	inTable := false
 	tableHeaders := []string{}
 	tableRows := [][]string{}
+	codeBlockLines := []string{}
+	maxCodeWidth := 0
 
 	for _, line := range lines {
 		// 空行処理
@@ -87,16 +124,23 @@ func (r *Renderer) Render(content string) string {
 			if !inCodeBlock {
 				codeLanguage = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "```"))
 				inCodeBlock = true
-				result.WriteString(r.renderCodeBlockStart(codeLanguage))
+				codeBlockLines = []string{}
+				maxCodeWidth = 0
 			} else {
 				inCodeBlock = false
-				result.WriteString(r.renderCodeBlockEnd())
+				// コードブロック全体を出力
+				result.WriteString(r.renderCodeBlock(codeLanguage, codeBlockLines, maxCodeWidth))
 			}
 			continue
 		}
 
 		if inCodeBlock {
-			result.WriteString(r.renderCodeLine(line))
+			codeBlockLines = append(codeBlockLines, line)
+			// 最大幅を更新（表示可能文字のみ）
+			lineWidth := len(strings.ReplaceAll(line, "\t", "    ")) // タブを4スペースとして計算
+			if lineWidth > maxCodeWidth {
+				maxCodeWidth = lineWidth
+			}
 			continue
 		}
 
@@ -332,38 +376,91 @@ func (r *Renderer) processQuotes(line string) string {
 	return fmt.Sprintf("%s%s %s%s", indent, border, Gray, r.processInlineFormatting(quoteText)) + Reset
 }
 
-// コードブロック開始を描画
-func (r *Renderer) renderCodeBlockStart(language string) string {
+// コードブロック全体を描画（幅調整付き）
+func (r *Renderer) renderCodeBlock(language string, lines []string, maxWidth int) string {
 	if !r.config.EnableColors {
-		return fmt.Sprintf("```%s\n", language)
+		result := fmt.Sprintf("```%s\n", language)
+		for _, line := range lines {
+			result += line + "\n"
+		}
+		result += "```\n"
+		return result
 	}
 
+	var result strings.Builder
+	
+	// 最小幅を確保（言語名 + 装飾を考慮）
+	minWidth := 20
+	if language != "" {
+		minWidth = len(language) + 8 // "╭─  ─╮" の分
+	}
+	
+	// ターミナル幅を取得して調整
+	terminalWidth := r.getTerminalWidth()
+	
+	// 実際のコンテンツ幅を決定（ボーダー + マージンを考慮）
+	maxAllowedWidth := terminalWidth - 6 // 両側の余白とボーダーを考慮
+	contentWidth := maxWidth
+	if contentWidth < minWidth {
+		contentWidth = minWidth
+	}
+	if contentWidth > maxAllowedWidth {
+		contentWidth = maxAllowedWidth
+	}
+	
+
+	// 上部境界線（言語名を含む）
 	switch r.config.CodeBlockStyle {
 	case "bordered":
 		if language != "" {
-			return fmt.Sprintf("\n%s╭─ %s%s %s ─╮%s\n", Gray, Blue, language, Gray, Reset)
+			// 色コードを除いた実際の表示長を計算
+			headerDisplayLen := len(fmt.Sprintf("─ %s ", language))
+			
+			// コンテンツ幅に合わせて調整
+			totalBorderLen := contentWidth + 2 // "│ " の分
+			remainingDashes := totalBorderLen - headerDisplayLen - 2 // ╭╮の分
+			if remainingDashes < 1 {
+				remainingDashes = 1
+			}
+			
+			result.WriteString(fmt.Sprintf("\n%s╭─ %s%s%s %s─╮%s\n", 
+				Gray, Blue, language, Gray, strings.Repeat("─", remainingDashes), Reset))
+		} else {
+			result.WriteString(fmt.Sprintf("\n%s╭%s╮%s\n", 
+				Gray, strings.Repeat("─", contentWidth+2), Reset))
 		}
-		return fmt.Sprintf("\n%s╭─ code ─╮%s\n", Gray, Reset)
 	default:
 		if language != "" {
-			return fmt.Sprintf("\n%s┌─ %s ─┐%s\n", Gray, language, Reset)
+			headerDisplayLen := len(fmt.Sprintf("─ %s ", language))
+			totalBorderLen := contentWidth + 2
+			remainingDashes := totalBorderLen - headerDisplayLen - 2
+			if remainingDashes < 1 {
+				remainingDashes = 1
+			}
+			result.WriteString(fmt.Sprintf("\n%s┌─ %s %s─┐%s\n", 
+				Gray, language, strings.Repeat("─", remainingDashes), Reset))
+		} else {
+			result.WriteString(fmt.Sprintf("\n%s┌%s┐%s\n", 
+				Gray, strings.Repeat("─", contentWidth+2), Reset))
 		}
-		return fmt.Sprintf("\n%s┌─ code ─┐%s\n", Gray, Reset)
-	}
-}
-
-// コードブロック終了を描画
-func (r *Renderer) renderCodeBlockEnd() string {
-	if !r.config.EnableColors {
-		return "```\n"
 	}
 
+	// コード行
+	for _, line := range lines {
+		result.WriteString(r.renderCodeLine(line))
+	}
+
+	// 下部境界線
 	switch r.config.CodeBlockStyle {
 	case "bordered":
-		return fmt.Sprintf("%s╰─────────╯%s\n\n", Gray, Reset)
+		result.WriteString(fmt.Sprintf("%s╰%s╯%s\n\n", 
+			Gray, strings.Repeat("─", contentWidth+2), Reset))
 	default:
-		return fmt.Sprintf("%s└─────────┘%s\n\n", Gray, Reset)
+		result.WriteString(fmt.Sprintf("%s└%s┘%s\n\n", 
+			Gray, strings.Repeat("─", contentWidth+2), Reset))
 	}
+
+	return result.String()
 }
 
 // コード行を描画（拡張シンタックスハイライト）

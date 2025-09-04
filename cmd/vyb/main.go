@@ -26,12 +26,18 @@ var rootCmd = &cobra.Command{
 	Use:     "vyb",
 	Short:   "Local AI coding assistant",
 	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
-	Version: GetVersionString(),
+	Version: "v1.0.0",
 	Run: func(cmd *cobra.Command, args []string) {
 		// フラグをチェック
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
+		noTerminalMode, _ := cmd.Flags().GetBool("no-terminal-mode")
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
+		
+		// terminal-modeのロジック調整（デフォルトtrue、no-terminal-modeでfalse）
+		if noTerminalMode {
+			terminalMode = false
+		}
 
 		continueSession, _ := cmd.Flags().GetBool("continue")
 		resumeID, _ := cmd.Flags().GetString("resume")
@@ -54,9 +60,15 @@ var chatCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
+		noTerminalMode, _ := cmd.Flags().GetBool("no-terminal-mode")
 		planMode, _ := cmd.Flags().GetBool("plan-mode")
 		continueSession, _ := cmd.Flags().GetBool("continue")
 		resumeID, _ := cmd.Flags().GetString("resume")
+		
+		// terminal-modeのロジック調整（デフォルトtrue、no-terminal-modeでfalse）
+		if noTerminalMode {
+			terminalMode = false
+		}
 		
 		startInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
 	},
@@ -390,14 +402,16 @@ func init() {
 
 	// メインコマンドのフラグ
 	rootCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
-	rootCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
+	rootCmd.Flags().Bool("terminal-mode", true, "Use Claude Code-style terminal mode (default)")
+	rootCmd.Flags().Bool("no-terminal-mode", false, "Disable terminal mode (use legacy TUI mode)")
 	rootCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
 	rootCmd.Flags().BoolP("continue", "c", false, "Continue previous session")
 	rootCmd.Flags().StringP("resume", "r", "", "Resume specific session by ID")
 
 	// チャットコマンドのフラグ
 	chatCmd.Flags().Bool("no-tui", false, "Disable TUI mode (use plain text output)")
-	chatCmd.Flags().Bool("terminal-mode", false, "Use Claude Code-style terminal mode")
+	chatCmd.Flags().Bool("terminal-mode", true, "Use Claude Code-style terminal mode (default)")
+	chatCmd.Flags().Bool("no-terminal-mode", false, "Disable terminal mode (use legacy TUI mode)")
 	chatCmd.Flags().Bool("plan-mode", false, "Enable plan mode (ask for confirmation before actions)")
 	chatCmd.Flags().BoolP("continue", "c", false, "Continue previous session")
 	chatCmd.Flags().StringP("resume", "r", "", "Resume specific session by ID")

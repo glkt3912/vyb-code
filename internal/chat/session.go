@@ -16,25 +16,25 @@ import (
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/markdown"
 	"github.com/glkt/vyb-code/internal/mcp"
+	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/streaming"
 	"github.com/glkt/vyb-code/internal/tools"
-	"github.com/glkt/vyb-code/internal/security"
 )
 
 // 会話セッションを管理する構造体
 type Session struct {
-	provider         llm.Provider         // LLMプロバイダー
-	messages         []llm.ChatMessage    // 会話履歴
-	model            string               // 使用するモデル名
-	mcpManager       *mcp.Manager         // MCPマネージャー
-	workDir          string               // 作業ディレクトリ
-	contextFiles     []string             // コンテキストファイル一覧
-	projectInfo      *ProjectContext      // プロジェクト情報
-	inputHistory     *InputHistory        // 入力履歴管理（後方互換性のため保持）
-	markdownRender   *markdown.Renderer   // Markdownレンダラー
-	inputReader      *input.Reader        // 拡張入力リーダー
-	streamProcessor  *streaming.Processor // ストリーミングプロセッサー
-	gitOps           *tools.GitOperations // Git操作
+	provider        llm.Provider         // LLMプロバイダー
+	messages        []llm.ChatMessage    // 会話履歴
+	model           string               // 使用するモデル名
+	mcpManager      *mcp.Manager         // MCPマネージャー
+	workDir         string               // 作業ディレクトリ
+	contextFiles    []string             // コンテキストファイル一覧
+	projectInfo     *ProjectContext      // プロジェクト情報
+	inputHistory    *InputHistory        // 入力履歴管理（後方互換性のため保持）
+	markdownRender  *markdown.Renderer   // Markdownレンダラー
+	inputReader     *input.Reader        // 拡張入力リーダー
+	streamProcessor *streaming.Processor // ストリーミングプロセッサー
+	gitOps          *tools.GitOperations // Git操作
 }
 
 // プロジェクトコンテキスト情報
@@ -114,7 +114,7 @@ func NewSession(provider llm.Provider, model string) *Session {
 	// Git操作を初期化
 	constraints := security.NewDefaultConstraints(workDir)
 	gitOps := tools.NewGitOperations(constraints, workDir)
-	
+
 	session := &Session{
 		provider:        provider,
 		messages:        make([]llm.ChatMessage, 0),
@@ -122,11 +122,11 @@ func NewSession(provider llm.Provider, model string) *Session {
 		mcpManager:      mcp.NewManager(),
 		workDir:         workDir,
 		contextFiles:    make([]string, 0),
-		inputHistory:    NewInputHistory(100),  // 後方互換性のため保持
-		markdownRender:  markdown.NewRenderer(), // Markdownレンダラーを初期化
-		inputReader:     input.NewReader(),     // 拡張入力リーダーを初期化
+		inputHistory:    NewInputHistory(100),     // 後方互換性のため保持
+		markdownRender:  markdown.NewRenderer(),   // Markdownレンダラーを初期化
+		inputReader:     input.NewReader(),        // 拡張入力リーダーを初期化
 		streamProcessor: streaming.NewProcessor(), // ストリーミングプロセッサーを初期化
-		gitOps:          gitOps,                // Git操作を初期化
+		gitOps:          gitOps,                   // Git操作を初期化
 	}
 
 	// プロジェクト情報を初期化
@@ -138,7 +138,7 @@ func NewSession(provider llm.Provider, model string) *Session {
 // 設定に基づいてセッションを作成
 func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Config) *Session {
 	session := NewSession(provider, model)
-	
+
 	// 設定に基づいてストリーミングプロセッサーを調整
 	if cfg != nil {
 		streamConfig := streaming.StreamConfig{
@@ -152,7 +152,7 @@ func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Confi
 			PageSize:        25,
 		}
 		session.streamProcessor.UpdateConfig(streamConfig)
-		
+
 		// 入力履歴サイズを設定
 		if cfg.TerminalMode.HistorySize > 0 {
 			session.inputHistory = NewInputHistory(cfg.TerminalMode.HistorySize)
@@ -213,6 +213,9 @@ func (s *Session) StartInteractive() error {
 
 // 単発クエリを処理する
 func (s *Session) ProcessQuery(query string) error {
+	// 質問ヘッダーと内容を同じ行に表示
+	s.printUserMessageWithContent(query)
+
 	// クエリをメッセージ履歴に追加
 	s.messages = append(s.messages, llm.ChatMessage{
 		Role:    "user",
@@ -255,7 +258,7 @@ func (s *Session) ClearHistory() {
 
 // メモリ効率的な履歴管理（長い会話を圧縮）
 func (s *Session) optimizeHistory() {
-	const maxMessages = 20 // 最大保持メッセージ数
+	const maxMessages = 20      // 最大保持メッセージ数
 	const summaryThreshold = 30 // 要約開始の閾値
 
 	if len(s.messages) <= maxMessages {
@@ -269,7 +272,7 @@ func (s *Session) optimizeHistory() {
 
 		// 要約を作成（簡易実装）
 		summary := s.createConversationSummary(oldMessages)
-		
+
 		// 要約メッセージで置換
 		summaryMessage := llm.ChatMessage{
 			Role:    "user",
@@ -288,15 +291,15 @@ func (s *Session) createConversationSummary(messages []llm.ChatMessage) string {
 
 	var topics []string
 	var codeFiles []string
-	
+
 	for _, msg := range messages {
 		if msg.Role == "user" {
 			// ユーザーの質問から主要トピックを抽出
 			content := strings.ToLower(msg.Content)
-			
+
 			// ファイル名の抽出
-			if strings.Contains(content, ".go") || strings.Contains(content, ".js") || 
-			   strings.Contains(content, ".py") || strings.Contains(content, ".ts") {
+			if strings.Contains(content, ".go") || strings.Contains(content, ".js") ||
+				strings.Contains(content, ".py") || strings.Contains(content, ".ts") {
 				// 簡易ファイル名抽出
 				words := strings.Fields(msg.Content)
 				for _, word := range words {
@@ -415,6 +418,9 @@ func (s *Session) StartEnhancedTerminal() error {
 		if trimmed == "" {
 			continue
 		}
+
+		// 質問ヘッダーと内容を同じ行に表示
+		s.printUserMessageWithContent(input)
 
 		// コンテキスト情報付きでユーザーメッセージを履歴に追加
 		contextualInput := s.buildContextualPrompt(input)
@@ -554,9 +560,12 @@ func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 		// レスポンス時間を計算
 		duration := time.Since(startTime)
 
+		// 回答ヘッダーを表示
+		s.printAssistantMessageHeader()
+
 		// Claude Code風のクリーンなレスポンス表示（中断可能）
 		content := resp.Message.Content
-		
+
 		// 中断可能なレスポンス表示
 		if err := s.displayFormattedResponseInterruptible(content, ctx); err != nil {
 			// 中断された場合、部分的な応答も保存
@@ -568,7 +577,7 @@ func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 
 		// レスポンスメッセージを履歴に追加
 		s.messages = append(s.messages, resp.Message)
-		
+
 		// 長い会話の場合、メモリ効率化を実行
 		s.optimizeHistory()
 
@@ -640,22 +649,18 @@ func (s *Session) initializeProjectContext() {
 
 // プロジェクト言語を検出
 func (s *Session) detectProjectLanguage() string {
-	// go.modの存在確認
-	if _, err := os.Stat("go.mod"); err == nil {
-		return "Go"
+	// 言語マネージャーを使用して動的に検出
+	languageManager := tools.NewLanguageManager()
+	languages, err := languageManager.DetectProjectLanguages(s.workDir)
+	if err != nil {
+		return "Unknown"
 	}
-	// package.jsonの存在確認
-	if _, err := os.Stat("package.json"); err == nil {
-		return "JavaScript/TypeScript"
+
+	// 最も使用されている言語を返す
+	if len(languages) > 0 {
+		return languages[0].GetName()
 	}
-	// requirements.txtやsetup.pyの確認
-	if _, err := os.Stat("requirements.txt"); err == nil {
-		return "Python"
-	}
-	// Cargo.tomlの確認
-	if _, err := os.Stat("Cargo.toml"); err == nil {
-		return "Rust"
-	}
+
 	return "Unknown"
 }
 
@@ -710,31 +715,23 @@ func (s *Session) buildContextualPrompt(userInput string) string {
 // Claude Code風起動メッセージを表示
 func (s *Session) printWelcomeMessage() {
 	// ANSIカラーコード
-	bold := "\033[1m"
-	blue := "\033[34m"
 	cyan := "\033[36m"
 	gray := "\033[90m"
-	green := "\033[32m"
 	magenta := "\033[35m"
 	reset := "\033[0m"
 
-	// 美しい境界線
-	fmt.Printf("\n%s╭──────────────────────────────────────────╮%s\n", gray, reset)
-	
-	// メインタイトル
-	fmt.Printf("%s│%s  %s%s🎵 vyb%s %s- Feel the rhythm of perfect code%s %s│%s\n", 
-		gray, reset, bold, magenta, reset, cyan, reset, gray, reset)
-	
-	fmt.Printf("%s╰──────────────────────────────────────────╯%s\n", gray, reset)
+	// エレガントなロゴ表示
+	fmt.Printf("\n%s⚡ %svyb%s %s- AI coding assistant%s\n",
+		cyan, magenta, reset, gray, reset)
 
 	// プロジェクト情報をClaude Code風に表示
 	if s.projectInfo != nil {
 		workDirName := filepath.Base(s.workDir)
-		fmt.Printf("\n%s📁 %s%s%s", blue, bold, workDirName, reset)
+		fmt.Printf("\n%s📁 %s%s%s", "\033[34m", "\033[1m", workDirName, reset)
 
 		// 言語情報
 		if s.projectInfo.Language != "Unknown" && s.projectInfo.Language != "" {
-			fmt.Printf(" %s•%s %s🔧 %s%s", gray, reset, green, s.projectInfo.Language, reset)
+			fmt.Printf(" %s•%s %s🔧 %s%s", gray, reset, "\033[32m", s.projectInfo.Language, reset)
 		}
 
 		// Git情報
@@ -745,22 +742,46 @@ func (s *Session) printWelcomeMessage() {
 
 		fmt.Printf("\n")
 	}
-
-	// 拡張ヘルプヒント
-	fmt.Printf("\n%s✨ 拡張機能:%s\n", cyan, reset)
-	fmt.Printf("  %s↑↓%s 履歴ナビゲーション  %sTab%s オートコンプリート  %s/help%s コマンド一覧\n", 
-		green, gray, green, gray, green, reset)
-	fmt.Printf("  %s/edit%s マルチライン入力  %s/retry%s レスポンス再生成  %sexit%s 終了\n\n",
-		green, gray, green, gray, green, reset)
 }
 
 // メッセージ間の視覚的区切りを表示
 func (s *Session) printMessageSeparator() {
 	gray := "\033[90m"
 	reset := "\033[0m"
-	
+
 	// さりげない区切り線
 	fmt.Printf("\n%s────────────────────────────────────────%s\n\n", gray, reset)
+}
+
+// 質問の開始を表示
+func (s *Session) printUserMessageHeader() {
+	blue := "\033[34m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s%s💬 質問:%s\n", blue, bold, reset)
+}
+
+// 質問ヘッダーと内容を同じ行に表示
+func (s *Session) printUserMessageWithContent(content string) {
+	blue := "\033[34m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	// 前の行（プロンプト+入力）を完全にクリア
+	fmt.Printf("\r\033[K\033[A\r\033[K")
+	
+	// 質問ヘッダーと内容を表示
+	fmt.Printf("%s%s💬 質問:%s\n%s\n", blue, bold, reset, content)
+}
+
+// 回答の開始を表示
+func (s *Session) printAssistantMessageHeader() {
+	green := "\033[32m"
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s%s🤖 回答:%s\n", green, bold, reset)
 }
 
 // Claude Code風プロンプト文字列を構築
@@ -768,29 +789,11 @@ func (s *Session) buildColoredPrompt() string {
 	// ANSIカラーコード
 	green := "\033[32m"
 	blue := "\033[34m"
-	yellow := "\033[33m"
-	gray := "\033[90m"
+	bold := "\033[1m"
 	reset := "\033[0m"
 
-	// Git情報を取得
-	gitInfo := s.getGitPromptInfo()
-	projectName := filepath.Base(s.workDir)
-
-	// ベースプロンプト
-	prompt := fmt.Sprintf("%s%s%s", blue, projectName, reset)
-
-	// Git情報を追加
-	if gitInfo.branch != "" {
-		prompt += fmt.Sprintf("%s[%s%s%s]%s", gray, green, gitInfo.branch, gray, reset)
-	}
-
-	// 変更ファイル数を表示
-	if gitInfo.changes > 0 {
-		prompt += fmt.Sprintf("%s(%s%d%s)%s", gray, yellow, gitInfo.changes, gray, reset)
-	}
-
-	// 最終プロンプト記号
-	prompt += fmt.Sprintf(" %s>%s ", green, reset)
+	// シンプルなプロンプト
+	prompt := fmt.Sprintf("%s%svyb%s %s>%s ", blue, bold, reset, green, reset)
 
 	return prompt
 }
@@ -961,7 +964,6 @@ func (s *Session) printTypingLine(line string) {
 	fmt.Println() // 行末の改行
 }
 
-
 // スラッシュコマンドを処理
 func (s *Session) handleSlashCommand(command string) bool {
 	parts := strings.Fields(command)
@@ -1021,12 +1023,12 @@ func (s *Session) handleSlashCommand(command string) bool {
 		if len(s.messages) >= 2 && s.messages[len(s.messages)-1].Role == "assistant" {
 			// 最後のアシスタント応答を削除
 			s.messages = s.messages[:len(s.messages)-1]
-			
+
 			fmt.Printf("%s最後のレスポンスを再生成中...%s\n", green, reset)
-			
+
 			// thinking状態表示を開始
 			stopThinking := s.startThinkingAnimation()
-			
+
 			// 再送信
 			if err := s.sendToLLMStreamingWithThinking(stopThinking); err != nil {
 				fmt.Printf("Error: %v\n", err)
@@ -1050,6 +1052,9 @@ func (s *Session) handleSlashCommand(command string) bool {
 		}
 
 		if strings.TrimSpace(multilineInput) != "" {
+			// 質問ヘッダーと内容を表示
+			s.printUserMessageWithContent(multilineInput)
+
 			// マルチライン入力を処理
 			contextualInput := s.buildContextualPrompt(multilineInput)
 			s.messages = append(s.messages, llm.ChatMessage{

@@ -121,7 +121,13 @@ func (g *GitOperations) Pull(remote, branch string) (*ExecutionResult, error) {
 		remote = "origin"
 	}
 	if branch == "" {
-		branch = "main"
+		// 現在のブランチを取得
+		currentBranch, err := g.GetCurrentBranch()
+		if err != nil {
+			branch = "main" // フォールバック
+		} else {
+			branch = currentBranch
+		}
 	}
 
 	command := fmt.Sprintf("git pull %s %s", remote, branch)

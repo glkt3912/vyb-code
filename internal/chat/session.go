@@ -17,6 +17,8 @@ import (
 	"github.com/glkt/vyb-code/internal/markdown"
 	"github.com/glkt/vyb-code/internal/mcp"
 	"github.com/glkt/vyb-code/internal/streaming"
+	"github.com/glkt/vyb-code/internal/tools"
+	"github.com/glkt/vyb-code/internal/security"
 )
 
 // 会話セッションを管理する構造体
@@ -32,6 +34,7 @@ type Session struct {
 	markdownRender   *markdown.Renderer   // Markdownレンダラー
 	inputReader      *input.Reader        // 拡張入力リーダー
 	streamProcessor  *streaming.Processor // ストリーミングプロセッサー
+	gitOps           *tools.GitOperations // Git操作
 }
 
 // プロジェクトコンテキスト情報
@@ -108,6 +111,10 @@ func (h *InputHistory) Reset() {
 func NewSession(provider llm.Provider, model string) *Session {
 	workDir, _ := os.Getwd()
 
+	// Git操作を初期化
+	constraints := security.NewDefaultConstraints(workDir)
+	gitOps := tools.NewGitOperations(constraints, workDir)
+	
 	session := &Session{
 		provider:        provider,
 		messages:        make([]llm.ChatMessage, 0),
@@ -119,6 +126,7 @@ func NewSession(provider llm.Provider, model string) *Session {
 		markdownRender:  markdown.NewRenderer(), // Markdownレンダラーを初期化
 		inputReader:     input.NewReader(),     // 拡張入力リーダーを初期化
 		streamProcessor: streaming.NewProcessor(), // ストリーミングプロセッサーを初期化
+		gitOps:          gitOps,                // Git操作を初期化
 	}
 
 	// プロジェクト情報を初期化
@@ -653,7 +661,13 @@ func (s *Session) detectProjectLanguage() string {
 
 // 現在のGitブランチを取得
 func (s *Session) getCurrentGitBranch() string {
-	// 簡易Git情報取得（実装簡素化）
+	// 実際のGitブランチ名を取得
+	if s.gitOps != nil {
+		if branch, err := s.gitOps.GetCurrentBranch(); err == nil {
+			return branch
+		}
+	}
+	// フォールバック
 	return "main"
 }
 
@@ -824,11 +838,17 @@ type GitPromptInfo struct {
 func (s *Session) getGitPromptInfo() GitPromptInfo {
 	info := GitPromptInfo{}
 
-	// ブランチ名を取得（簡易実装）
-	if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
-		info.branch = s.projectInfo.GitBranch
+	// 実際のGitブランチ名を取得
+	if s.gitOps != nil {
+		if currentBranch, err := s.gitOps.GetCurrentBranch(); err == nil {
+			info.branch = currentBranch
+		} else if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
+			info.branch = s.projectInfo.GitBranch
+		} else {
+			info.branch = "main" // フォールバック
+		}
 	} else {
-		info.branch = "main" // デフォルト
+		info.branch = "main" // gitOpsが利用できない場合
 	}
 
 	// TODO: 実際のgit statusコマンドを実行して変更ファイル数を取得

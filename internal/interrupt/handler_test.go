@@ -324,7 +324,7 @@ func TestHandler_SignalHandling(t *testing.T) {
 	callbackMutex.Lock()
 	executed := callbackExecuted
 	callbackMutex.Unlock()
-	
+
 	if !executed {
 		t.Error("Expected callback to be executed after signal")
 	}
@@ -424,7 +424,7 @@ func TestHandler_MultipleSignals(t *testing.T) {
 	signalMutex.Lock()
 	count := signalCount
 	signalMutex.Unlock()
-	
+
 	if count == 0 {
 		t.Error("Expected at least one signal to be processed")
 	}

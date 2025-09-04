@@ -63,11 +63,11 @@ func (h *Handler) handleSignals() {
 	h.mutex.Lock()
 	sigChan := h.signalChannel
 	h.mutex.Unlock()
-	
+
 	if sigChan == nil {
 		return
 	}
-	
+
 	select {
 	case sig := <-sigChan:
 		h.mutex.Lock()
@@ -81,7 +81,7 @@ func (h *Handler) handleSignals() {
 		callbacks := make([]func(), len(h.callbacks))
 		copy(callbacks, h.callbacks)
 		h.mutex.Unlock()
-		
+
 		for _, callback := range callbacks {
 			callback()
 		}

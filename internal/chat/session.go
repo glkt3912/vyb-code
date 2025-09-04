@@ -317,7 +317,7 @@ func (s *Session) readMultilineInput(reader *bufio.Reader) (string, error) {
 
 		// 改行を除去
 		line = strings.TrimSuffix(line, "\n")
-		
+
 		// 特殊キー処理をシミュレート（実際のキーコード処理は別途必要）
 		if strings.HasSuffix(line, "\\") && !isMultilineMode {
 			// マルチラインモード開始（\ + Enter）
@@ -550,23 +550,23 @@ func (s *Session) printWelcomeMessage() {
 	if s.projectInfo != nil {
 		workDirName := filepath.Base(s.workDir)
 		fmt.Printf("%s%s%s", gray, workDirName, reset)
-		
+
 		// 言語情報
 		if s.projectInfo.Language != "Unknown" && s.projectInfo.Language != "" {
 			fmt.Printf(" %s•%s %s%s%s", gray, reset, green, s.projectInfo.Language, reset)
 		}
-		
+
 		// Git情報
 		gitInfo := s.getGitPromptInfo()
 		if gitInfo.branch != "" {
 			fmt.Printf(" %s•%s %s%s%s", gray, reset, cyan, gitInfo.branch, reset)
 		}
-		
+
 		fmt.Printf("\n")
 	}
 
 	// ヘルプヒント
-	fmt.Printf("%sType your message and press Enter. Use %s/help%s for commands, or %sexit%s to quit.%s\n\n", 
+	fmt.Printf("%sType your message and press Enter. Use %s/help%s for commands, or %sexit%s to quit.%s\n\n",
 		gray, green, gray, green, gray, reset)
 }
 
@@ -590,7 +590,7 @@ func (s *Session) printColoredPrompt() {
 	if gitInfo.branch != "" {
 		prompt += fmt.Sprintf("%s[%s%s%s]%s", gray, green, gitInfo.branch, gray, reset)
 	}
-	
+
 	// 変更ファイル数を表示
 	if gitInfo.changes > 0 {
 		prompt += fmt.Sprintf("%s(%s%d%s)%s", gray, yellow, gitInfo.changes, gray, reset)
@@ -612,18 +612,18 @@ type GitPromptInfo struct {
 // Git情報をプロンプト用に取得
 func (s *Session) getGitPromptInfo() GitPromptInfo {
 	info := GitPromptInfo{}
-	
+
 	// ブランチ名を取得（簡易実装）
 	if s.projectInfo != nil && s.projectInfo.GitBranch != "" {
 		info.branch = s.projectInfo.GitBranch
 	} else {
 		info.branch = "main" // デフォルト
 	}
-	
+
 	// TODO: 実際のgit statusコマンドを実行して変更ファイル数を取得
 	// 現在は固定値
 	info.changes = 0
-	
+
 	return info
 }
 
@@ -653,7 +653,7 @@ func (s *Session) displayMetaInfo(duration time.Duration, contentLength int) {
 func (s *Session) estimateTokenCount(contentLength int) int {
 	// 日本語と英語の混在を考慮した推定
 	// 日本語文字は約1.5トークン、英語は約0.25トークン
-	
+
 	// 簡易推定：文字数 ÷ 3.5
 	return contentLength * 10 / 35
 }
@@ -661,7 +661,7 @@ func (s *Session) estimateTokenCount(contentLength int) int {
 // レスポンス速度に応じた絵文字を取得
 func (s *Session) getSpeedEmoji(duration time.Duration) string {
 	ms := duration.Milliseconds()
-	
+
 	if ms < 1000 {
 		return "⚡" // 非常に高速
 	} else if ms < 3000 {
@@ -714,12 +714,12 @@ func (s *Session) displayFormattedResponse(content string) {
 func (s *Session) printTypingLine(line string) {
 	// Markdown **太字** の前処理
 	processedLine := s.processMarkdownFormatting(line)
-	
+
 	// 文字ごとに表示（日本語対応）
 	runes := []rune(processedLine)
 	for i, r := range runes {
 		fmt.Print(string(r))
-		
+
 		// タイピング速度調整（句読点後は少し長めの停止）
 		delay := time.Millisecond * 15
 		if strings.ContainsRune("。、！？", r) {
@@ -727,7 +727,7 @@ func (s *Session) printTypingLine(line string) {
 		} else if strings.ContainsRune(" \t", r) {
 			delay = time.Millisecond * 30
 		}
-		
+
 		// 最後の文字でない場合のみ待機
 		if i < len(runes)-1 {
 			time.Sleep(delay)
@@ -742,10 +742,10 @@ func (s *Session) processMarkdownFormatting(line string) string {
 	if strings.Contains(line, "**") {
 		bold := "\033[1m"
 		reset := "\033[0m"
-		
+
 		parts := strings.Split(line, "**")
 		result := parts[0]
-		
+
 		for i := 1; i < len(parts); i++ {
 			if i%2 == 1 {
 				// 奇数番目：太字開始
@@ -757,7 +757,7 @@ func (s *Session) processMarkdownFormatting(line string) string {
 		}
 		line = result
 	}
-	
+
 	return line
 }
 
@@ -801,7 +801,6 @@ func (s *Session) printCodeLine(line string) {
 
 	fmt.Printf("│ %s\n", line)
 }
-
 
 // スラッシュコマンドを処理
 func (s *Session) handleSlashCommand(command string) bool {
@@ -877,7 +876,7 @@ func (s *Session) displayProjectStatus() {
 	reset := "\033[0m"
 
 	fmt.Printf("%s--- プロジェクト状態 ---%s\n", cyan, reset)
-	
+
 	if s.projectInfo != nil {
 		fmt.Printf("%s言語:%s %s\n", green, reset, s.projectInfo.Language)
 		fmt.Printf("%s作業ディレクトリ:%s %s\n", green, reset, s.workDir)

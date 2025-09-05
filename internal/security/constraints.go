@@ -56,6 +56,11 @@ func (c *Constraints) IsCommandAllowed(command string) error {
 	return fmt.Errorf("command '%s' is not in the allowed list", baseCommand)
 }
 
+// ValidateCommand はコマンドのバリデーション（IsCommandAllowedのエイリアス）
+func (c *Constraints) ValidateCommand(command string) error {
+	return c.IsCommandAllowed(command)
+}
+
 // パスがワークスペース内かチェック
 func (c *Constraints) IsPathAllowed(path string) bool {
 	absPath, err := filepath.Abs(path)

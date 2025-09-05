@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/glkt/vyb-code/internal/version"
 )
 
 // MCPクライアント実装
@@ -161,7 +163,7 @@ func (c *Client) initialize() error {
 		},
 		ClientInfo: ClientInfo{
 			Name:    "vyb-code",
-			Version: "1.0.0",
+			Version: version.GetMCPVersion(),
 		},
 	}
 

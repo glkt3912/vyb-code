@@ -52,28 +52,73 @@ type TerminalModeConfig struct {
 
 // vybの設定情報を管理する構造体
 type Config struct {
-	Provider      string                     `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
-	Model         string                     `json:"model"`          // 使用するモデル名
-	BaseURL       string                     `json:"base_url"`       // LLMサーバーのURL
-	Timeout       int                        `json:"timeout"`        // リクエストタイムアウト（秒）
-	MaxFileSize   int64                      `json:"max_file_size"`  // 読み込み可能な最大ファイルサイズ
-	WorkspaceMode string                     `json:"workspace_mode"` // ワークスペースモード（project_only等）
-	MCPServers    map[string]MCPServerConfig `json:"mcp_servers"`    // MCPサーバー設定
-	Logging       LogConfig                  `json:"logging"`        // ログ設定
-	TUI           TUIConfig                  `json:"tui"`            // TUI設定
-	TerminalMode  TerminalModeConfig         `json:"terminal_mode"`  // ターミナルモード設定
+	// LLM設定
+	Provider    string  `json:"provider"`    // LLMプロバイダー（ollama、lmstudio等）
+	Model       string  `json:"model"`       // 使用するモデル名
+	ModelName   string  `json:"model_name"`  // モデル名（互換性）
+	BaseURL     string  `json:"base_url"`    // LLMサーバーのURL
+	Timeout     int     `json:"timeout"`     // リクエストタイムアウト（秒）
+	Temperature float64 `json:"temperature"` // 生成時の温度パラメータ
+	MaxTokens   int     `json:"max_tokens"`  // 最大トークン数
+	Stream      bool    `json:"stream"`      // ストリーミング応答
+
+	// システム設定
+	MaxFileSize    int64  `json:"max_file_size"`    // 読み込み可能な最大ファイルサイズ
+	FileMaxSizeMB  int    `json:"file_max_size_mb"` // ファイル最大サイズ（MB）
+	WorkspaceMode  string `json:"workspace_mode"`   // ワークスペースモード（project_only等）
+	WorkspacePath  string `json:"workspace_path"`   // 作業ディレクトリパス
+	CommandTimeout int    `json:"command_timeout"`  // コマンド実行タイムアウト（秒）
+	MaxHistory     int    `json:"max_history"`      // 履歴保持数
+
+	// サブ設定
+	MCPServers   map[string]MCPServerConfig `json:"mcp_servers"`   // MCPサーバー設定
+	Log          LogConfig                  `json:"log"`           // ログ設定
+	Logging      LogConfig                  `json:"logging"`       // ログ設定（互換性）
+	TUI          TUIConfig                  `json:"tui"`           // TUI設定
+	TerminalMode TerminalModeConfig         `json:"terminal_mode"` // ターミナルモード設定
+	Markdown     MarkdownConfig             `json:"markdown"`      // Markdown設定
+}
+
+// Markdown設定
+type MarkdownConfig struct {
+	Enabled         bool `json:"enabled"`          // Markdown有効/無効
+	SyntaxHighlight bool `json:"syntax_highlight"` // シンタックスハイライト
 }
 
 // デフォルト設定を返すコンストラクタ関数
 func DefaultConfig() *Config {
 	return &Config{
-		Provider:      "ollama",
-		Model:         "qwen2.5-coder:14b",
-		BaseURL:       "http://localhost:11434",
-		Timeout:       30,
-		MaxFileSize:   10 * 1024 * 1024, // 10MB
-		WorkspaceMode: "project_only",
-		MCPServers:    make(map[string]MCPServerConfig),
+		// LLM設定
+		Provider:    "ollama",
+		Model:       "qwen2.5-coder:14b",
+		ModelName:   "qwen2.5-coder:14b",
+		BaseURL:     "http://localhost:11434",
+		Timeout:     30,
+		Temperature: 0.7,
+		MaxTokens:   4096,
+		Stream:      true,
+
+		// システム設定
+		MaxFileSize:    10 * 1024 * 1024, // 10MB
+		FileMaxSizeMB:  10,
+		WorkspaceMode:  "project_only",
+		WorkspacePath:  ".",
+		CommandTimeout: 30,
+		MaxHistory:     100,
+
+		// サブ設定
+		MCPServers: make(map[string]MCPServerConfig),
+		Log: LogConfig{
+			Level:         "info",
+			Format:        "console",
+			Output:        []string{"stdout"},
+			ShowCaller:    false,
+			ShowTimestamp: true,
+			ColorEnabled:  true,
+			FileRotation:  false,
+			MaxFileSize:   10 * 1024 * 1024, // 10MB
+			Context:       make(map[string]string),
+		},
 		Logging: LogConfig{
 			Level:         "info",
 			Format:        "console",
@@ -99,6 +144,10 @@ func DefaultConfig() *Config {
 			HistorySize:     100,
 			EnableSlashCmd:  true,
 			AutoSaveSession: false,
+		},
+		Markdown: MarkdownConfig{
+			Enabled:         true,
+			SyntaxHighlight: true,
 		},
 	}
 }
@@ -148,6 +197,27 @@ func Load() (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// Save は設定をファイルに保存
+func Save(config *Config) error {
+	configPath, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	// 設定をJSONにマーシャル
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	// ファイルに書き込み
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }
 
 // 現在の設定をファイルに保存する

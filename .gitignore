@@ -47,3 +47,6 @@ cmd/vyb/vyb
 # Temporary files
 tmp/
 temp/
+
+# Build artifacts
+dist/

@@ -161,7 +161,7 @@ func (c *Client) initialize() error {
 		},
 		ClientInfo: ClientInfo{
 			Name:    "vyb-code",
-			Version: "1.0.0",
+			Version: "1.0.1",
 		},
 	}
 

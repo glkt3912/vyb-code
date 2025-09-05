@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Use:     "vyb",
 	Short:   "Local AI coding assistant",
 	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
-	Version: "v1.0.0",
+	Version: "v1.0.1",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// コンテナー初期化
 		appContainer = container.NewContainer()

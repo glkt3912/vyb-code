@@ -5,6 +5,19 @@ All notable changes to vyb-code will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.0.1] - 2025-09-05
+
+### Fixed
+- **🛠️ Windows Compatibility**: Resolved syscall compatibility issues preventing Windows builds
+- **🔧 Platform Separation**: Split terminal size detection into platform-specific files
+- **✅ Complete Multi-platform Support**: All 5 binaries (Linux/macOS/Windows × amd64/arm64) now build successfully
+
+### Technical Details
+- Added `reader_unix.go` with Unix syscall implementation (`TIOCGWINSZ`)
+- Added `reader_windows.go` with Windows API implementation (`GetConsoleScreenBufferInfo`)  
+- Removed platform-specific imports from common `reader.go`
+- Fixed GitHub Actions release workflow Windows build failures
+
 ## [v1.0.0] - 2025-09-05
 
 ### Added
@@ -53,4 +66,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DeepSeek-Coder-V2 16B (balanced)
 - CodeLlama 34B (stability)
 
-[v1.0.0]: https://github.com/glkt/vyb-code/releases/tag/v1.0.0
+[v1.0.1]: https://github.com/glkt3912/vyb-code/releases/tag/v1.0.1
+[v1.0.0]: https://github.com/glkt3912/vyb-code/releases/tag/v1.0.0

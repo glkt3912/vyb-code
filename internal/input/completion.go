@@ -20,11 +20,11 @@ type AdvancedCompleter struct {
 
 // 補完キャッシュシステム
 type CompletionCache struct {
-	fileCache       map[string]*CacheEntry
-	commandCache    map[string]*CacheEntry
-	gitCache        *CacheEntry
-	maxAge          time.Duration
-	maxSize         int
+	fileCache    map[string]*CacheEntry
+	commandCache map[string]*CacheEntry
+	gitCache     *CacheEntry
+	maxAge       time.Duration
+	maxSize      int
 }
 
 // キャッシュエントリ
@@ -138,7 +138,7 @@ func (ac *AdvancedCompleter) GetAdvancedSuggestions(input string) []CompletionCa
 		// 一般的なコマンド補完
 		candidates = append(candidates, ac.getCommandCompletions(input)...)
 		candidates = append(candidates, ac.getProjectCommandCompletions(input)...)
-		
+
 		// ファジーマッチングによる候補拡張
 		fuzzyCandidates := ac.getFuzzyCompletions(input)
 		candidates = append(candidates, fuzzyCandidates...)
@@ -269,7 +269,7 @@ func (ac *AdvancedCompleter) getGitCompletions(input string) []CompletionCandida
 		// ファイルとブランチ両方
 		branches := ac.gitCompleter.getBranches()
 		files := ac.gitCompleter.getTrackedFiles()
-		
+
 		for _, branch := range branches {
 			candidates = append(candidates, CompletionCandidate{
 				Text:        fmt.Sprintf("git %s %s", gitSubcommand, branch),
@@ -278,7 +278,7 @@ func (ac *AdvancedCompleter) getGitCompletions(input string) []CompletionCandida
 				Score:       0.8,
 			})
 		}
-		
+
 		for _, file := range files {
 			candidates = append(candidates, CompletionCandidate{
 				Text:        fmt.Sprintf("git %s %s", gitSubcommand, file),
@@ -320,10 +320,10 @@ func (ac *AdvancedCompleter) getFileCompletions(input string) []CompletionCandid
 	for _, entry := range entries {
 		if strings.HasPrefix(entry.Name(), prefix) {
 			fullPath := filepath.Join(dir, entry.Name())
-			
+
 			var description string
 			var score float64 = 0.7
-			
+
 			if entry.IsDir() {
 				description = "ディレクトリ"
 				fullPath += "/"
@@ -332,7 +332,7 @@ func (ac *AdvancedCompleter) getFileCompletions(input string) []CompletionCandid
 				// ファイル拡張子による説明
 				ext := filepath.Ext(entry.Name())
 				description = getFileTypeDescription(ext)
-				
+
 				// プロジェクト関連ファイルは優先度高
 				if ac.isProjectRelatedFile(entry.Name()) {
 					score = 0.9
@@ -577,7 +577,7 @@ func (fm *FuzzyMatcher) levenshteinSimilarity(s1, s2 string) float64 {
 
 	distance := matrix[len1][len2]
 	maxLen := max(len1, len2)
-	
+
 	similarity := 1.0 - float64(distance)/float64(maxLen)
 	return similarity
 }
@@ -615,7 +615,7 @@ func getGitActionDescription(action string) string {
 		"show":     "表示",
 		"log":      "ログ表示",
 	}
-	
+
 	if desc, ok := descriptions[action]; ok {
 		return desc
 	}
@@ -625,7 +625,7 @@ func getGitActionDescription(action string) string {
 func getFileTypeDescription(ext string) string {
 	descriptions := map[string]string{
 		".go":   "Goソースファイル",
-		".rs":   "Rustソースファイル", 
+		".rs":   "Rustソースファイル",
 		".js":   "JavaScriptファイル",
 		".ts":   "TypeScriptファイル",
 		".py":   "Pythonファイル",
@@ -706,7 +706,7 @@ func (cc *CompletionCache) setGitCache(candidates []CompletionCandidate) {
 	for _, candidate := range candidates {
 		data = append(data, candidate.Text)
 	}
-	
+
 	cc.gitCache = &CacheEntry{
 		data:      data,
 		timestamp: time.Now(),
@@ -727,7 +727,7 @@ func (gc *GitCompleter) getModifiedFiles() []string {
 }
 
 func (gc *GitCompleter) getTrackedFiles() []string {
-	// 簡易実装：実際のgitコマンドは呼ばずサンプルデータを返す  
+	// 簡易実装：実際のgitコマンドは呼ばずサンプルデータを返す
 	// 本番環境では exec.Command("git", "ls-files") を使用
 	return []string{
 		"go.mod", "go.sum", "main.go", "README.md",
@@ -782,7 +782,7 @@ func (pa *ProjectAnalyzer) findBuildCommands() {
 	switch pa.projectType {
 	case "go":
 		pa.buildCommands = []string{"go build", "go install", "make build", "make"}
-		
+
 		// Makefileが存在する場合は追加
 		if _, err := os.Stat(filepath.Join(pa.workDir, "Makefile")); err == nil {
 			pa.buildCommands = append(pa.buildCommands, "make all", "make install")
@@ -790,7 +790,7 @@ func (pa *ProjectAnalyzer) findBuildCommands() {
 
 	case "nodejs":
 		pa.buildCommands = []string{"npm run build", "npm install", "yarn build", "yarn install"}
-		
+
 		// package.jsonからスクリプトを読み取る（簡易実装）
 		pa.buildCommands = append(pa.buildCommands, "npm start", "npm run dev")
 
@@ -828,7 +828,7 @@ func (pa *ProjectAnalyzer) findMainFiles() {
 	switch pa.projectType {
 	case "go":
 		pa.mainFiles = []string{"main.go", "cmd/main.go", "app.go"}
-		
+
 		// cmd/ ディレクトリ内を検索
 		cmdDir := filepath.Join(pa.workDir, "cmd")
 		if entries, err := os.ReadDir(cmdDir); err == nil {
@@ -859,7 +859,7 @@ func (pa *ProjectAnalyzer) analyzeDependencies() {
 	case "go":
 		// go.mod から依存関係を解析（簡易実装）
 		pa.dependencies = []string{
-			"golang.org/x/term", "github.com/spf13/cobra", 
+			"golang.org/x/term", "github.com/spf13/cobra",
 			"github.com/spf13/viper", "gopkg.in/yaml.v3",
 		}
 
@@ -880,20 +880,20 @@ func (pa *ProjectAnalyzer) analyzeDependencies() {
 // キャッシュフィルタリング関数
 func (ac *AdvancedCompleter) filterGitCandidates(cached []CompletionCandidate, input string) []CompletionCandidate {
 	var filtered []CompletionCandidate
-	
+
 	for _, candidate := range cached {
 		if strings.Contains(strings.ToLower(candidate.Text), strings.ToLower(input)) {
 			candidate.Score = ac.calculateScore(input, candidate.Text)
 			filtered = append(filtered, candidate)
 		}
 	}
-	
+
 	return filtered
 }
 
 func (ac *AdvancedCompleter) filterFileCandidates(cached []CompletionCandidate, input string) []CompletionCandidate {
 	var filtered []CompletionCandidate
-	
+
 	prefix := filepath.Base(input)
 	for _, candidate := range cached {
 		filename := filepath.Base(candidate.Text)
@@ -902,6 +902,7 @@ func (ac *AdvancedCompleter) filterFileCandidates(cached []CompletionCandidate, 
 			filtered = append(filtered, candidate)
 		}
 	}
-	
+
 	return filtered
 }
+

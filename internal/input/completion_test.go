@@ -42,33 +42,33 @@ func TestAdvancedCompleter_GetAdvancedSuggestions(t *testing.T) {
 	completer := NewAdvancedCompleter("/test")
 
 	tests := []struct {
-		name          string
-		input         string
-		expectTypes   []CompletionType
+		name           string
+		input          string
+		expectTypes    []CompletionType
 		minSuggestions int
 	}{
 		{
-			name:          "Empty input",
-			input:         "",
-			expectTypes:   []CompletionType{CompletionCommand, CompletionProjectCommand},
+			name:           "Empty input",
+			input:          "",
+			expectTypes:    []CompletionType{CompletionCommand, CompletionProjectCommand},
 			minSuggestions: 1,
 		},
 		{
-			name:          "Slash command",
-			input:         "/h",
-			expectTypes:   []CompletionType{CompletionCommand},
+			name:           "Slash command",
+			input:          "/h",
+			expectTypes:    []CompletionType{CompletionCommand},
 			minSuggestions: 1,
 		},
 		{
-			name:          "Git command",
-			input:         "git checkout",
-			expectTypes:   []CompletionType{CompletionGitBranch},
+			name:           "Git command",
+			input:          "git checkout",
+			expectTypes:    []CompletionType{CompletionGitBranch},
 			minSuggestions: 1,
 		},
 		{
-			name:          "Regular command",
-			input:         "b",
-			expectTypes:   []CompletionType{CompletionCommand, CompletionProjectCommand},
+			name:           "Regular command",
+			input:          "b",
+			expectTypes:    []CompletionType{CompletionCommand, CompletionProjectCommand},
 			minSuggestions: 1,
 		},
 	}
@@ -95,7 +95,7 @@ func TestAdvancedCompleter_GetAdvancedSuggestions(t *testing.T) {
 						break
 					}
 				}
-				
+
 				if !foundExpectedType {
 					t.Errorf("Expected to find one of types %v in candidates", tt.expectTypes)
 				}
@@ -157,7 +157,7 @@ func TestGitCompleter_Methods(t *testing.T) {
 
 	t.Run("getBranches", func(t *testing.T) {
 		branches := gitCompleter.getBranches()
-		
+
 		if len(branches) == 0 {
 			t.Error("Expected at least one branch")
 		}
@@ -180,7 +180,7 @@ func TestGitCompleter_Methods(t *testing.T) {
 
 	t.Run("getModifiedFiles", func(t *testing.T) {
 		files := gitCompleter.getModifiedFiles()
-		
+
 		if len(files) == 0 {
 			t.Error("Expected at least one modified file")
 		}
@@ -195,7 +195,7 @@ func TestGitCompleter_Methods(t *testing.T) {
 
 	t.Run("getTrackedFiles", func(t *testing.T) {
 		files := gitCompleter.getTrackedFiles()
-		
+
 		if len(files) == 0 {
 			t.Error("Expected at least one tracked file")
 		}
@@ -223,9 +223,9 @@ func TestProjectAnalyzer_DetectProjectType(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	tests := []struct {
-		name           string
-		createFile     string
-		expectedType   string
+		name         string
+		createFile   string
+		expectedType string
 	}{
 		{
 			name:         "Go project",
@@ -233,13 +233,13 @@ func TestProjectAnalyzer_DetectProjectType(t *testing.T) {
 			expectedType: "go",
 		},
 		{
-			name:         "Node.js project", 
+			name:         "Node.js project",
 			createFile:   "package.json",
 			expectedType: "nodejs",
 		},
 		{
 			name:         "Rust project",
-			createFile:   "Cargo.toml", 
+			createFile:   "Cargo.toml",
 			expectedType: "rust",
 		},
 		{
@@ -340,7 +340,7 @@ func TestFuzzyMatcher_Match(t *testing.T) {
 		{
 			name:     "Exact match",
 			input:    "build",
-			target:   "build", 
+			target:   "build",
 			minScore: 1.0,
 		},
 		{
@@ -413,9 +413,9 @@ func TestCompletionCache_Operations(t *testing.T) {
 
 		dir := "/test/expiry"
 		files := []string{"temp.go"}
-		
+
 		cache.setFileCache(dir, files)
-		
+
 		// すぐに取得すればキャッシュが有効
 		cached := cache.getFileCache(dir)
 		if cached == nil {
@@ -435,20 +435,20 @@ func TestAdvancedCompleter_CalculateScore(t *testing.T) {
 	completer := NewAdvancedCompleter("/test")
 
 	tests := []struct {
-		input      string
-		candidate  string
-		expectMin  float64
+		input     string
+		candidate string
+		expectMin float64
 	}{
-		{"build", "build", 1.0},        // 完全一致
-		{"bui", "build", 0.9},          // プレフィックス
-		{"ild", "build", 0.7},          // 部分一致
-		{"xyz", "build", 0.0},          // 一致なし
+		{"build", "build", 1.0}, // 完全一致
+		{"bui", "build", 0.9},   // プレフィックス
+		{"ild", "build", 0.7},   // 部分一致
+		{"xyz", "build", 0.0},   // 一致なし
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s->%s", tt.input, tt.candidate), func(t *testing.T) {
 			score := completer.calculateScore(tt.input, tt.candidate)
-			
+
 			if score < tt.expectMin {
 				t.Errorf("Expected score at least %.1f, got %.2f", tt.expectMin, score)
 			}
@@ -504,7 +504,7 @@ func BenchmarkAdvancedCompleter_GetSuggestions(b *testing.B) {
 
 func BenchmarkFuzzyMatcher_Match(b *testing.B) {
 	matcher := NewFuzzyMatcher(0.6)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		matcher.match("test", "testing")

@@ -15,15 +15,15 @@ import (
 type Reader struct {
 	history            *History
 	completer          *Completer
-	securityValidator  *SecurityValidator  // セキュリティ機能
+	securityValidator  *SecurityValidator    // セキュリティ機能
 	perfOptimizer      *PerformanceOptimizer // パフォーマンス最適化
 	isRawMode          bool
 	oldState           *term.State
 	currentLine        string
 	cursorPos          int
 	prompt             string
-	clientID           string               // セキュリティ用のクライアントID
-	enableOptimization bool                 // パフォーマンス最適化の有効/無効
+	clientID           string // セキュリティ用のクライアントID
+	enableOptimization bool   // パフォーマンス最適化の有効/無効
 }
 
 // 入力履歴管理（既存のInputHistoryを拡張）
@@ -36,11 +36,11 @@ type History struct {
 
 // オートコンプリート機能
 type Completer struct {
-	commands           []string
-	filePaths          []string
-	currentDir         string
-	suggestions        []string
-	advancedCompleter  *AdvancedCompleter // 高度な補完機能
+	commands          []string
+	filePaths         []string
+	currentDir        string
+	suggestions       []string
+	advancedCompleter *AdvancedCompleter // 高度な補完機能
 }
 
 // 特殊キーコード
@@ -237,7 +237,7 @@ func (r *Reader) readLineRaw() (string, error) {
 			r.clearCurrentLine()
 			fmt.Printf("%s\n", r.currentLine)
 			line := r.currentLine
-			
+
 			// セキュリティ検証を実行
 			sanitizedLine, err := r.securityValidator.ValidateInput(line, r.clientID)
 			if err != nil {
@@ -248,7 +248,7 @@ func (r *Reader) readLineRaw() (string, error) {
 				r.redrawLine()
 				continue
 			}
-			
+
 			r.history.Add(sanitizedLine)
 			return sanitizedLine, nil
 
@@ -273,7 +273,7 @@ func (r *Reader) readLineRaw() (string, error) {
 		case KeyTab:
 			// Tab: 高度なオートコンプリート（パフォーマンス最適化付き）
 			var candidates []CompletionCandidate
-			
+
 			if r.enableOptimization && r.perfOptimizer != nil {
 				// パフォーマンス最適化版を使用
 				candidates = r.perfOptimizer.OptimizedCompletion(r.currentLine, r.completer.advancedCompleter)
@@ -281,7 +281,7 @@ func (r *Reader) readLineRaw() (string, error) {
 				// 通常版を使用
 				candidates = r.completer.advancedCompleter.GetAdvancedSuggestions(r.currentLine)
 			}
-			
+
 			if len(candidates) == 1 {
 				r.currentLine = candidates[0].Text
 				r.cursorPos = len(r.currentLine)
@@ -491,7 +491,7 @@ func (r *Reader) showAdvancedSuggestions(candidates []CompletionCandidate) {
 	reset := "\033[0m"
 
 	fmt.Printf("%s候補:%s\n", gray, reset)
-	
+
 	maxDisplay := 6
 	if len(candidates) > maxDisplay {
 		candidates = candidates[:maxDisplay]
@@ -501,13 +501,13 @@ func (r *Reader) showAdvancedSuggestions(candidates []CompletionCandidate) {
 		// 補完タイプによる色分け
 		var typeColor string
 		var typeIcon string
-		
+
 		switch candidate.Type {
 		case CompletionFile:
 			typeColor = green
 			typeIcon = "📄"
 		case CompletionCommand:
-			typeColor = blue  
+			typeColor = blue
 			typeIcon = "⚡"
 		case CompletionGitBranch:
 			typeColor = yellow
@@ -529,7 +529,7 @@ func (r *Reader) showAdvancedSuggestions(candidates []CompletionCandidate) {
 			scoreStr = fmt.Sprintf(" %s(%.2f)%s", gray, candidate.Score, reset)
 		}
 
-		fmt.Printf("  %s%s %s%s%s %s%s%s%s\n", 
+		fmt.Printf("  %s%s %s%s%s %s%s%s%s\n",
 			typeColor, typeIcon, candidate.Text, reset,
 			scoreStr,
 			gray, candidate.Description, reset, gray)
@@ -554,7 +554,7 @@ func (r *Reader) readLineFallback() (string, error) {
 	}
 
 	line = strings.TrimSuffix(line, "\n")
-	
+
 	// セキュリティ検証を実行
 	sanitizedLine, err := r.securityValidator.ValidateInput(line, r.clientID)
 	if err != nil {
@@ -562,7 +562,7 @@ func (r *Reader) readLineFallback() (string, error) {
 		fmt.Printf("\033[31m警告: %s\033[0m\n", err.Error())
 		return "", err
 	}
-	
+
 	r.history.Add(sanitizedLine)
 	return sanitizedLine, nil
 }
@@ -719,6 +719,6 @@ func (r *Reader) Close() error {
 	if r.perfOptimizer != nil {
 		r.perfOptimizer.Stop()
 	}
-	
+
 	return r.disableRawMode()
 }

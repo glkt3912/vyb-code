@@ -200,7 +200,7 @@ func TestLRUCache_Operations(t *testing.T) {
 	}
 
 	// LRU順序テスト
-	cache.Get("key2") // key2をアクセス（最近使用に）
+	cache.Get("key2")           // key2をアクセス（最近使用に）
 	cache.Put("key5", "value5") // key3が追い出される（最も古い）
 
 	if _, ok := cache.Get("key3"); ok {
@@ -342,7 +342,7 @@ func TestPerformanceOptimizer_OptimizedCompletionCaching(t *testing.T) {
 
 	// 同じ入力で複数回実行
 	input := "build"
-	
+
 	start1 := time.Now()
 	candidates1 := optimizer.OptimizedCompletion(input, completer)
 	elapsed1 := time.Since(start1)
@@ -395,7 +395,7 @@ func BenchmarkLRUCache_PutGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key-%d", i%500)
 		value := fmt.Sprintf("value-%d", i)
-		
+
 		cache.Put(key, value)
 		cache.Get(key)
 	}
@@ -408,7 +408,7 @@ func BenchmarkMemoryManager_RegisterUnregister(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("obj-%d", i%100)
 		size := int64(i % 1000)
-		
+
 		mm.RegisterObject(key, size)
 		if i%2 == 0 {
 			mm.UnregisterObject(key)

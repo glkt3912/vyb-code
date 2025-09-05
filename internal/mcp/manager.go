@@ -31,19 +31,19 @@ type StructuredLoggerAdapter struct {
 }
 
 func (s *StructuredLoggerAdapter) Debug(msg string, args ...interface{}) {
-	s.vybLogger.Debug(msg, args...)
+	s.vybLogger.DebugArgs(msg, args...)
 }
 
 func (s *StructuredLoggerAdapter) Info(msg string, args ...interface{}) {
-	s.vybLogger.Info(msg, args...)
+	s.vybLogger.InfoArgs(msg, args...)
 }
 
 func (s *StructuredLoggerAdapter) Warn(msg string, args ...interface{}) {
-	s.vybLogger.Warn(msg, args...)
+	s.vybLogger.WarnArgs(msg, args...)
 }
 
 func (s *StructuredLoggerAdapter) Error(msg string, args ...interface{}) {
-	s.vybLogger.Error(msg, args...)
+	s.vybLogger.ErrorArgs(msg, args...)
 }
 
 // サーバーに接続

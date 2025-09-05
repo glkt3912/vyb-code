@@ -624,4 +624,3 @@ func (w *WebFetchTool) htmlToMarkdown(html string) string {
 	// 実際の実装では、より高度なHTML→Markdown変換ライブラリを使用
 	return strings.TrimSpace(content)
 }
-

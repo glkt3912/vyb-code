@@ -301,4 +301,3 @@ func (ws *WebSearchTool) extractSnippet(content, query string) string {
 
 	return snippet
 }
-

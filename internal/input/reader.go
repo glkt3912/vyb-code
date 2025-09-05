@@ -13,13 +13,17 @@ import (
 
 // 拡張入力リーダー
 type Reader struct {
-	history     *History
-	completer   *Completer
-	isRawMode   bool
-	oldState    *term.State
-	currentLine string
-	cursorPos   int
-	prompt      string
+	history            *History
+	completer          *Completer
+	securityValidator  *SecurityValidator    // セキュリティ機能
+	perfOptimizer      *PerformanceOptimizer // パフォーマンス最適化
+	isRawMode          bool
+	oldState           *term.State
+	currentLine        string
+	cursorPos          int
+	prompt             string
+	clientID           string // セキュリティ用のクライアントID
+	enableOptimization bool   // パフォーマンス最適化の有効/無効
 }
 
 // 入力履歴管理（既存のInputHistoryを拡張）
@@ -32,10 +36,11 @@ type History struct {
 
 // オートコンプリート機能
 type Completer struct {
-	commands    []string
-	filePaths   []string
-	currentDir  string
-	suggestions []string
+	commands          []string
+	filePaths         []string
+	currentDir        string
+	suggestions       []string
+	advancedCompleter *AdvancedCompleter // 高度な補完機能
 }
 
 // 特殊キーコード
@@ -58,10 +63,17 @@ const (
 func NewReader() *Reader {
 	currentDir, _ := os.Getwd()
 
+	perfOptimizer := NewPerformanceOptimizer()
+	perfOptimizer.Start() // パフォーマンス最適化を開始
+
 	return &Reader{
-		history:   NewHistory(100),
-		completer: NewCompleter(currentDir),
-		isRawMode: false,
+		history:            NewHistory(100),
+		completer:          NewCompleter(currentDir),
+		securityValidator:  NewSecurityValidator(),
+		perfOptimizer:      perfOptimizer,
+		isRawMode:          false,
+		clientID:           "local", // ローカル実行用のデフォルトID
+		enableOptimization: true,    // デフォルトで有効
 	}
 }
 
@@ -81,7 +93,8 @@ func NewCompleter(workDir string) *Completer {
 			"/help", "/clear", "/history", "/status", "/info", "/save", "/retry", "/edit",
 			"exit", "quit",
 		},
-		currentDir: workDir,
+		currentDir:        workDir,
+		advancedCompleter: NewAdvancedCompleter(workDir),
 	}
 }
 
@@ -224,8 +237,20 @@ func (r *Reader) readLineRaw() (string, error) {
 			r.clearCurrentLine()
 			fmt.Printf("%s\n", r.currentLine)
 			line := r.currentLine
-			r.history.Add(line)
-			return line, nil
+
+			// セキュリティ検証を実行
+			sanitizedLine, err := r.securityValidator.ValidateInput(line, r.clientID)
+			if err != nil {
+				// セキュリティエラーの場合は警告表示して再入力
+				fmt.Printf("\033[31m警告: %s\033[0m\n", err.Error())
+				r.currentLine = ""
+				r.cursorPos = 0
+				r.redrawLine()
+				continue
+			}
+
+			r.history.Add(sanitizedLine)
+			return sanitizedLine, nil
 
 		case CtrlC:
 			// Ctrl+C: キャンセル
@@ -246,14 +271,23 @@ func (r *Reader) readLineRaw() (string, error) {
 			r.redrawLine()
 
 		case KeyTab:
-			// Tab: オートコンプリート
-			suggestions := r.completer.GetSuggestions(r.currentLine)
-			if len(suggestions) == 1 {
-				r.currentLine = suggestions[0]
+			// Tab: 高度なオートコンプリート（パフォーマンス最適化付き）
+			var candidates []CompletionCandidate
+
+			if r.enableOptimization && r.perfOptimizer != nil {
+				// パフォーマンス最適化版を使用
+				candidates = r.perfOptimizer.OptimizedCompletion(r.currentLine, r.completer.advancedCompleter)
+			} else {
+				// 通常版を使用
+				candidates = r.completer.advancedCompleter.GetAdvancedSuggestions(r.currentLine)
+			}
+
+			if len(candidates) == 1 {
+				r.currentLine = candidates[0].Text
 				r.cursorPos = len(r.currentLine)
 				r.redrawLine()
-			} else if len(suggestions) > 1 {
-				r.showSuggestions(suggestions)
+			} else if len(candidates) > 1 {
+				r.showAdvancedSuggestions(candidates)
 				r.redrawLine()
 			}
 
@@ -274,8 +308,13 @@ func (r *Reader) readLineRaw() (string, error) {
 		default:
 			// 通常文字
 			if b >= 32 && b <= 126 {
-				// ASCII印字可能文字
-				r.currentLine = r.currentLine[:r.cursorPos] + string(b) + r.currentLine[r.cursorPos:]
+				// ASCII印字可能文字 - リアルタイム長制限チェック
+				newLine := r.currentLine[:r.cursorPos] + string(b) + r.currentLine[r.cursorPos:]
+				if len(newLine) > MaxLineLength {
+					// 長すぎる場合は無視
+					continue
+				}
+				r.currentLine = newLine
 				r.cursorPos++
 				r.redrawLine()
 			} else if b >= 128 {
@@ -368,8 +407,14 @@ func (r *Reader) handleUTF8Input(firstByte byte) error {
 	// UTF-8文字列に変換
 	char := string(utf8Bytes)
 
+	// リアルタイム長制限チェック
+	newLine := r.currentLine[:r.cursorPos] + char + r.currentLine[r.cursorPos:]
+	if len(newLine) > MaxLineLength {
+		return fmt.Errorf("行長制限を超えています")
+	}
+
 	// 現在の行に文字を挿入
-	r.currentLine = r.currentLine[:r.cursorPos] + char + r.currentLine[r.cursorPos:]
+	r.currentLine = newLine
 	r.cursorPos += len(char)
 	r.redrawLine()
 
@@ -429,6 +474,77 @@ func (r *Reader) showSuggestions(suggestions []string) {
 	fmt.Print("\033[u")
 }
 
+// 高度な補完候補を表示（詳細情報付き）
+func (r *Reader) showAdvancedSuggestions(candidates []CompletionCandidate) {
+	// 現在の行を保存
+	fmt.Print("\033[s")
+
+	// 新しい行に移動
+	fmt.Print("\n")
+
+	// カラーコード
+	gray := "\033[90m"
+	green := "\033[32m"
+	blue := "\033[34m"
+	yellow := "\033[33m"
+	cyan := "\033[36m"
+	reset := "\033[0m"
+
+	fmt.Printf("%s候補:%s\n", gray, reset)
+
+	maxDisplay := 6
+	if len(candidates) > maxDisplay {
+		candidates = candidates[:maxDisplay]
+	}
+
+	for i, candidate := range candidates {
+		// 補完タイプによる色分け
+		var typeColor string
+		var typeIcon string
+
+		switch candidate.Type {
+		case CompletionFile:
+			typeColor = green
+			typeIcon = "📄"
+		case CompletionCommand:
+			typeColor = blue
+			typeIcon = "⚡"
+		case CompletionGitBranch:
+			typeColor = yellow
+			typeIcon = "🌿"
+		case CompletionGitFile:
+			typeColor = cyan
+			typeIcon = "📝"
+		case CompletionProjectCommand:
+			typeColor = "\033[35m" // マゼンタ
+			typeIcon = "🔧"
+		default:
+			typeColor = gray
+			typeIcon = "💡"
+		}
+
+		// スコア表示（デバッグ用、実際は非表示推奨）
+		scoreStr := ""
+		if candidate.Score > 0 {
+			scoreStr = fmt.Sprintf(" %s(%.2f)%s", gray, candidate.Score, reset)
+		}
+
+		fmt.Printf("  %s%s %s%s%s %s%s%s%s\n",
+			typeColor, typeIcon, candidate.Text, reset,
+			scoreStr,
+			gray, candidate.Description, reset, gray)
+
+		if i >= maxDisplay-1 && len(candidates) > maxDisplay {
+			fmt.Printf("  %s... (%d more)%s\n", gray, len(candidates)-maxDisplay, reset)
+			break
+		}
+	}
+
+	fmt.Print("\n")
+	// 元の位置に戻る
+	fmt.Print("\033[u")
+}
+
 // フォールバック：通常の入力処理
 func (r *Reader) readLineFallback() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
@@ -438,8 +554,17 @@ func (r *Reader) readLineFallback() (string, error) {
 	}
 
 	line = strings.TrimSuffix(line, "\n")
-	r.history.Add(line)
-	return line, nil
+
+	// セキュリティ検証を実行
+	sanitizedLine, err := r.securityValidator.ValidateInput(line, r.clientID)
+	if err != nil {
+		// セキュリティエラーの場合は警告表示
+		fmt.Printf("\033[31m警告: %s\033[0m\n", err.Error())
+		return "", err
+	}
+
+	r.history.Add(sanitizedLine)
+	return sanitizedLine, nil
 }
 
 // オートコンプリート候補を取得
@@ -542,7 +667,58 @@ func (r *Reader) ReadMultiLine() (string, error) {
 
 // getTerminalSize は reader_unix.go と reader_windows.go で実装
 
+// クライアントIDを設定（セキュリティ用）
+func (r *Reader) SetClientID(clientID string) {
+	r.clientID = clientID
+}
+
+// セキュリティ設定を更新
+func (r *Reader) UpdateSecuritySettings(bufferLimit int, requestsPerSec int) {
+	if r.securityValidator != nil {
+		r.securityValidator.UpdateSecuritySettings(bufferLimit, requestsPerSec)
+	}
+}
+
+// セキュリティ機能を無効化（テスト用など）
+func (r *Reader) DisableSecurity() {
+	r.securityValidator = nil
+}
+
+// セキュリティ機能を有効化
+func (r *Reader) EnableSecurity() {
+	if r.securityValidator == nil {
+		r.securityValidator = NewSecurityValidator()
+	}
+}
+
+// パフォーマンス最適化を有効化
+func (r *Reader) EnableOptimization() {
+	r.enableOptimization = true
+	if r.perfOptimizer == nil {
+		r.perfOptimizer = NewPerformanceOptimizer()
+		r.perfOptimizer.Start()
+	}
+}
+
+// パフォーマンス最適化を無効化
+func (r *Reader) DisableOptimization() {
+	r.enableOptimization = false
+}
+
+// パフォーマンスメトリクスを取得
+func (r *Reader) GetPerformanceMetrics() map[string]interface{} {
+	if r.perfOptimizer != nil && r.perfOptimizer.metricsCollector != nil {
+		return r.perfOptimizer.metricsCollector.GetMetrics()
+	}
+	return map[string]interface{}{}
+}
+
 // リーダーのクリーンアップ
 func (r *Reader) Close() error {
+	// パフォーマンス最適化システムを停止
+	if r.perfOptimizer != nil {
+		r.perfOptimizer.Stop()
+	}
+
 	return r.disableRawMode()
 }

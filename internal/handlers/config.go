@@ -83,21 +83,21 @@ func (h *ConfigHandler) ListConfig() error {
 		return fmt.Errorf("設定読み込みエラー: %w", err)
 	}
 
-	h.log.Info("現在の設定", map[string]interface{}{
-		"provider":         cfg.Provider,
-		"model_name":       cfg.ModelName,
-		"base_url":         cfg.BaseURL,
-		"max_tokens":       cfg.MaxTokens,
-		"temperature":      cfg.Temperature,
-		"stream":           cfg.Stream,
-		"log_level":        cfg.Log.Level,
-		"log_format":       cfg.Log.Format,
-		"tui_enabled":      cfg.TUI.Enabled,
-		"tui_theme":        cfg.TUI.Theme,
-		"terminal_mode":    cfg.TerminalMode,
-		"file_max_size_mb": cfg.FileMaxSizeMB,
-		"command_timeout":  cfg.CommandTimeout,
-	})
+	// コンソールに直接出力（ログシステムを使わない）
+	fmt.Println("現在の設定:")
+	fmt.Printf("  Provider: %s\n", cfg.Provider)
+	fmt.Printf("  Model: %s\n", cfg.ModelName)
+	fmt.Printf("  Base URL: %s\n", cfg.BaseURL)
+	fmt.Printf("  Max Tokens: %d\n", cfg.MaxTokens)
+	fmt.Printf("  Temperature: %g\n", cfg.Temperature)
+	fmt.Printf("  Stream: %t\n", cfg.Stream)
+	fmt.Printf("  Log Level: %s\n", cfg.Log.Level)
+	fmt.Printf("  Log Format: %s\n", cfg.Log.Format)
+	fmt.Printf("  TUI Enabled: %t\n", cfg.TUI.Enabled)
+	fmt.Printf("  TUI Theme: %s\n", cfg.TUI.Theme)
+	fmt.Printf("  File Max Size (MB): %d\n", cfg.FileMaxSizeMB)
+	fmt.Printf("  Command Timeout: %d\n", cfg.CommandTimeout)
+
 	return nil
 }
 

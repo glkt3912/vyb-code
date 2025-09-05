@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
+	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/logger"
 	"github.com/glkt/vyb-code/internal/ui"
 )
@@ -111,11 +113,17 @@ func (h *ChatHandler) ProcessSingleQuery(query string, noTUI bool) error {
 
 // runEnhancedTerminalLoop はEnhanced Terminal Modeのメインループ
 func (h *ChatHandler) runEnhancedTerminalLoop(cfg *config.Config, planMode bool) error {
-	// TODO: Enhanced Terminal Mode実装
-	h.log.Info("Enhanced Terminal Mode開始（開発中）", map[string]interface{}{
+	h.log.Info("Enhanced Terminal Mode開始", map[string]interface{}{
 		"plan_mode": planMode,
 		"model":     cfg.ModelName,
 	})
 
-	return fmt.Errorf("Enhanced Terminal Mode機能は開発中です")
+	// LLMプロバイダーを初期化
+	provider := llm.NewOllamaClient(cfg.BaseURL)
+
+	// セッションを作成（設定付き）
+	session := chat.NewSessionWithConfig(provider, cfg.ModelName, cfg)
+
+	// 実際のEnhanced Terminal Modeを開始
+	return session.StartEnhancedTerminal()
 }

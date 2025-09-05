@@ -29,8 +29,9 @@ func TestRootCommandStructure(t *testing.T) {
 		t.Errorf("rootCmd.Use = %s, want %s", rootCmd.Use, "vyb")
 	}
 
-	if rootCmd.Version != "v1.0.1" {
-		t.Errorf("rootCmd.Version = %s, want %s", rootCmd.Version, "v1.0.1")
+	// バージョンが設定されていることを確認（具体的な値はビルド時に決定）
+	if rootCmd.Version == "" {
+		t.Error("rootCmd.Version should not be empty")
 	}
 }
 

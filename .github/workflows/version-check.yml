@@ -1,0 +1,79 @@
+name: Version Consistency Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 全履歴を取得してタグ情報を参照
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+    
+    - name: Get latest git tag
+      id: git-tag
+      run: |
+        LATEST_TAG=$(git tag --sort=-version:refname | head -n1)
+        if [ -z "$LATEST_TAG" ]; then
+          LATEST_TAG="v0.0.0"
+        fi
+        echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "Latest git tag: $LATEST_TAG"
+    
+    - name: Extract version from main.go
+      id: code-version
+      run: |
+        CODE_VERSION=$(grep 'Version:' cmd/vyb/main.go | cut -d'"' -f2)
+        echo "version=$CODE_VERSION" >> $GITHUB_OUTPUT
+        echo "Code version in main.go: $CODE_VERSION"
+    
+    - name: Extract version from MCP client
+      id: mcp-version
+      run: |
+        MCP_VERSION=$(grep 'Version:' internal/mcp/client.go | cut -d'"' -f2)
+        echo "version=$MCP_VERSION" >> $GITHUB_OUTPUT
+        echo "MCP client version: $MCP_VERSION"
+    
+    - name: Check version consistency
+      run: |
+        GIT_TAG="${{ steps.git-tag.outputs.tag }}"
+        CODE_VERSION="${{ steps.code-version.outputs.version }}"
+        MCP_VERSION="${{ steps.mcp-version.outputs.version }}"
+        
+        echo "🔍 Version Consistency Check"
+        echo "Git tag: $GIT_TAG"
+        echo "main.go: $CODE_VERSION" 
+        echo "MCP client: $MCP_VERSION"
+        echo
+        
+        # バージョンの一貫性チェック
+        if [ "$CODE_VERSION" != "$GIT_TAG" ]; then
+          echo "❌ Version mismatch: main.go ($CODE_VERSION) != git tag ($GIT_TAG)"
+          exit 1
+        fi
+        
+        if [ "$MCP_VERSION" != "${GIT_TAG#v}" ]; then
+          echo "❌ Version mismatch: MCP client ($MCP_VERSION) != git tag (${GIT_TAG#v})"
+          exit 1
+        fi
+        
+        echo "✅ All versions are consistent"
+    
+    - name: Version update recommendation
+      if: failure()
+      run: |
+        echo "💡 To fix version inconsistencies:"
+        echo "1. Update cmd/vyb/main.go Version field"
+        echo "2. Update internal/mcp/client.go Version field"
+        echo "3. Update corresponding test expectations"
+        echo "4. Or consider implementing automatic version injection"

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/glkt/vyb-code/internal/container"
+	"github.com/glkt/vyb-code/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +19,7 @@ var rootCmd = &cobra.Command{
 	Use:     "vyb",
 	Short:   "Local AI coding assistant",
 	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
-	Version: "v1.0.1",
+	Version: version.GetVersion(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// コンテナー初期化
 		appContainer = container.NewContainer()

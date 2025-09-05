@@ -17,7 +17,7 @@ GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
 # LDFLAGSの設定（バイナリにビルド情報を埋め込み）
-LDFLAGS="-X 'main.Version=${VERSION}' -X 'main.BuildTime=${BUILD_TIME}' -X 'main.GitCommit=${GIT_COMMIT}' -X 'main.GitBranch=${GIT_BRANCH}'"
+LDFLAGS="-X 'github.com/glkt/vyb-code/internal/version.Version=${VERSION}' -X 'github.com/glkt/vyb-code/internal/version.BuildTime=${BUILD_TIME}' -X 'github.com/glkt/vyb-code/internal/version.GitCommit=${GIT_COMMIT}' -X 'github.com/glkt/vyb-code/internal/version.GitBranch=${GIT_BRANCH}'"
 
 echo "=== vyb-code Build Script ==="
 echo "Version: ${VERSION}"

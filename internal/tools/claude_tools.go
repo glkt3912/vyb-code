@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
-	
+
 	"github.com/glkt/vyb-code/internal/security"
 )
 
@@ -177,8 +177,8 @@ func (g *GlobTool) Find(pattern string, path string) (*ToolExecutionResult, erro
 		IsError: false,
 		Tool:    "glob",
 		Metadata: map[string]interface{}{
-			"pattern":    pattern,
-			"path":       path,
+			"pattern":     pattern,
+			"path":        path,
 			"match_count": len(matches),
 		},
 	}, nil
@@ -186,12 +186,12 @@ func (g *GlobTool) Find(pattern string, path string) (*ToolExecutionResult, erro
 
 func (g *GlobTool) globRecursive(dir, pattern string) ([]string, error) {
 	var matches []string
-	
+
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // スキップして継続
 		}
-		
+
 		// 隠しファイル/ディレクトリをスキップ
 		if strings.HasPrefix(filepath.Base(path), ".") && path != dir {
 			if info.IsDir() {
@@ -199,13 +199,13 @@ func (g *GlobTool) globRecursive(dir, pattern string) ([]string, error) {
 			}
 			return nil
 		}
-		
+
 		// パターンマッチング
 		matched, matchErr := filepath.Match(pattern, filepath.Base(path))
 		if matchErr != nil {
 			return nil
 		}
-		
+
 		if matched {
 			relPath, relErr := filepath.Rel(g.workDir, path)
 			if relErr == nil {
@@ -214,10 +214,10 @@ func (g *GlobTool) globRecursive(dir, pattern string) ([]string, error) {
 				matches = append(matches, path)
 			}
 		}
-		
+
 		return nil
 	})
-	
+
 	return matches, err
 }
 
@@ -231,17 +231,17 @@ func NewGrepTool(workDir string) *GrepTool {
 }
 
 type GrepOptions struct {
-	Pattern     string `json:"pattern"`
-	Path        string `json:"path,omitempty"`
-	Glob        string `json:"glob,omitempty"`
-	Type        string `json:"type,omitempty"`
-	OutputMode  string `json:"output_mode,omitempty"` // content, files_with_matches, count
-	CaseInsensitive bool `json:"case_insensitive,omitempty"`
-	ContextBefore   int  `json:"context_before,omitempty"`
-	ContextAfter    int  `json:"context_after,omitempty"`
-	LineNumbers     bool `json:"line_numbers,omitempty"`
-	HeadLimit       int  `json:"head_limit,omitempty"`
-	Multiline       bool `json:"multiline,omitempty"`
+	Pattern         string `json:"pattern"`
+	Path            string `json:"path,omitempty"`
+	Glob            string `json:"glob,omitempty"`
+	Type            string `json:"type,omitempty"`
+	OutputMode      string `json:"output_mode,omitempty"` // content, files_with_matches, count
+	CaseInsensitive bool   `json:"case_insensitive,omitempty"`
+	ContextBefore   int    `json:"context_before,omitempty"`
+	ContextAfter    int    `json:"context_after,omitempty"`
+	LineNumbers     bool   `json:"line_numbers,omitempty"`
+	HeadLimit       int    `json:"head_limit,omitempty"`
+	Multiline       bool   `json:"multiline,omitempty"`
 }
 
 func (g *GrepTool) Search(options GrepOptions) (*ToolExecutionResult, error) {
@@ -283,7 +283,7 @@ func (g *GrepTool) Search(options GrepOptions) (*ToolExecutionResult, error) {
 
 	// 出力モードに応じて結果をフォーマット
 	result := g.formatResults(matches, options)
-	
+
 	return &ToolExecutionResult{
 		Content: result,
 		IsError: false,
@@ -305,22 +305,22 @@ type GrepMatch struct {
 
 func (g *GrepTool) searchFiles(dir string, regex *regexp.Regexp, options GrepOptions) ([]GrepMatch, error) {
 	var matches []GrepMatch
-	
+
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
-		
+
 		// 隠しファイルをスキップ
 		if strings.HasPrefix(filepath.Base(path), ".") {
 			return nil
 		}
-		
+
 		// ファイル型フィルタリング
 		if options.Type != "" && !g.matchFileType(path, options.Type) {
 			return nil
 		}
-		
+
 		// Globパターンフィルタリング
 		if options.Glob != "" {
 			matched, _ := filepath.Match(options.Glob, filepath.Base(path))
@@ -328,15 +328,15 @@ func (g *GrepTool) searchFiles(dir string, regex *regexp.Regexp, options GrepOpt
 				return nil
 			}
 		}
-		
+
 		fileMatches, err := g.searchInFile(path, regex, options)
 		if err == nil {
 			matches = append(matches, fileMatches...)
 		}
-		
+
 		return nil
 	})
-	
+
 	return matches, err
 }
 
@@ -346,26 +346,26 @@ func (g *GrepTool) searchInFile(filePath string, regex *regexp.Regexp, options G
 		return nil, err
 	}
 	defer file.Close()
-	
+
 	var matches []GrepMatch
 	scanner := bufio.NewScanner(file)
 	lineNum := 1
 	var lines []string
-	
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		lines = append(lines, line)
-		
+
 		if regex.MatchString(line) {
 			relPath, _ := filepath.Rel(g.workDir, filePath)
-			
+
 			var context []string
 			if options.ContextBefore > 0 || options.ContextAfter > 0 {
 				start := max(0, lineNum-1-options.ContextBefore)
 				end := min(len(lines), lineNum+options.ContextAfter)
 				context = lines[start:end]
 			}
-			
+
 			matches = append(matches, GrepMatch{
 				File:       relPath,
 				LineNumber: lineNum,
@@ -375,7 +375,7 @@ func (g *GrepTool) searchInFile(filePath string, regex *regexp.Regexp, options G
 		}
 		lineNum++
 	}
-	
+
 	return matches, scanner.Err()
 }
 
@@ -407,12 +407,12 @@ func (g *GrepTool) formatResults(matches []GrepMatch, options GrepOptions) strin
 	if len(matches) == 0 {
 		return ""
 	}
-	
+
 	// HeadLimitの適用
 	if options.HeadLimit > 0 && len(matches) > options.HeadLimit {
 		matches = matches[:options.HeadLimit]
 	}
-	
+
 	switch options.OutputMode {
 	case "files_with_matches":
 		seen := make(map[string]bool)
@@ -424,7 +424,7 @@ func (g *GrepTool) formatResults(matches []GrepMatch, options GrepOptions) strin
 			}
 		}
 		return strings.Join(files, "\n")
-		
+
 	case "count":
 		counts := make(map[string]int)
 		for _, match := range matches {
@@ -435,7 +435,7 @@ func (g *GrepTool) formatResults(matches []GrepMatch, options GrepOptions) strin
 			result = append(result, fmt.Sprintf("%s:%d", file, count))
 		}
 		return strings.Join(result, "\n")
-		
+
 	default: // "content"
 		var result []string
 		for _, match := range matches {
@@ -494,17 +494,17 @@ func (l *LSTool) List(path string, ignore []string) (*ToolExecutionResult, error
 	var result []string
 	for _, entry := range entries {
 		name := entry.Name()
-		
+
 		// 無視パターンチェック
 		if l.shouldIgnore(name, ignore) {
 			continue
 		}
-		
+
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
-		
+
 		if entry.IsDir() {
 			result = append(result, fmt.Sprintf("- %s/", name))
 		} else {
@@ -595,7 +595,7 @@ func (w *WebFetchTool) Fetch(url string, prompt string) (*ToolExecutionResult, e
 	}
 
 	content := string(body)
-	
+
 	// HTMLからMarkdownへの基本的な変換
 	content = w.htmlToMarkdown(content)
 
@@ -604,11 +604,11 @@ func (w *WebFetchTool) Fetch(url string, prompt string) (*ToolExecutionResult, e
 		IsError: false,
 		Tool:    "webfetch",
 		Metadata: map[string]interface{}{
-			"url":           url,
-			"status_code":   resp.StatusCode,
-			"content_type":  resp.Header.Get("Content-Type"),
+			"url":            url,
+			"status_code":    resp.StatusCode,
+			"content_type":   resp.Header.Get("Content-Type"),
 			"content_length": len(content),
-			"prompt":        prompt,
+			"prompt":         prompt,
 		},
 	}, nil
 }
@@ -616,11 +616,12 @@ func (w *WebFetchTool) Fetch(url string, prompt string) (*ToolExecutionResult, e
 func (w *WebFetchTool) htmlToMarkdown(html string) string {
 	// 基本的なHTML→Markdown変換
 	content := html
-	
+
 	// HTMLタグの除去（簡易版）
 	re := regexp.MustCompile(`<[^>]*>`)
 	content = re.ReplaceAllString(content, "")
-	
+
 	// 実際の実装では、より高度なHTML→Markdown変換ライブラリを使用
 	return strings.TrimSpace(content)
 }
+

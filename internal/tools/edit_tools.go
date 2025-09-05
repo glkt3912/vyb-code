@@ -26,10 +26,10 @@ func NewEditTool(constraints *security.Constraints, workDir string, maxFileSize 
 }
 
 type EditRequest struct {
-	FilePath    string `json:"file_path"`
-	OldString   string `json:"old_string"`
-	NewString   string `json:"new_string"`
-	ReplaceAll  bool   `json:"replace_all,omitempty"`
+	FilePath   string `json:"file_path"`
+	OldString  string `json:"old_string"`
+	NewString  string `json:"new_string"`
+	ReplaceAll bool   `json:"replace_all,omitempty"`
 }
 
 func (e *EditTool) Edit(req EditRequest) (*ToolExecutionResult, error) {
@@ -291,11 +291,11 @@ func (me *MultiEditTool) MultiEdit(req MultiEditRequest) (*ToolExecutionResult, 
 		IsError: false,
 		Tool:    "multiedit",
 		Metadata: map[string]interface{}{
-			"file_path":        req.FilePath,
-			"total_edits":      len(req.Edits),
-			"successful_edits": successfulEdits,
+			"file_path":          req.FilePath,
+			"total_edits":        len(req.Edits),
+			"successful_edits":   successfulEdits,
 			"total_replacements": totalReplacements,
-			"changed":          totalReplacements > 0,
+			"changed":            totalReplacements > 0,
 		},
 	}, nil
 }
@@ -317,8 +317,8 @@ func NewReadTool(constraints *security.Constraints, workDir string, maxFileSize 
 
 type ReadRequest struct {
 	FilePath string `json:"file_path"`
-	Offset   int    `json:"offset,omitempty"`   // 読み取り開始行（1から開始）
-	Limit    int    `json:"limit,omitempty"`    // 読み取る行数
+	Offset   int    `json:"offset,omitempty"` // 読み取り開始行（1から開始）
+	Limit    int    `json:"limit,omitempty"`  // 読み取る行数
 }
 
 func (r *ReadTool) Read(req ReadRequest) (*ToolExecutionResult, error) {
@@ -379,7 +379,7 @@ func (r *ReadTool) Read(req ReadRequest) (*ToolExecutionResult, error) {
 	// オフセット処理
 	for scanner.Scan() {
 		totalLines++
-		
+
 		// オフセット以前の行をスキップ
 		if req.Offset > 0 && lineNum < req.Offset {
 			lineNum++
@@ -511,3 +511,4 @@ func (w *WriteTool) Write(req WriteRequest) (*ToolExecutionResult, error) {
 		},
 	}, nil
 }
+

@@ -43,16 +43,16 @@ type ToolRegistry struct {
 	executor    *CommandExecutor
 	gitOps      *GitOperations
 	// Claude Codeツール
-	bashTool     *BashTool
-	globTool     *GlobTool
-	grepTool     *GrepTool
+	bashTool      *BashTool
+	globTool      *GlobTool
+	grepTool      *GrepTool
 	lsTool        *LSTool
 	webFetchTool  *WebFetchTool
 	webSearchTool *WebSearchTool
 	editTool      *EditTool
 	multiEditTool *MultiEditTool
-	readTool     *ReadTool
-	writeTool    *WriteTool
+	readTool      *ReadTool
+	writeTool     *WriteTool
 }
 
 // 新しいツールレジストリを作成
@@ -65,16 +65,16 @@ func NewToolRegistry(constraints *security.Constraints, workDir string, maxFileS
 		executor:    NewCommandExecutor(constraints, workDir),
 		gitOps:      NewGitOperations(constraints, workDir),
 		// Claude Codeツールを初期化
-		bashTool:     NewBashTool(constraints, workDir),
-		globTool:     NewGlobTool(workDir),
-		grepTool:     NewGrepTool(workDir),
+		bashTool:      NewBashTool(constraints, workDir),
+		globTool:      NewGlobTool(workDir),
+		grepTool:      NewGrepTool(workDir),
 		lsTool:        NewLSTool(workDir),
 		webFetchTool:  NewWebFetchTool(),
 		webSearchTool: NewWebSearchTool(),
 		editTool:      NewEditTool(constraints, workDir, maxFileSize),
 		multiEditTool: NewMultiEditTool(constraints, workDir, maxFileSize),
-		readTool:     NewReadTool(constraints, workDir, maxFileSize),
-		writeTool:    NewWriteTool(constraints, workDir, maxFileSize),
+		readTool:      NewReadTool(constraints, workDir, maxFileSize),
+		writeTool:     NewWriteTool(constraints, workDir, maxFileSize),
 	}
 
 	// ネイティブツールを登録
@@ -452,22 +452,22 @@ func (r *ToolRegistry) handleBashTool(arguments map[string]interface{}) (interfa
 	if !ok {
 		return nil, fmt.Errorf("command引数が必要です")
 	}
-	
+
 	description := ""
 	if desc, ok := arguments["description"].(string); ok {
 		description = desc
 	}
-	
+
 	timeout := 0
 	if timeoutVal, ok := arguments["timeout"].(float64); ok {
 		timeout = int(timeoutVal)
 	}
-	
+
 	result, err := r.bashTool.Execute(command, description, timeout)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":   result.Content,
 		"exit_code": result.ExitCode,
@@ -481,17 +481,17 @@ func (r *ToolRegistry) handleGlobTool(arguments map[string]interface{}) (interfa
 	if !ok {
 		return nil, fmt.Errorf("pattern引数が必要です")
 	}
-	
+
 	path := ""
 	if pathVal, ok := arguments["path"].(string); ok {
 		path = pathVal
 	}
-	
+
 	result, err := r.globTool.Find(pattern, path)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -500,13 +500,13 @@ func (r *ToolRegistry) handleGlobTool(arguments map[string]interface{}) (interfa
 
 func (r *ToolRegistry) handleGrepTool(arguments map[string]interface{}) (interface{}, error) {
 	options := GrepOptions{}
-	
+
 	if pattern, ok := arguments["pattern"].(string); ok {
 		options.Pattern = pattern
 	} else {
 		return nil, fmt.Errorf("pattern引数が必要です")
 	}
-	
+
 	if path, ok := arguments["path"].(string); ok {
 		options.Path = path
 	}
@@ -522,12 +522,12 @@ func (r *ToolRegistry) handleGrepTool(arguments map[string]interface{}) (interfa
 	if caseInsensitive, ok := arguments["case_insensitive"].(bool); ok {
 		options.CaseInsensitive = caseInsensitive
 	}
-	
+
 	result, err := r.grepTool.Search(options)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -539,7 +539,7 @@ func (r *ToolRegistry) handleLSTool(arguments map[string]interface{}) (interface
 	if pathVal, ok := arguments["path"].(string); ok {
 		path = pathVal
 	}
-	
+
 	var ignore []string
 	if ignoreVal, ok := arguments["ignore"].([]interface{}); ok {
 		for _, item := range ignoreVal {
@@ -548,12 +548,12 @@ func (r *ToolRegistry) handleLSTool(arguments map[string]interface{}) (interface
 			}
 		}
 	}
-	
+
 	result, err := r.lsTool.List(path, ignore)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -565,17 +565,17 @@ func (r *ToolRegistry) handleWebFetchTool(arguments map[string]interface{}) (int
 	if !ok {
 		return nil, fmt.Errorf("url引数が必要です")
 	}
-	
+
 	prompt, ok := arguments["prompt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("prompt引数が必要です")
 	}
-	
+
 	result, err := r.webFetchTool.Fetch(url, prompt)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -584,13 +584,13 @@ func (r *ToolRegistry) handleWebFetchTool(arguments map[string]interface{}) (int
 
 func (r *ToolRegistry) handleWebSearchTool(arguments map[string]interface{}) (interface{}, error) {
 	options := WebSearchOptions{}
-	
+
 	if query, ok := arguments["query"].(string); ok {
 		options.Query = query
 	} else {
 		return nil, fmt.Errorf("query引数が必要です")
 	}
-	
+
 	if allowedInterface, ok := arguments["allowed_domains"].([]interface{}); ok {
 		for _, domain := range allowedInterface {
 			if domainStr, ok := domain.(string); ok {
@@ -598,7 +598,7 @@ func (r *ToolRegistry) handleWebSearchTool(arguments map[string]interface{}) (in
 			}
 		}
 	}
-	
+
 	if blockedInterface, ok := arguments["blocked_domains"].([]interface{}); ok {
 		for _, domain := range blockedInterface {
 			if domainStr, ok := domain.(string); ok {
@@ -606,16 +606,16 @@ func (r *ToolRegistry) handleWebSearchTool(arguments map[string]interface{}) (in
 			}
 		}
 	}
-	
+
 	if maxResults, ok := arguments["max_results"].(float64); ok {
 		options.MaxResults = int(maxResults)
 	}
-	
+
 	result, err := r.webSearchTool.Search(options)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -624,34 +624,34 @@ func (r *ToolRegistry) handleWebSearchTool(arguments map[string]interface{}) (in
 
 func (r *ToolRegistry) handleEditTool(arguments map[string]interface{}) (interface{}, error) {
 	req := EditRequest{}
-	
+
 	if filePath, ok := arguments["file_path"].(string); ok {
 		req.FilePath = filePath
 	} else {
 		return nil, fmt.Errorf("file_path引数が必要です")
 	}
-	
+
 	if oldString, ok := arguments["old_string"].(string); ok {
 		req.OldString = oldString
 	} else {
 		return nil, fmt.Errorf("old_string引数が必要です")
 	}
-	
+
 	if newString, ok := arguments["new_string"].(string); ok {
 		req.NewString = newString
 	} else {
 		return nil, fmt.Errorf("new_string引数が必要です")
 	}
-	
+
 	if replaceAll, ok := arguments["replace_all"].(bool); ok {
 		req.ReplaceAll = replaceAll
 	}
-	
+
 	result, err := r.editTool.Edit(req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -660,46 +660,46 @@ func (r *ToolRegistry) handleEditTool(arguments map[string]interface{}) (interfa
 
 func (r *ToolRegistry) handleMultiEditTool(arguments map[string]interface{}) (interface{}, error) {
 	req := MultiEditRequest{}
-	
+
 	if filePath, ok := arguments["file_path"].(string); ok {
 		req.FilePath = filePath
 	} else {
 		return nil, fmt.Errorf("file_path引数が必要です")
 	}
-	
+
 	if editsInterface, ok := arguments["edits"].([]interface{}); ok {
 		for _, editInterface := range editsInterface {
 			if editMap, ok := editInterface.(map[string]interface{}); ok {
 				edit := EditRequest{}
-				
+
 				if oldString, ok := editMap["old_string"].(string); ok {
 					edit.OldString = oldString
 				} else {
 					return nil, fmt.Errorf("各編集にold_string引数が必要です")
 				}
-				
+
 				if newString, ok := editMap["new_string"].(string); ok {
 					edit.NewString = newString
 				} else {
 					return nil, fmt.Errorf("各編集にnew_string引数が必要です")
 				}
-				
+
 				if replaceAll, ok := editMap["replace_all"].(bool); ok {
 					edit.ReplaceAll = replaceAll
 				}
-				
+
 				req.Edits = append(req.Edits, edit)
 			}
 		}
 	} else {
 		return nil, fmt.Errorf("edits引数が必要です")
 	}
-	
+
 	result, err := r.multiEditTool.MultiEdit(req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -708,26 +708,26 @@ func (r *ToolRegistry) handleMultiEditTool(arguments map[string]interface{}) (in
 
 func (r *ToolRegistry) handleReadTool(arguments map[string]interface{}) (interface{}, error) {
 	req := ReadRequest{}
-	
+
 	if filePath, ok := arguments["file_path"].(string); ok {
 		req.FilePath = filePath
 	} else {
 		return nil, fmt.Errorf("file_path引数が必要です")
 	}
-	
+
 	if offset, ok := arguments["offset"].(float64); ok {
 		req.Offset = int(offset)
 	}
-	
+
 	if limit, ok := arguments["limit"].(float64); ok {
 		req.Limit = int(limit)
 	}
-	
+
 	result, err := r.readTool.Read(req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,
@@ -736,24 +736,24 @@ func (r *ToolRegistry) handleReadTool(arguments map[string]interface{}) (interfa
 
 func (r *ToolRegistry) handleWriteTool(arguments map[string]interface{}) (interface{}, error) {
 	req := WriteRequest{}
-	
+
 	if filePath, ok := arguments["file_path"].(string); ok {
 		req.FilePath = filePath
 	} else {
 		return nil, fmt.Errorf("file_path引数が必要です")
 	}
-	
+
 	if content, ok := arguments["content"].(string); ok {
 		req.Content = content
 	} else {
 		return nil, fmt.Errorf("content引数が必要です")
 	}
-	
+
 	result, err := r.writeTool.Write(req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return map[string]interface{}{
 		"content":  result.Content,
 		"metadata": result.Metadata,

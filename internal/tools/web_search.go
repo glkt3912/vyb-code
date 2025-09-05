@@ -32,10 +32,10 @@ type SearchResult struct {
 }
 
 type WebSearchOptions struct {
-	Query           string   `json:"query"`
-	AllowedDomains  []string `json:"allowed_domains,omitempty"`
-	BlockedDomains  []string `json:"blocked_domains,omitempty"`
-	MaxResults      int      `json:"max_results,omitempty"`
+	Query          string   `json:"query"`
+	AllowedDomains []string `json:"allowed_domains,omitempty"`
+	BlockedDomains []string `json:"blocked_domains,omitempty"`
+	MaxResults     int      `json:"max_results,omitempty"`
 }
 
 // 注意: 実際のWeb検索APIは外部サービス（Google Custom Search API等）が必要
@@ -153,41 +153,41 @@ func (ws *WebSearchTool) matchesQuery(site TechSite, queryLower string) bool {
 	// 基本的なキーワードマッチング
 	siteName := strings.ToLower(site.Name)
 	siteDesc := strings.ToLower(site.Description)
-	
+
 	// Go関連のクエリ
 	if strings.Contains(queryLower, "go") || strings.Contains(queryLower, "golang") {
 		return strings.Contains(siteName, "go") || strings.Contains(siteDesc, "go")
 	}
-	
+
 	// JavaScript関連
-	if strings.Contains(queryLower, "javascript") || strings.Contains(queryLower, "js") || 
-	   strings.Contains(queryLower, "react") || strings.Contains(queryLower, "vue") || strings.Contains(queryLower, "node") {
-		return strings.Contains(siteName, "javascript") || strings.Contains(siteName, "react") || 
-		       strings.Contains(siteName, "vue") || strings.Contains(siteName, "node") ||
-		       strings.Contains(siteName, "mdn")
+	if strings.Contains(queryLower, "javascript") || strings.Contains(queryLower, "js") ||
+		strings.Contains(queryLower, "react") || strings.Contains(queryLower, "vue") || strings.Contains(queryLower, "node") {
+		return strings.Contains(siteName, "javascript") || strings.Contains(siteName, "react") ||
+			strings.Contains(siteName, "vue") || strings.Contains(siteName, "node") ||
+			strings.Contains(siteName, "mdn")
 	}
-	
+
 	// Docker関連
 	if strings.Contains(queryLower, "docker") || strings.Contains(queryLower, "container") {
 		return strings.Contains(siteName, "docker") || strings.Contains(siteDesc, "container")
 	}
-	
+
 	// AWS関連
 	if strings.Contains(queryLower, "aws") || strings.Contains(queryLower, "amazon") || strings.Contains(queryLower, "cloud") {
 		return strings.Contains(siteName, "aws") || strings.Contains(siteDesc, "amazon")
 	}
-	
+
 	// Kubernetes関連
 	if strings.Contains(queryLower, "kubernetes") || strings.Contains(queryLower, "k8s") {
 		return strings.Contains(siteName, "kubernetes")
 	}
-	
+
 	// 一般的な開発関連クエリ
-	if strings.Contains(queryLower, "api") || strings.Contains(queryLower, "documentation") || 
-	   strings.Contains(queryLower, "tutorial") || strings.Contains(queryLower, "example") {
+	if strings.Contains(queryLower, "api") || strings.Contains(queryLower, "documentation") ||
+		strings.Contains(queryLower, "tutorial") || strings.Contains(queryLower, "example") {
 		return true // ほとんどの技術サイトが該当
 	}
-	
+
 	return false
 }
 
@@ -196,16 +196,16 @@ func (ws *WebSearchTool) isAllowedDomain(siteURL string, allowedDomains, blocked
 	if err != nil {
 		return false
 	}
-	
+
 	domain := u.Hostname()
-	
+
 	// 明示的に禁止されたドメインをチェック
 	for _, blocked := range blockedDomains {
 		if strings.Contains(domain, blocked) {
 			return false
 		}
 	}
-	
+
 	// 許可されたドメインが指定されている場合はそれのみを許可
 	if len(allowedDomains) > 0 {
 		for _, allowed := range allowedDomains {
@@ -215,7 +215,7 @@ func (ws *WebSearchTool) isAllowedDomain(siteURL string, allowedDomains, blocked
 		}
 		return false
 	}
-	
+
 	return true
 }
 
@@ -223,7 +223,7 @@ func (ws *WebSearchTool) isAllowedDomain(siteURL string, allowedDomains, blocked
 func (ws *WebSearchTool) searchWithAPI(query string, maxResults int) ([]SearchResult, error) {
 	// 実際のGoogle Custom Search API, Bing Search API等との統合はここで実装
 	// API キーやエンドポイントの設定が必要
-	
+
 	return nil, fmt.Errorf("外部検索API統合は未実装")
 }
 
@@ -231,33 +231,33 @@ func (ws *WebSearchTool) searchWithAPI(query string, maxResults int) ([]SearchRe
 func (ws *WebSearchTool) fetchFromSite(siteURL, query string) (*SearchResult, error) {
 	// 特定サイトから実際にコンテンツを取得
 	searchURL := fmt.Sprintf("%s/search?q=%s", siteURL, url.QueryEscape(query))
-	
+
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req.Header.Set("User-Agent", "vyb-code/1.0 (Local AI Assistant)")
-	
+
 	resp, err := ws.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
-	
+
 	// レスポンスの解析（実装はサイトごとに異なる）
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 基本的なHTMLからのテキスト抽出（実際にはより高度な解析が必要）
 	content := string(body)
-	
+
 	return &SearchResult{
 		Title:   fmt.Sprintf("検索結果: %s", query),
 		URL:     searchURL,
@@ -270,7 +270,7 @@ func (ws *WebSearchTool) extractSnippet(content, query string) string {
 	// 簡単なスニペット抽出
 	contentLower := strings.ToLower(content)
 	queryLower := strings.ToLower(query)
-	
+
 	index := strings.Index(contentLower, queryLower)
 	if index == -1 {
 		// クエリが見つからない場合は最初の200文字を返す
@@ -279,18 +279,18 @@ func (ws *WebSearchTool) extractSnippet(content, query string) string {
 		}
 		return content
 	}
-	
+
 	// クエリ周辺のテキストを抽出
 	start := index - 50
 	if start < 0 {
 		start = 0
 	}
-	
+
 	end := index + len(query) + 150
 	if end > len(content) {
 		end = len(content)
 	}
-	
+
 	snippet := content[start:end]
 	if start > 0 {
 		snippet = "..." + snippet
@@ -298,6 +298,7 @@ func (ws *WebSearchTool) extractSnippet(content, query string) string {
 	if end < len(content) {
 		snippet = snippet + "..."
 	}
-	
+
 	return snippet
 }
+

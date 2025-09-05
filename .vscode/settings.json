@@ -1,0 +1,53 @@
+{
+  // ファイル保存時の設定
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  
+  // Go言語固有の設定
+  "go.formatTool": "gofmt",
+  "go.useCodeSnippetsOnFunctionSuggest": true,
+  "go.inferGopath": false,
+  "go.gocodeAutoBuild": false,
+  "go.buildOnSave": "off",
+  "go.lintOnSave": "off",
+  "go.vetOnSave": "off",
+  "go.buildTags": "",
+  "go.testFlags": ["-v"],
+  "go.testTimeout": "30s",
+  
+  // エディタ設定
+  "editor.tabSize": 4,
+  "editor.insertSpaces": false,
+  "editor.detectIndentation": false,
+  "editor.rulers": [120],
+  "editor.wordWrap": "off",
+  
+  // 保存時のアクション
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  
+  // ファイルウォッチャー
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/coverage.out": true,
+    "**/vyb": true
+  },
+  
+  // ターミナル設定
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  
+  // Git設定
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+  "git.confirmSync": false
+}

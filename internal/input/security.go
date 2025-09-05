@@ -10,17 +10,17 @@ import (
 
 const (
 	// セキュリティ制限の定数
-	MaxInputLength    = 8192    // 最大入力文字数
-	MaxLineLength     = 1024    // 1行あたりの最大文字数
+	MaxInputLength    = 8192        // 最大入力文字数
+	MaxLineLength     = 1024        // 1行あたりの最大文字数
 	RateLimitPeriod   = time.Second // レート制限期間
-	MaxRequestsPerSec = 100     // 秒あたりの最大リクエスト数
+	MaxRequestsPerSec = 100         // 秒あたりの最大リクエスト数
 )
 
 // 入力セキュリティバリデーター
 type SecurityValidator struct {
-	requestCounts map[string]int       // IPごとのリクエスト数
-	lastReset     time.Time            // 最後のリセット時間
-	bufferLimit   int                  // バッファサイズ制限
+	requestCounts map[string]int // IPごとのリクエスト数
+	lastReset     time.Time      // 最後のリセット時間
+	bufferLimit   int            // バッファサイズ制限
 }
 
 // 新しいセキュリティバリデーターを作成
@@ -72,13 +72,13 @@ func (s *SecurityValidator) SanitizeInput(input string) (string, error) {
 func (s *SecurityValidator) isDangerousControlChar(r rune) bool {
 	// 許可する制御文字
 	allowedControls := map[rune]bool{
-		'\t':  true, // タブ
-		'\n':  true, // 改行
-		'\r':  true, // 復帰
-		'\b':  true, // バックスペース
-		'\f':  true, // フォームフィード
-		'\v':  true, // 垂直タブ
-		'\a':  true, // ベル
+		'\t':   true, // タブ
+		'\n':   true, // 改行
+		'\r':   true, // 復帰
+		'\b':   true, // バックスペース
+		'\f':   true, // フォームフィード
+		'\v':   true, // 垂直タブ
+		'\a':   true, // ベル
 		'\033': true, // エスケープ（後で詳細チェック）
 	}
 
@@ -133,12 +133,12 @@ func (s *SecurityValidator) isAllowedEscapeSequence(input string) bool {
 
 	// 基本的なANSIエスケープシーケンスのみ許可
 	allowedSequences := []string{
-		"\033[A", // 上矢印
-		"\033[B", // 下矢印  
-		"\033[C", // 右矢印
-		"\033[D", // 左矢印
-		"\033[H", // Home
-		"\033[F", // End
+		"\033[A",  // 上矢印
+		"\033[B",  // 下矢印
+		"\033[C",  // 右矢印
+		"\033[D",  // 左矢印
+		"\033[H",  // Home
+		"\033[F",  // End
 		"\033[2J", // 画面クリア
 		"\033[K",  // 行末まで削除
 		"\033[G",  // カーソルを行頭に移動
@@ -175,7 +175,7 @@ func (s *SecurityValidator) isAllowedEscapeSequence(input string) bool {
 // レート制限チェック
 func (s *SecurityValidator) CheckRateLimit(clientID string) error {
 	now := time.Now()
-	
+
 	// 期間リセットのチェック
 	if now.Sub(s.lastReset) >= RateLimitPeriod {
 		s.requestCounts = make(map[string]int)
@@ -245,7 +245,7 @@ func (s *SecurityValidator) ValidateCommand(input string) error {
 	return nil
 }
 
-// パスインジェクション保護  
+// パスインジェクション保護
 func (s *SecurityValidator) ValidatePath(input string) error {
 	// 危険なパスパターンをチェック
 	dangerousPathPatterns := []string{
@@ -309,3 +309,4 @@ func (s *SecurityValidator) UpdateSecuritySettings(bufferLimit int, requestsPerS
 	}
 	// 他の設定も必要に応じて更新可能
 }
+

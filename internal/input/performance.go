@@ -10,11 +10,11 @@ import (
 
 // パフォーマンス最適化システム
 type PerformanceOptimizer struct {
-	workerPool      *WorkerPool
-	debouncer       *Debouncer
-	memoryManager   *MemoryManager
+	workerPool       *WorkerPool
+	debouncer        *Debouncer
+	memoryManager    *MemoryManager
 	metricsCollector *MetricsCollector
-	asyncProcessor  *AsyncProcessor
+	asyncProcessor   *AsyncProcessor
 }
 
 // ワーカープール（並列処理用）
@@ -47,14 +47,14 @@ type Debouncer struct {
 
 // メモリ管理システム
 type MemoryManager struct {
-	mu                 sync.RWMutex
-	maxCacheSize       int64
-	currentCacheSize   int64
-	gcThreshold        float64
-	lastCleanup        time.Time
-	cleanupInterval    time.Duration
-	objectSizes        map[string]int64
-	lruCache          *LRUCache
+	mu               sync.RWMutex
+	maxCacheSize     int64
+	currentCacheSize int64
+	gcThreshold      float64
+	lastCleanup      time.Time
+	cleanupInterval  time.Duration
+	objectSizes      map[string]int64
+	lruCache         *LRUCache
 }
 
 // LRUキャッシュ実装
@@ -76,25 +76,25 @@ type Node struct {
 
 // メトリクス収集システム
 type MetricsCollector struct {
-	mu                sync.RWMutex
-	requestCount      int64
-	averageLatency    time.Duration
-	peakLatency       time.Duration
-	errorCount        int64
-	cacheHitRate      float64
-	totalRequests     int64
-	cacheHits         int64
-	memoryUsage       int64
-	gcCount           int64
-	startTime         time.Time
+	mu             sync.RWMutex
+	requestCount   int64
+	averageLatency time.Duration
+	peakLatency    time.Duration
+	errorCount     int64
+	cacheHitRate   float64
+	totalRequests  int64
+	cacheHits      int64
+	memoryUsage    int64
+	gcCount        int64
+	startTime      time.Time
 }
 
 // 非同期処理システム
 type AsyncProcessor struct {
-	completionJobs chan Job
-	resultCache    map[string]interface{}
-	cacheMu        sync.RWMutex
-	maxCacheAge    time.Duration
+	completionJobs  chan Job
+	resultCache     map[string]interface{}
+	cacheMu         sync.RWMutex
+	maxCacheAge     time.Duration
 	cacheTimestamps map[string]time.Time
 }
 
@@ -112,7 +112,7 @@ func NewPerformanceOptimizer() *PerformanceOptimizer {
 // ワーカープールを作成
 func NewWorkerPool(workers int) *WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &WorkerPool{
 		workers:    workers,
 		jobChannel: make(chan Job, workers*2), // バッファ付き
@@ -125,13 +125,13 @@ func NewWorkerPool(workers int) *WorkerPool {
 func (wp *WorkerPool) Start() {
 	wp.mu.Lock()
 	defer wp.mu.Unlock()
-	
+
 	if wp.started {
 		return
 	}
 
 	wp.started = true
-	
+
 	// ワーカーゴルーチンを起動
 	for i := 0; i < wp.workers; i++ {
 		wp.wg.Add(1)
@@ -143,7 +143,7 @@ func (wp *WorkerPool) Start() {
 func (wp *WorkerPool) Stop() {
 	wp.mu.Lock()
 	defer wp.mu.Unlock()
-	
+
 	if !wp.started {
 		return
 	}
@@ -158,7 +158,7 @@ func (wp *WorkerPool) Stop() {
 func (wp *WorkerPool) Submit(job Job) error {
 	wp.mu.RLock()
 	defer wp.mu.RUnlock()
-	
+
 	if !wp.started {
 		return fmt.Errorf("worker pool not started")
 	}
@@ -176,27 +176,27 @@ func (wp *WorkerPool) Submit(job Job) error {
 // ワーカーのメイン処理
 func (wp *WorkerPool) worker(_ int) {
 	defer wp.wg.Done()
-	
+
 	for {
 		select {
 		case job, ok := <-wp.jobChannel:
 			if !ok {
 				return
 			}
-			
+
 			// ジョブを実行
 			start := time.Now()
 			result := job.Task()
 			elapsed := time.Since(start)
-			
+
 			// メトリクス記録（簡易実装）
 			_ = elapsed
-			
+
 			// コールバック実行
 			if job.Callback != nil {
 				job.Callback(result)
 			}
-			
+
 		case <-wp.ctx.Done():
 			return
 		}
@@ -216,13 +216,13 @@ func NewDebouncer(delay, maxDelay time.Duration) *Debouncer {
 func (d *Debouncer) Debounce(key string, fn func()) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	// 既存のタイマーがあればキャンセル
 	if timer, exists := d.timers[key]; exists {
 		timer.Stop()
 		delete(d.timers, key)
 	}
-	
+
 	// 新しいタイマーを設定
 	d.timers[key] = time.AfterFunc(d.delay, func() {
 		d.mu.Lock()
@@ -236,7 +236,7 @@ func (d *Debouncer) Debounce(key string, fn func()) {
 func (d *Debouncer) Flush(key string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	if timer, exists := d.timers[key]; exists {
 		timer.Stop()
 		delete(d.timers, key)
@@ -260,7 +260,7 @@ func (mm *MemoryManager) CheckMemoryUsage() {
 	mm.mu.RLock()
 	usage := float64(mm.currentCacheSize) / float64(mm.maxCacheSize)
 	mm.mu.RUnlock()
-	
+
 	if usage > mm.gcThreshold {
 		mm.performCleanup()
 	}
@@ -270,10 +270,10 @@ func (mm *MemoryManager) CheckMemoryUsage() {
 func (mm *MemoryManager) performCleanup() {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	
+
 	// LRUキャッシュから古いエントリを削除
 	removed := mm.lruCache.removeOldest(int(float64(mm.lruCache.capacity) * 0.3))
-	
+
 	// 削除されたエントリのサイズを減算
 	for _, key := range removed {
 		if size, exists := mm.objectSizes[key]; exists {
@@ -281,7 +281,7 @@ func (mm *MemoryManager) performCleanup() {
 			delete(mm.objectSizes, key)
 		}
 	}
-	
+
 	mm.lastCleanup = time.Now()
 	runtime.GC() // ガベージコレクション実行
 }
@@ -290,7 +290,7 @@ func (mm *MemoryManager) performCleanup() {
 func (mm *MemoryManager) RegisterObject(key string, size int64) {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	
+
 	mm.objectSizes[key] = size
 	mm.currentCacheSize += size
 }
@@ -299,7 +299,7 @@ func (mm *MemoryManager) RegisterObject(key string, size int64) {
 func (mm *MemoryManager) UnregisterObject(key string) {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	
+
 	if size, exists := mm.objectSizes[key]; exists {
 		mm.currentCacheSize -= size
 		delete(mm.objectSizes, key)
@@ -312,13 +312,13 @@ func NewLRUCache(capacity int) *LRUCache {
 		capacity: capacity,
 		cache:    make(map[string]*Node),
 	}
-	
+
 	// ダミーのヘッドとテール
 	cache.head = &Node{}
 	cache.tail = &Node{}
 	cache.head.next = cache.tail
 	cache.tail.prev = cache.head
-	
+
 	return cache
 }
 
@@ -327,16 +327,16 @@ func (lru *LRUCache) Get(key string) (interface{}, bool) {
 	lru.mu.RLock()
 	node, exists := lru.cache[key]
 	lru.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, false
 	}
-	
+
 	// アクセスされたノードを先頭に移動
 	lru.mu.Lock()
 	lru.moveToHead(node)
 	lru.mu.Unlock()
-	
+
 	return node.value, true
 }
 
@@ -344,23 +344,23 @@ func (lru *LRUCache) Get(key string) (interface{}, bool) {
 func (lru *LRUCache) Put(key string, value interface{}) {
 	lru.mu.Lock()
 	defer lru.mu.Unlock()
-	
+
 	if node, exists := lru.cache[key]; exists {
 		// 既存のエントリを更新
 		node.value = value
 		lru.moveToHead(node)
 		return
 	}
-	
+
 	// 新しいエントリを追加
 	newNode := &Node{
 		key:   key,
 		value: value,
 	}
-	
+
 	lru.cache[key] = newNode
 	lru.addToHead(newNode)
-	
+
 	// 容量超過チェック
 	if len(lru.cache) > lru.capacity {
 		tail := lru.removeTail()
@@ -398,13 +398,13 @@ func (lru *LRUCache) removeTail() *Node {
 // 古いエントリを削除（指定数）
 func (lru *LRUCache) removeOldest(count int) []string {
 	var removed []string
-	
+
 	for i := 0; i < count && len(lru.cache) > 0; i++ {
 		tail := lru.removeTail()
 		delete(lru.cache, tail.key)
 		removed = append(removed, tail.key)
 	}
-	
+
 	return removed
 }
 
@@ -419,26 +419,26 @@ func NewMetricsCollector() *MetricsCollector {
 func (mc *MetricsCollector) RecordRequest(latency time.Duration, isError bool) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	mc.requestCount++
 	mc.totalRequests++
-	
+
 	if isError {
 		mc.errorCount++
 	}
-	
+
 	// 平均レイテンシ更新（移動平均）
 	if mc.averageLatency == 0 {
 		mc.averageLatency = latency
 	} else {
 		mc.averageLatency = (mc.averageLatency*9 + latency) / 10
 	}
-	
+
 	// ピークレイテンシ更新
 	if latency > mc.peakLatency {
 		mc.peakLatency = latency
 	}
-	
+
 	// キャッシュヒット率を再計算
 	if mc.totalRequests > 0 {
 		mc.cacheHitRate = float64(mc.cacheHits) / float64(mc.totalRequests)
@@ -449,7 +449,7 @@ func (mc *MetricsCollector) RecordRequest(latency time.Duration, isError bool) {
 func (mc *MetricsCollector) RecordCacheHit() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	mc.cacheHits++
 	mc.totalRequests++ // キャッシュヒットもリクエストとしてカウント
 	mc.cacheHitRate = float64(mc.cacheHits) / float64(mc.totalRequests)
@@ -459,7 +459,7 @@ func (mc *MetricsCollector) RecordCacheHit() {
 func (mc *MetricsCollector) RecordMemoryUsage(usage int64) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	mc.memoryUsage = usage
 }
 
@@ -467,9 +467,9 @@ func (mc *MetricsCollector) RecordMemoryUsage(usage int64) {
 func (mc *MetricsCollector) GetMetrics() map[string]interface{} {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
-	
+
 	uptime := time.Since(mc.startTime)
-	
+
 	return map[string]interface{}{
 		"requests_total":      mc.requestCount,
 		"errors_total":        mc.errorCount,
@@ -496,12 +496,12 @@ func NewAsyncProcessor() *AsyncProcessor {
 func (ap *AsyncProcessor) StartAsync(key string, task func() interface{}) {
 	go func() {
 		result := task()
-		
+
 		ap.cacheMu.Lock()
 		ap.resultCache[key] = result
 		ap.cacheTimestamps[key] = time.Now()
 		ap.cacheMu.Unlock()
-		
+
 		// 古いキャッシュエントリを削除
 		ap.cleanupCache()
 	}()
@@ -511,19 +511,19 @@ func (ap *AsyncProcessor) StartAsync(key string, task func() interface{}) {
 func (ap *AsyncProcessor) GetResult(key string) (interface{}, bool) {
 	ap.cacheMu.RLock()
 	defer ap.cacheMu.RUnlock()
-	
+
 	result, exists := ap.resultCache[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// 有効期限チェック
 	if timestamp, ok := ap.cacheTimestamps[key]; ok {
 		if time.Since(timestamp) > ap.maxCacheAge {
 			return nil, false
 		}
 	}
-	
+
 	return result, true
 }
 
@@ -531,7 +531,7 @@ func (ap *AsyncProcessor) GetResult(key string) (interface{}, bool) {
 func (ap *AsyncProcessor) cleanupCache() {
 	ap.cacheMu.Lock()
 	defer ap.cacheMu.Unlock()
-	
+
 	now := time.Now()
 	for key, timestamp := range ap.cacheTimestamps {
 		if now.Sub(timestamp) > ap.maxCacheAge {
@@ -559,7 +559,7 @@ func (po *PerformanceOptimizer) OptimizedCompletion(input string, completer *Adv
 
 	// デバウンス処理で連続入力を制御
 	resultChan := make(chan []CompletionCandidate, 1)
-	
+
 	po.debouncer.Debounce("completion", func() {
 		// ワーカープールで並列実行
 		job := Job{
@@ -573,7 +573,7 @@ func (po *PerformanceOptimizer) OptimizedCompletion(input string, completer *Adv
 					po.asyncProcessor.StartAsync("completion:"+input, func() interface{} {
 						return candidates
 					})
-					
+
 					select {
 					case resultChan <- candidates:
 					default:
@@ -581,7 +581,7 @@ func (po *PerformanceOptimizer) OptimizedCompletion(input string, completer *Adv
 				}
 			},
 		}
-		
+
 		// ワーカープールが開始されていない場合は直接実行
 		if err := po.workerPool.Submit(job); err != nil {
 			candidates := completer.GetAdvancedSuggestions(input)
@@ -605,12 +605,12 @@ func (po *PerformanceOptimizer) OptimizedCompletion(input string, completer *Adv
 // パフォーマンスオプティマイザーを開始
 func (po *PerformanceOptimizer) Start() {
 	po.workerPool.Start()
-	
+
 	// 定期的なメモリクリーンアップ
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
-		
+
 		for range ticker.C {
 			po.memoryManager.CheckMemoryUsage()
 		}
@@ -621,3 +621,4 @@ func (po *PerformanceOptimizer) Start() {
 func (po *PerformanceOptimizer) Stop() {
 	po.workerPool.Stop()
 }
+

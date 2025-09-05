@@ -6,23 +6,30 @@
 
 ## 特徴
 
-- **🎯 Claude Code風ターミナルモード**: **デフォルト体験** - Claude Code相当のインターフェース
-- **🌈 カラー対応UI**: 緑色プロンプト、青色ロゴ、カラフルなコードハイライト
-- **📝 Markdown対応**: コードブロック枠線、シンタックスハイライト、太字表示
-- **🏗️ 自動プロジェクト認識**: 言語・依存関係・Git情報の自動コンテキスト追加
-- **📊 リアルタイムメタ情報**: 応答時間、トークン数、モデル名の表示
-- **🇯🇵 日本語IME完全対応**: 日本語入力時の文字消失問題を解決
-- **🎨 モダンTUI**: Bubble Teaフレームワークによる美しいターミナルUI体験
-- **⚡ 便利ショートカット**: `vyb s`（git status）、`vyb build`、`vyb test`等
-- **プライバシー重視**: 全ての処理がローカルで実行 - 外部にデータを送信しません
-- **対話型CLI**: 自然な会話形式でのコーディング支援
+### 🎯 Claude Code風体験（デフォルト）
+
+- **ターミナルモード**: Claude Code相当のインターフェース
+- **カラー対応UI**: 緑色プロンプト、青色ロゴ、コードハイライト  
+- **Markdown対応**: コードブロック枠線、シンタックスハイライト
+- **日本語IME完全対応**: 文字消失問題を解決済み
+
+### 🔒 高度な入力システム
+
+- **セキュリティ強化**: 入力サニタイゼーション、レート制限、バッファ保護
+- **インテリジェント補完**: Git認識、コンテキスト補完、ファジーマッチング
+- **パフォーマンス最適化**: 非同期処理、キャッシュ、デバウンス制御
+
+### ⚡ スマート機能
+
+- **自動プロジェクト認識**: 言語・依存関係・Git情報の自動コンテキスト追加
+- **便利ショートカット**: `vyb s`（git status）、`vyb build`、`vyb test`等
+- **リアルタイムメタ情報**: 応答時間、トークン数、モデル名表示
+
+### 🛡️ セキュリティ・プライバシー
+
+- **プライバシー重視**: 全ての処理がローカルで実行 - 外部送信なし
 - **セキュアなコマンド実行**: ホワイトリスト制御と30秒タイムアウト
 - **包括的Git統合**: ブランチ管理、コミット作成、状態確認
-- **プロジェクト分析**: ファイル構造、言語分布、依存関係の自動解析
-- **ファイル操作**: セキュアなファイル読み取り、書き込み、検索機能
-- **多言語サポート**: Go、JavaScript/Node.js、Python対応基盤
-- **設定管理**: 永続化された設定でモデルとプロバイダーを管理
-- **Ollama統合**: HTTP API経由でのローカルLLM連携
 
 ## インストール
 
@@ -58,12 +65,22 @@ make build
 
 ### 前提条件
 
-1. Ollamaをインストールして起動
-2. コーディング用モデルをダウンロード
+1. **[Ollama](https://ollama.ai/)**をインストールして起動
+   - ローカルLLM実行プラットフォーム
+   - [インストールガイド](https://ollama.ai/download) | [GitHub](https://github.com/ollama/ollama)
+
+2. **コーディング用モデル**をダウンロード
+   - [Qwen2.5-Coder](https://ollama.ai/library/qwen2.5-coder) - 推奨モデル
+   - [CodeLlama](https://ollama.ai/library/codellama) - 安定性重視
+   - [DeepSeek-Coder](https://ollama.ai/library/deepseek-coder) - バランス型
 
 ```bash
 # Ollamaでモデルをダウンロード（例）
 ollama pull qwen2.5-coder:14b
+
+# その他の推奨モデル
+ollama pull codellama:34b
+ollama pull deepseek-coder:16b
 ```
 
 ### 基本的な使用方法
@@ -131,9 +148,11 @@ vyb mcp disconnect filesystem
 
 ## 推奨モデル
 
-1. **Qwen2.5-Coder 14B/32B** - コーディングタスクで最高性能
-2. **DeepSeek-Coder-V2 16B** - 性能とリソース使用量のバランス型
-3. **CodeLlama 34B** - 安定性重視
+| モデル | サイズ | 特徴 | リンク |
+|--------|--------|------|--------|
+| **Qwen2.5-Coder** | 14B/32B | コーディングタスクで最高性能 | [Ollama](https://ollama.ai/library/qwen2.5-coder) \| [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct) |
+| **DeepSeek-Coder-V2** | 16B | 性能とリソース使用量のバランス型 | [Ollama](https://ollama.ai/library/deepseek-coder) \| [GitHub](https://github.com/deepseek-ai/DeepSeek-Coder) |
+| **CodeLlama** | 34B | 安定性重視、Meta開発 | [Ollama](https://ollama.ai/library/codellama) \| [Meta AI](https://ai.meta.com/blog/code-llama-large-language-model-coding/) |
 
 ## 動作要件
 
@@ -144,20 +163,22 @@ vyb mcp disconnect filesystem
 
 ### 🚀 GPU加速化セットアップ
 
-GPU加速により **78%のパフォーマンス向上** を実現できます（qwen2.5-coder:14b で 13.4秒 → 3.2秒）。
+GPU加速を使用することでLLM推論の大幅な高速化が期待できます。
 
 ```bash
-# クイックセットアップ
-docker run -d --name ollama-vyb-gpu --gpus all -p 11434:11434 -v ollama-vyb:/root/.ollama ollama/ollama
-./vyb config set-model qwen2.5-coder:14b
+# GPU対応のOllama実行（NVIDIA GPU + CUDA環境）
+docker run -d --name ollama-gpu --gpus all -p 11434:11434 -v ollama-data:/root/.ollama ollama/ollama
+
+# モデル設定
+vyb config set-model qwen2.5-coder:14b
 ```
 
-詳細な設定手順: [GPU Setup Guide](docs/gpu-setup.md)  
-パフォーマンス詳細: [Performance Benchmarks](docs/performance-benchmarks.md)
+**GPU要件**: NVIDIA GPU 8GB+ VRAM、CUDA 11.8+
+**詳細**: [Ollama GPU Guide](https://github.com/ollama/ollama?tab=readme-ov-file#nvidia-gpu)
 
 ## プロジェクトステータス
 
-✅ **Phase 4完成** - Claude Code機能パリティ達成
+✅ **Phase 5完成** - 高度な入力システム実装完了
 
 ### Phase 1: MVP機能（完成）
 
@@ -192,16 +213,33 @@ docker run -d --name ollama-vyb-gpu --gpus all -p 11434:11434 -v ollama-vyb:/roo
 - ✅ **モダンTUI統合**（Bubble Teaフレームワーク、テーマシステム）
 - ✅ **Claude Code風ターミナルモード**（カラー対応、Markdown表示、自動コンテキスト）
 
-### 最新アップデート（v1.4.0+）
+### Phase 5: 高度な入力システム（完成）
 
-- ✅ **Claude Code相当体験**: `--terminal-mode`で本家同等のインターフェース
-- ✅ **日本語IME完全対応**: 日本語入力時の問題解決
-- ✅ **カラー対応UI**: ANSIカラーコードによる美しい表示
-- ✅ **Markdown・シンタックスハイライト**: コードブロック枠線、言語別ハイライト
-- ✅ **自動プロジェクトコンテキスト**: 言語・依存関係・Git情報の自動追加
-- ✅ **便利ショートカット**: `vyb s`、`vyb build`、`vyb test`等
+- ✅ **セキュリティ強化**（入力サニタイゼーション、バッファオーバーフロー保護、レート制限）
+- ✅ **高度なオートコンプリート**（コンテキスト認識、Git統合、ファジーマッチング）
+- ✅ **パフォーマンス最適化**（ワーカープール、LRUキャッシュ、非同期処理、デバウンス処理）
+- ✅ **UTF-8完全対応**（日本語IME、マルチバイト文字処理、文字エンコーディング検証）
+- ✅ **インテリジェント入力処理**（プロジェクト解析、コマンド予測、履歴最適化）
 
-## 新機能詳細（Phase 4）
+### 最新アップデート（Phase 5強化）
+
+- ✅ **高度な入力システム**: セキュリティ、パフォーマンス、補完機能を統合強化
+- ✅ **セキュリティ強化**: 入力サニタイゼーション、レート制限、バッファオーバーフロー保護
+- ✅ **インテリジェント補完**: Git認識、プロジェクト解析、ファジーマッチング
+- ✅ **パフォーマンス最適化**: ワーカープール、LRUキャッシュ、非同期処理
+- ✅ **UTF-8完全対応**: 日本語IME、マルチバイト文字処理の完全サポート
+- ✅ **統合アーキテクチャ**: `internal/input/`パッケージによる機能統合
+
+## 新機能詳細（Phase 4-5）
+
+### 🔒 高度な入力システム (`internal/input/`)
+
+Phase 5で実装された包括的な入力処理システム：
+
+- **セキュリティ強化**: 入力サニタイゼーション、バッファオーバーフロー保護、レート制限
+- **パフォーマンス最適化**: ワーカープール、LRUキャッシュ、非同期処理、デバウンス制御
+- **インテリジェント補完**: Git認識、プロジェクト解析、ファジーマッチング
+- **UTF-8完全対応**: 日本語IME、マルチバイト文字処理、文字エンコーディング検証
 
 ### 🎨 モダンTUI (`internal/ui/`)
 

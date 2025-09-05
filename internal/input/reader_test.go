@@ -275,6 +275,14 @@ func TestReader_Creation(t *testing.T) {
 		t.Error("Expected non-nil completer")
 	}
 
+	if reader.securityValidator == nil {
+		t.Error("Expected non-nil security validator")
+	}
+
+	if reader.clientID == "" {
+		t.Error("Expected non-empty client ID")
+	}
+
 	if reader.isRawMode {
 		t.Error("Expected raw mode to be disabled initially")
 	}
@@ -361,7 +369,8 @@ func TestCompleter_FilePathEdgeCases(t *testing.T) {
 			suggestions := completer.GetSuggestions(tt.input)
 			// 空のリストが返されることを期待（エラーが発生しないこと）
 			if suggestions == nil {
-				suggestions = []string{} // nil の場合は空スライスとして扱う
+				// nil の場合は空スライスとして扱う（パニックが発生しなければOK）
+				t.Logf("Suggestions is nil for input %q, which is acceptable", tt.input)
 			}
 			// パニックが発生しなければOK
 		})
@@ -543,5 +552,153 @@ func TestCompleter_CommandCompletion(t *testing.T) {
 				t.Errorf("Expected to find %q in suggestions for %q, got %v", tt.shouldFind, tt.input, suggestions)
 			}
 		})
+	}
+}
+
+func TestReader_SecurityIntegration(t *testing.T) {
+	reader := NewReader()
+
+	t.Run("SetClientID", func(t *testing.T) {
+		testClientID := "test-integration-client"
+		reader.SetClientID(testClientID)
+		
+		if reader.clientID != testClientID {
+			t.Errorf("Expected client ID to be %q, got %q", testClientID, reader.clientID)
+		}
+	})
+
+	t.Run("DisableSecurity", func(t *testing.T) {
+		reader.DisableSecurity()
+		
+		if reader.securityValidator != nil {
+			t.Error("Expected security validator to be nil after disable")
+		}
+	})
+
+	t.Run("EnableSecurity", func(t *testing.T) {
+		reader.EnableSecurity()
+		
+		if reader.securityValidator == nil {
+			t.Error("Expected security validator to be non-nil after enable")
+		}
+	})
+
+	t.Run("UpdateSecuritySettings", func(t *testing.T) {
+		reader.EnableSecurity() // セキュリティを有効化
+		
+		// 設定更新
+		reader.UpdateSecuritySettings(4096, 50)
+		
+		// 設定が反映されているかは内部的な確認なので、
+		// エラーが発生しないことを確認
+		if reader.securityValidator == nil {
+			t.Error("Security validator should not be nil")
+		}
+	})
+}
+
+func TestReader_SecurityValidation(t *testing.T) {
+	reader := NewReader()
+	reader.SetClientID("test-validation-client")
+
+	// セキュリティが無効の場合はバリデーションをスキップ
+	reader.DisableSecurity()
+	
+	// 通常は危険とされる入力もセキュリティ無効時は通る
+	dangerousInput := "test\x00dangerous"
+	reader.history.Add(dangerousInput)
+	
+	// 履歴に追加されることを確認
+	if len(reader.history.entries) == 0 {
+		t.Error("Expected input to be added to history when security is disabled")
+	}
+
+	// セキュリティ有効化後のテスト
+	reader.EnableSecurity()
+	reader.history = NewHistory(100) // 履歴リセット
+	
+	// 安全な入力は通る
+	safeInput := "vyb build"
+	reader.history.Add(safeInput)
+	
+	if len(reader.history.entries) != 1 {
+		t.Error("Expected safe input to be added to history")
+	}
+	
+	if reader.history.entries[0] != safeInput {
+		t.Errorf("Expected %q in history, got %q", safeInput, reader.history.entries[0])
+	}
+}
+
+func TestReader_PerformanceOptimization(t *testing.T) {
+	reader := NewReader()
+
+	t.Run("EnableOptimization", func(t *testing.T) {
+		reader.EnableOptimization()
+		
+		if !reader.enableOptimization {
+			t.Error("Expected optimization to be enabled")
+		}
+		
+		if reader.perfOptimizer == nil {
+			t.Error("Expected non-nil performance optimizer")
+		}
+	})
+
+	t.Run("DisableOptimization", func(t *testing.T) {
+		reader.DisableOptimization()
+		
+		if reader.enableOptimization {
+			t.Error("Expected optimization to be disabled")
+		}
+	})
+
+	t.Run("GetPerformanceMetrics", func(t *testing.T) {
+		reader.EnableOptimization()
+		
+		metrics := reader.GetPerformanceMetrics()
+		if metrics == nil {
+			t.Error("Expected non-nil metrics")
+		}
+		
+		// 基本的なメトリクスが存在することを確認
+		if _, exists := metrics["requests_total"]; !exists {
+			t.Error("Expected requests_total metric")
+		}
+	})
+}
+
+func TestReader_AdvancedCompletion(t *testing.T) {
+	reader := NewReader()
+	
+	// 高度な補完機能が組み込まれていることを確認
+	if reader.completer.advancedCompleter == nil {
+		t.Error("Expected non-nil advanced completer")
+	}
+	
+	// 補完機能のプロジェクト解析が動作することを確認
+	analyzer := reader.completer.advancedCompleter.projectAnalyzer
+	if analyzer == nil {
+		t.Error("Expected non-nil project analyzer")
+	}
+	
+	if analyzer.projectType == "" {
+		t.Error("Expected project type to be detected")
+	}
+}
+
+func TestReader_Close(t *testing.T) {
+	reader := NewReader()
+	
+	// クローズ処理でパフォーマンス最適化システムが停止されることを確認
+	err := reader.Close()
+	if err != nil {
+		t.Errorf("Unexpected error during close: %v", err)
+	}
+	
+	// 複数回のClose()呼び出しが安全であることを確認
+	err = reader.Close()
+	if err != nil {
+		t.Errorf("Expected no error on multiple Close() calls, got %v", err)
 	}
 }

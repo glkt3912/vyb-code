@@ -10,13 +10,13 @@ import (
 var (
 	// Version はアプリケーションのバージョン
 	Version = "dev"
-	
+
 	// BuildTime はビルド時刻
 	BuildTime = "unknown"
-	
+
 	// GitCommit はGitコミットハッシュ
 	GitCommit = "unknown"
-	
+
 	// GitBranch はGitブランチ名
 	GitBranch = "unknown"
 )
@@ -43,11 +43,11 @@ func Get() *Info {
 		GitCommit: GitCommit,
 		GitBranch: GitBranch,
 	}
-	
+
 	// ランタイム情報を取得
 	if buildInfo, ok := debug.ReadBuildInfo(); ok {
 		info.GoVersion = buildInfo.GoVersion
-		
+
 		// ビルド設定から詳細情報を取得
 		for _, setting := range buildInfo.Settings {
 			switch setting.Key {
@@ -76,7 +76,7 @@ func Get() *Info {
 			}
 		}
 	}
-	
+
 	return info
 }
 
@@ -88,41 +88,41 @@ func (i *Info) String() string {
 // Detailed は詳細なバージョン情報の文字列表現を返す
 func (i *Info) Detailed() string {
 	var parts []string
-	
+
 	parts = append(parts, fmt.Sprintf("Version: %s", i.Version))
-	
+
 	if i.BuildTime != "unknown" {
 		parts = append(parts, fmt.Sprintf("Build Time: %s", i.BuildTime))
 	}
-	
+
 	if i.GitCommit != "unknown" {
 		parts = append(parts, fmt.Sprintf("Git Commit: %s", i.GitCommit))
 	} else if i.VCSRevision != "" {
 		parts = append(parts, fmt.Sprintf("VCS Revision: %s", i.VCSRevision))
 	}
-	
+
 	if i.GitBranch != "unknown" {
 		parts = append(parts, fmt.Sprintf("Git Branch: %s", i.GitBranch))
 	}
-	
+
 	if i.VCSTime != "" {
 		parts = append(parts, fmt.Sprintf("VCS Time: %s", i.VCSTime))
 	}
-	
+
 	if i.VCSModified {
 		parts = append(parts, "VCS Modified: true")
 	}
-	
+
 	parts = append(parts, fmt.Sprintf("Go Version: %s", i.GoVersion))
-	
+
 	if i.Compiler != "" {
 		parts = append(parts, fmt.Sprintf("Compiler: %s", i.Compiler))
 	}
-	
+
 	if i.Platform != "" && i.Platform != "/" {
 		parts = append(parts, fmt.Sprintf("Platform: %s", i.Platform))
 	}
-	
+
 	return strings.Join(parts, "\n")
 }
 

@@ -30,50 +30,65 @@ jobs:
         echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
         echo "Latest git tag: $LATEST_TAG"
     
-    - name: Extract version from main.go
-      id: code-version
+    - name: Check version setup
+      id: version-setup
       run: |
-        CODE_VERSION=$(grep 'Version:' cmd/vyb/main.go | cut -d'"' -f2)
-        echo "version=$CODE_VERSION" >> $GITHUB_OUTPUT
-        echo "Code version in main.go: $CODE_VERSION"
-    
-    - name: Extract version from MCP client
-      id: mcp-version
-      run: |
-        MCP_VERSION=$(grep 'Version:' internal/mcp/client.go | cut -d'"' -f2)
-        echo "version=$MCP_VERSION" >> $GITHUB_OUTPUT
-        echo "MCP client version: $MCP_VERSION"
+        echo "ℹ️ Version is now managed dynamically via internal/version package"
+        echo "main.go uses: version.GetVersion()"
+        echo "MCP client uses: version.GetMCPVersion()"
+        echo "Actual version is injected at build time via ldflags"
+        echo "setup=dynamic" >> $GITHUB_OUTPUT
     
     - name: Check version consistency
       run: |
         GIT_TAG="${{ steps.git-tag.outputs.tag }}"
-        CODE_VERSION="${{ steps.code-version.outputs.version }}"
-        MCP_VERSION="${{ steps.mcp-version.outputs.version }}"
+        SETUP="${{ steps.version-setup.outputs.setup }}"
         
-        echo "🔍 Version Consistency Check"
+        echo "🔍 Version Management Validation"
         echo "Git tag: $GIT_TAG"
-        echo "main.go: $CODE_VERSION" 
-        echo "MCP client: $MCP_VERSION"
+        echo "Version setup: $SETUP"
         echo
         
-        # バージョンの一貫性チェック
-        if [ "$CODE_VERSION" != "$GIT_TAG" ]; then
-          echo "❌ Version mismatch: main.go ($CODE_VERSION) != git tag ($GIT_TAG)"
+        # 動的バージョン管理システムの検証
+        if [ "$SETUP" = "dynamic" ]; then
+          echo "✅ Using dynamic version management system"
+          
+          # バージョンパッケージの存在確認
+          if [ ! -f "internal/version/version.go" ]; then
+            echo "❌ Version package not found"
+            exit 1
+          fi
+          
+          # main.goで適切な関数を使用していることを確認
+          if ! grep -q "version.GetVersion()" cmd/vyb/main.go; then
+            echo "❌ main.go not using version.GetVersion()"
+            exit 1
+          fi
+          
+          # MCPクライアントで適切な関数を使用していることを確認
+          if ! grep -q "version.GetMCPVersion()" internal/mcp/client.go; then
+            echo "❌ MCP client not using version.GetMCPVersion()"
+            exit 1
+          fi
+          
+          # ビルドスクリプトでldflags設定を確認
+          if ! grep -q "internal/version.Version" scripts/build.sh; then
+            echo "❌ Build script not configured for version injection"
+            exit 1
+          fi
+          
+          echo "✅ All version management components are properly configured"
+        else
+          echo "❌ Unexpected version setup: $SETUP"
           exit 1
         fi
-        
-        if [ "$MCP_VERSION" != "${GIT_TAG#v}" ]; then
-          echo "❌ Version mismatch: MCP client ($MCP_VERSION) != git tag (${GIT_TAG#v})"
-          exit 1
-        fi
-        
-        echo "✅ All versions are consistent"
     
-    - name: Version update recommendation
+    - name: Version management troubleshooting
       if: failure()
       run: |
-        echo "💡 To fix version inconsistencies:"
-        echo "1. Update cmd/vyb/main.go Version field"
-        echo "2. Update internal/mcp/client.go Version field"
-        echo "3. Update corresponding test expectations"
-        echo "4. Or consider implementing automatic version injection"
+        echo "💡 Dynamic Version Management Troubleshooting:"
+        echo "1. Ensure internal/version/version.go exists with proper structure"
+        echo "2. Verify main.go uses version.GetVersion()"
+        echo "3. Verify MCP client uses version.GetMCPVersion()" 
+        echo "4. Check scripts/build.sh has correct ldflags configuration"
+        echo "5. Version is injected at build time, not hardcoded"

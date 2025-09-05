@@ -621,4 +621,3 @@ func (po *PerformanceOptimizer) Start() {
 func (po *PerformanceOptimizer) Stop() {
 	po.workerPool.Stop()
 }
-

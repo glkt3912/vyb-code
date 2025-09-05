@@ -905,4 +905,3 @@ func (ac *AdvancedCompleter) filterFileCandidates(cached []CompletionCandidate, 
 
 	return filtered
 }
-

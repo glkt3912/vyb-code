@@ -157,21 +157,21 @@ func TestLoggerLevels(t *testing.T) {
 	logger.outputs = []io.Writer{&buffer}
 
 	// デバッグとインフォは出力されない
-	logger.Debug("デバッグメッセージ")
-	logger.Info("インフォメッセージ")
+	logger.Debug("デバッグメッセージ", nil)
+	logger.Info("インフォメッセージ", nil)
 
 	if buffer.Len() > 0 {
 		t.Error("WARNレベル以下のメッセージが出力されました")
 	}
 
 	// ワーニングとエラーは出力される
-	logger.Warn("ワーニングメッセージ")
+	logger.Warn("ワーニングメッセージ", nil)
 	if buffer.Len() == 0 {
 		t.Error("WARNメッセージが出力されませんでした")
 	}
 
 	buffer.Reset()
-	logger.Error("エラーメッセージ")
+	logger.Error("エラーメッセージ", nil)
 	if buffer.Len() == 0 {
 		t.Error("ERRORメッセージが出力されませんでした")
 	}
@@ -188,7 +188,7 @@ func TestWithContext(t *testing.T) {
 	// コンテキスト付きロガーを作成
 	contextLogger := logger.WithContext("request_id", "12345")
 
-	contextLogger.Info("テストメッセージ")
+	contextLogger.Info("テストメッセージ", nil)
 
 	output := buffer.String()
 	if !strings.Contains(output, "request_id=12345") {
@@ -197,7 +197,7 @@ func TestWithContext(t *testing.T) {
 
 	// 元のロガーにはコンテキストが残らない
 	buffer.Reset()
-	logger.Info("元のロガー")
+	logger.Info("元のロガー", nil)
 
 	output = buffer.String()
 	if strings.Contains(output, "request_id=12345") {
@@ -220,7 +220,7 @@ func TestWithFields(t *testing.T) {
 	}
 	fieldLogger := logger.WithFields(fields)
 
-	fieldLogger.Info("テストメッセージ")
+	fieldLogger.Info("テストメッセージ", nil)
 
 	output := buffer.String()
 	if !strings.Contains(output, "user_id=user123") {
@@ -272,7 +272,7 @@ func TestFileOutput(t *testing.T) {
 	}
 
 	// ログを出力
-	logger.Info("ファイルテストメッセージ")
+	logger.Info("ファイルテストメッセージ", nil)
 
 	// ファイルが作成されたことを確認
 	if _, err := os.Stat(logFile); os.IsNotExist(err) {
@@ -329,7 +329,7 @@ func TestVybLoggerTestMode(t *testing.T) {
 	logger.SetTestMode(true)
 
 	// Fatalログを出力（os.Exitが呼ばれないことを確認）
-	logger.Fatal("テストFatalメッセージ")
+	logger.Fatal("テストFatalメッセージ", nil)
 
 	// バッファにFatalメッセージが出力されていることを確認
 	output := buffer.String()
@@ -363,7 +363,7 @@ func TestVybLoggerCustomExitHandler(t *testing.T) {
 	})
 
 	// Fatalログを出力
-	logger.Fatal("カスタムハンドラーテスト")
+	logger.Fatal("カスタムハンドラーテスト", nil)
 
 	// カスタムハンドラーが呼ばれたことを確認
 	if !exitCalled {
@@ -395,7 +395,7 @@ func TestVybLoggerFatalCallback(t *testing.T) {
 	})
 
 	// Fatalログを出力
-	logger.Fatal("コールバックテスト")
+	logger.Fatal("コールバックテスト", nil)
 
 	// コールバックが呼ばれたことを確認
 	if !callbackCalled {

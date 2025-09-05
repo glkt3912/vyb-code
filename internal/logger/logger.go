@@ -70,6 +70,15 @@ type Formatter interface {
 	Format(entry Entry) ([]byte, error)
 }
 
+// Logger インターフェース
+type Logger interface {
+	Debug(msg string, fields map[string]interface{})
+	Info(msg string, fields map[string]interface{})
+	Warn(msg string, fields map[string]interface{})
+	Error(msg string, fields map[string]interface{})
+	Fatal(msg string, fields map[string]interface{})
+}
+
 // コンソールフォーマッター（人間が読みやすい形式）
 type ConsoleFormatter struct {
 	ShowCaller    bool
@@ -360,24 +369,24 @@ func (l *VybLogger) log(level Level, msg string, args ...interface{}) {
 	}
 }
 
-// ログメソッド実装
-func (l *VybLogger) Debug(msg string, args ...interface{}) {
+// ログメソッド実装（従来の可変引数版）
+func (l *VybLogger) DebugArgs(msg string, args ...interface{}) {
 	l.log(DebugLevel, msg, args...)
 }
 
-func (l *VybLogger) Info(msg string, args ...interface{}) {
+func (l *VybLogger) InfoArgs(msg string, args ...interface{}) {
 	l.log(InfoLevel, msg, args...)
 }
 
-func (l *VybLogger) Warn(msg string, args ...interface{}) {
+func (l *VybLogger) WarnArgs(msg string, args ...interface{}) {
 	l.log(WarnLevel, msg, args...)
 }
 
-func (l *VybLogger) Error(msg string, args ...interface{}) {
+func (l *VybLogger) ErrorArgs(msg string, args ...interface{}) {
 	l.log(ErrorLevel, msg, args...)
 }
 
-func (l *VybLogger) Fatal(msg string, args ...interface{}) {
+func (l *VybLogger) FatalArgs(msg string, args ...interface{}) {
 	l.log(FatalLevel, msg, args...)
 
 	// コールバックが設定されている場合は実行
@@ -392,6 +401,92 @@ func (l *VybLogger) Fatal(msg string, args ...interface{}) {
 		} else {
 			os.Exit(1)
 		}
+	}
+}
+
+// ログメソッド実装（Loggerインターフェース対応）
+func (l *VybLogger) Debug(msg string, fields map[string]interface{}) {
+	l.logWithFields(DebugLevel, msg, fields)
+}
+
+func (l *VybLogger) Info(msg string, fields map[string]interface{}) {
+	l.logWithFields(InfoLevel, msg, fields)
+}
+
+func (l *VybLogger) Warn(msg string, fields map[string]interface{}) {
+	l.logWithFields(WarnLevel, msg, fields)
+}
+
+func (l *VybLogger) Error(msg string, fields map[string]interface{}) {
+	l.logWithFields(ErrorLevel, msg, fields)
+}
+
+func (l *VybLogger) Fatal(msg string, fields map[string]interface{}) {
+	l.logWithFields(FatalLevel, msg, fields)
+
+	// コールバックが設定されている場合は実行
+	if l.fatalCallback != nil {
+		l.fatalCallback()
+	}
+
+	// テストモードでない場合のみ終了
+	if !l.testMode {
+		if l.exitHandler != nil {
+			l.exitHandler(1)
+		} else {
+			os.Exit(1)
+		}
+	}
+}
+
+// フィールド付きログ出力
+func (l *VybLogger) logWithFields(level Level, msg string, fields map[string]interface{}) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	// ログレベルチェック
+	if level < l.level {
+		return
+	}
+
+	// コンテキストとフィールドをマージ
+	context := make(map[string]interface{})
+	for k, v := range l.context {
+		context[k] = v
+	}
+	if fields != nil {
+		for k, v := range fields {
+			context[k] = v
+		}
+	}
+
+	// 呼び出し元情報を取得
+	var caller string
+	if _, file, line, ok := runtime.Caller(3); ok {
+		caller = fmt.Sprintf("%s:%d", filepath.Base(file), line)
+	}
+
+	// ログエントリを作成
+	entry := Entry{
+		Timestamp: time.Now(),
+		Level:     levelNames[level],
+		Component: l.component,
+		Message:   msg,
+		Context:   context,
+		Caller:    caller,
+	}
+
+	// フォーマット
+	formatted, err := l.formatter.Format(entry)
+	if err != nil {
+		// フォーマットエラーの場合はfallbackでfmt.Printf
+		fmt.Printf("[LOG-ERROR] Failed to format log: %v\n", err)
+		return
+	}
+
+	// 全ての出力先に書き込み
+	for _, output := range l.outputs {
+		output.Write(formatted)
 	}
 }
 
@@ -439,25 +534,46 @@ func GetLogger() *VybLogger {
 	return globalLogger
 }
 
-// 便利関数（グローバルロガー使用）
+// 便利関数（グローバルロガー使用、可変引数版）
 func Debug(msg string, args ...interface{}) {
-	GetLogger().Debug(msg, args...)
+	GetLogger().DebugArgs(msg, args...)
 }
 
 func Info(msg string, args ...interface{}) {
-	GetLogger().Info(msg, args...)
+	GetLogger().InfoArgs(msg, args...)
 }
 
 func Warn(msg string, args ...interface{}) {
-	GetLogger().Warn(msg, args...)
+	GetLogger().WarnArgs(msg, args...)
 }
 
 func Error(msg string, args ...interface{}) {
-	GetLogger().Error(msg, args...)
+	GetLogger().ErrorArgs(msg, args...)
 }
 
 func Fatal(msg string, args ...interface{}) {
-	GetLogger().Fatal(msg, args...)
+	GetLogger().FatalArgs(msg, args...)
+}
+
+// 便利関数（グローバルロガー使用、フィールド版）
+func DebugWithFields(msg string, fields map[string]interface{}) {
+	GetLogger().Debug(msg, fields)
+}
+
+func InfoWithFields(msg string, fields map[string]interface{}) {
+	GetLogger().Info(msg, fields)
+}
+
+func WarnWithFields(msg string, fields map[string]interface{}) {
+	GetLogger().Warn(msg, fields)
+}
+
+func ErrorWithFields(msg string, fields map[string]interface{}) {
+	GetLogger().Error(msg, fields)
+}
+
+func FatalWithFields(msg string, fields map[string]interface{}) {
+	GetLogger().Fatal(msg, fields)
 }
 
 // コンテキスト付きロガー作成

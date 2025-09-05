@@ -31,12 +31,12 @@ func (h *ToolsHandler) ExecuteCommand(command string) error {
 	// セキュリティ制約
 	constraints := &security.Constraints{
 		AllowedCommands: []string{"ls", "cat", "pwd", "git", "npm", "go", "make"},
-		MaxTimeout:     cfg.CommandTimeout,
+		MaxTimeout:      cfg.CommandTimeout,
 	}
 
 	// コマンド実行器を作成
 	executor := tools.NewCommandExecutor(constraints, cfg.WorkspacePath)
-	
+
 	result, err := executor.Execute(command)
 	if err != nil {
 		return fmt.Errorf("コマンド実行エラー: %w", err)
@@ -58,12 +58,12 @@ func (h *ToolsHandler) ExecuteCommand(command string) error {
 func (h *ToolsHandler) SearchFiles(pattern string, smartMode bool, maxResults int, showContext bool) error {
 	// 簡略化された検索処理
 	h.log.Info("検索機能（簡略版）", map[string]interface{}{
-		"pattern":       pattern,
-		"smart_mode":    smartMode,
-		"max_results":   maxResults,
-		"show_context":  showContext,
+		"pattern":      pattern,
+		"smart_mode":   smartMode,
+		"max_results":  maxResults,
+		"show_context": showContext,
 	})
-	
+
 	// TODO: 実際の検索実装
 	return fmt.Errorf("検索機能は現在開発中です")
 }
@@ -74,7 +74,7 @@ func (h *ToolsHandler) FindFiles(pattern string) error {
 	h.log.Info("ファイル検索機能（簡略版）", map[string]interface{}{
 		"pattern": pattern,
 	})
-	
+
 	// TODO: 実際のファイル検索実装
 	return fmt.Errorf("ファイル検索機能は現在開発中です")
 }
@@ -86,7 +86,7 @@ func (h *ToolsHandler) GrepFiles(pattern string, filePattern string) error {
 		"pattern":      pattern,
 		"file_pattern": filePattern,
 	})
-	
+
 	// TODO: 実際のgrep検索実装
 	return fmt.Errorf("grep検索機能は現在開発中です")
 }
@@ -97,7 +97,7 @@ func (h *ToolsHandler) AnalyzeProject(path string) error {
 	h.log.Info("プロジェクト分析機能（簡略版）", map[string]interface{}{
 		"path": path,
 	})
-	
+
 	// TODO: 実際のプロジェクト分析実装
 	return fmt.Errorf("プロジェクト分析機能は現在開発中です")
 }
@@ -106,7 +106,7 @@ func (h *ToolsHandler) AnalyzeProject(path string) error {
 func (h *ToolsHandler) QuickGitStatus() error {
 	// 簡略化されたGitステータス
 	h.log.Info("Gitステータス機能（簡略版）", nil)
-	
+
 	// TODO: 実際のGitステータス実装
 	return fmt.Errorf("Gitステータス機能は現在開発中です")
 }
@@ -115,7 +115,7 @@ func (h *ToolsHandler) QuickGitStatus() error {
 func (h *ToolsHandler) AutoBuild() error {
 	// 簡略化された自動ビルド
 	h.log.Info("自動ビルド機能（簡略版）", nil)
-	
+
 	// TODO: 実際の自動ビルド実装
 	return fmt.Errorf("自動ビルド機能は現在開発中です")
 }
@@ -124,7 +124,7 @@ func (h *ToolsHandler) AutoBuild() error {
 func (h *ToolsHandler) AutoTest() error {
 	// 簡略化された自動テスト
 	h.log.Info("自動テスト機能（簡略版）", nil)
-	
+
 	// TODO: 実際の自動テスト実装
 	return fmt.Errorf("自動テスト機能は現在開発中です")
 }

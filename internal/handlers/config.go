@@ -32,7 +32,7 @@ func (h *ConfigHandler) SetModel(model string) error {
 	}
 
 	cfg.ModelName = model
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}
@@ -59,13 +59,13 @@ func (h *ConfigHandler) SetProvider(provider string) error {
 			break
 		}
 	}
-	
+
 	if !isValid {
 		return fmt.Errorf("無効なプロバイダーです。有効な値: %v", validProviders)
 	}
 
 	cfg.Provider = provider
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}
@@ -84,19 +84,19 @@ func (h *ConfigHandler) ListConfig() error {
 	}
 
 	h.log.Info("現在の設定", map[string]interface{}{
-		"provider":           cfg.Provider,
-		"model_name":         cfg.ModelName,
-		"base_url":          cfg.BaseURL,
-		"max_tokens":        cfg.MaxTokens,
-		"temperature":       cfg.Temperature,
-		"stream":            cfg.Stream,
-		"log_level":         cfg.Log.Level,
-		"log_format":        cfg.Log.Format,
-		"tui_enabled":       cfg.TUI.Enabled,
-		"tui_theme":         cfg.TUI.Theme,
-		"terminal_mode":     cfg.TerminalMode,
-		"file_max_size_mb":  cfg.FileMaxSizeMB,
-		"command_timeout":   cfg.CommandTimeout,
+		"provider":         cfg.Provider,
+		"model_name":       cfg.ModelName,
+		"base_url":         cfg.BaseURL,
+		"max_tokens":       cfg.MaxTokens,
+		"temperature":      cfg.Temperature,
+		"stream":           cfg.Stream,
+		"log_level":        cfg.Log.Level,
+		"log_format":       cfg.Log.Format,
+		"tui_enabled":      cfg.TUI.Enabled,
+		"tui_theme":        cfg.TUI.Theme,
+		"terminal_mode":    cfg.TerminalMode,
+		"file_max_size_mb": cfg.FileMaxSizeMB,
+		"command_timeout":  cfg.CommandTimeout,
 	})
 	return nil
 }
@@ -117,13 +117,13 @@ func (h *ConfigHandler) SetLogLevel(level string) error {
 			break
 		}
 	}
-	
+
 	if !isValid {
 		return fmt.Errorf("無効なログレベルです。有効な値: %v", validLevels)
 	}
 
 	cfg.Log.Level = level
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}
@@ -150,13 +150,13 @@ func (h *ConfigHandler) SetLogFormat(format string) error {
 			break
 		}
 	}
-	
+
 	if !isValid {
 		return fmt.Errorf("無効なログフォーマットです。有効な値: %v", validFormats)
 	}
 
 	cfg.Log.Format = format
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}
@@ -175,7 +175,7 @@ func (h *ConfigHandler) SetTUIEnabled(enabled bool) error {
 	}
 
 	cfg.TUI.Enabled = enabled
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}
@@ -202,13 +202,13 @@ func (h *ConfigHandler) SetTUITheme(theme string) error {
 			break
 		}
 	}
-	
+
 	if !isValid {
 		return fmt.Errorf("無効なテーマです。有効な値: %v", validThemes)
 	}
 
 	cfg.TUI.Theme = theme
-	
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
 	}

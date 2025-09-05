@@ -45,7 +45,7 @@ func (c *Container) Initialize() error {
 		ShowTimestamp: cfg.Log.ShowTimestamp,
 		ColorEnabled:  cfg.Log.ColorEnabled,
 	}
-	
+
 	log, err := logger.NewLogger(loggerConfig)
 	if err != nil {
 		return fmt.Errorf("ロガー初期化エラー: %w", err)
@@ -175,7 +175,7 @@ func (c *Container) RegisterService(name string, service interface{}) {
 	defer c.mu.Unlock()
 
 	c.services[name] = service
-	
+
 	if c.logger != nil {
 		c.logger.Debug("サービス登録", map[string]interface{}{
 			"name": name,

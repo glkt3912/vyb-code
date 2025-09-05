@@ -53,22 +53,22 @@ type TerminalModeConfig struct {
 // vybの設定情報を管理する構造体
 type Config struct {
 	// LLM設定
-	Provider      string  `json:"provider"`       // LLMプロバイダー（ollama、lmstudio等）
-	Model         string  `json:"model"`          // 使用するモデル名
-	ModelName     string  `json:"model_name"`     // モデル名（互換性）
-	BaseURL       string  `json:"base_url"`       // LLMサーバーのURL
-	Timeout       int     `json:"timeout"`        // リクエストタイムアウト（秒）
-	Temperature   float64 `json:"temperature"`    // 生成時の温度パラメータ
-	MaxTokens     int     `json:"max_tokens"`     // 最大トークン数
-	Stream        bool    `json:"stream"`         // ストリーミング応答
+	Provider    string  `json:"provider"`    // LLMプロバイダー（ollama、lmstudio等）
+	Model       string  `json:"model"`       // 使用するモデル名
+	ModelName   string  `json:"model_name"`  // モデル名（互換性）
+	BaseURL     string  `json:"base_url"`    // LLMサーバーのURL
+	Timeout     int     `json:"timeout"`     // リクエストタイムアウト（秒）
+	Temperature float64 `json:"temperature"` // 生成時の温度パラメータ
+	MaxTokens   int     `json:"max_tokens"`  // 最大トークン数
+	Stream      bool    `json:"stream"`      // ストリーミング応答
 
 	// システム設定
-	MaxFileSize       int64  `json:"max_file_size"`       // 読み込み可能な最大ファイルサイズ
-	FileMaxSizeMB     int    `json:"file_max_size_mb"`    // ファイル最大サイズ（MB）
-	WorkspaceMode     string `json:"workspace_mode"`      // ワークスペースモード（project_only等）
-	WorkspacePath     string `json:"workspace_path"`      // 作業ディレクトリパス
-	CommandTimeout    int    `json:"command_timeout"`     // コマンド実行タイムアウト（秒）
-	MaxHistory        int    `json:"max_history"`         // 履歴保持数
+	MaxFileSize    int64  `json:"max_file_size"`    // 読み込み可能な最大ファイルサイズ
+	FileMaxSizeMB  int    `json:"file_max_size_mb"` // ファイル最大サイズ（MB）
+	WorkspaceMode  string `json:"workspace_mode"`   // ワークスペースモード（project_only等）
+	WorkspacePath  string `json:"workspace_path"`   // 作業ディレクトリパス
+	CommandTimeout int    `json:"command_timeout"`  // コマンド実行タイムアウト（秒）
+	MaxHistory     int    `json:"max_history"`      // 履歴保持数
 
 	// サブ設定
 	MCPServers   map[string]MCPServerConfig `json:"mcp_servers"`   // MCPサーバー設定
@@ -81,7 +81,7 @@ type Config struct {
 
 // Markdown設定
 type MarkdownConfig struct {
-	Enabled      bool `json:"enabled"`       // Markdown有効/無効
+	Enabled         bool `json:"enabled"`          // Markdown有効/無効
 	SyntaxHighlight bool `json:"syntax_highlight"` // シンタックスハイライト
 }
 

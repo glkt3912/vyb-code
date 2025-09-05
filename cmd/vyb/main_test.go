@@ -24,11 +24,11 @@ func TestRootCommandStructure(t *testing.T) {
 	if rootCmd == nil {
 		t.Error("rootCmdが定義されていません")
 	}
-	
+
 	if rootCmd.Use != "vyb" {
 		t.Errorf("rootCmd.Use = %s, want %s", rootCmd.Use, "vyb")
 	}
-	
+
 	if rootCmd.Version != "v1.0.0" {
 		t.Errorf("rootCmd.Version = %s, want %s", rootCmd.Version, "v1.0.0")
 	}
@@ -39,7 +39,7 @@ func TestChatCommandStructure(t *testing.T) {
 	if chatCmd == nil {
 		t.Error("chatCmdが定義されていません")
 	}
-	
+
 	if chatCmd.Use != "chat" {
 		t.Errorf("chatCmd.Use = %s, want %s", chatCmd.Use, "chat")
 	}

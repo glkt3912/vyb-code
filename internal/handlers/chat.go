@@ -84,9 +84,9 @@ func (h *ChatHandler) startLegacyInteractiveMode(cfg *config.Config) error {
 	// TODO: LLMプロバイダー実装
 	h.log.Info("LLMプロバイダー初期化（開発中）", map[string]interface{}{
 		"base_url": cfg.BaseURL,
-		"model": cfg.ModelName,
+		"model":    cfg.ModelName,
 	})
-	
+
 	// とりあえず開発中メッセージで終了
 	return fmt.Errorf("Legacy Interactive Mode機能は開発中です")
 }
@@ -101,11 +101,11 @@ func (h *ChatHandler) ProcessSingleQuery(query string, noTUI bool) error {
 
 	// TODO: 単発クエリ処理実装
 	h.log.Info("単発クエリ処理（開発中）", map[string]interface{}{
-		"query": query,
+		"query":  query,
 		"no_tui": noTUI,
-		"model": cfg.ModelName,
+		"model":  cfg.ModelName,
 	})
-	
+
 	return fmt.Errorf("単発クエリ機能は開発中です")
 }
 
@@ -114,10 +114,8 @@ func (h *ChatHandler) runEnhancedTerminalLoop(cfg *config.Config, planMode bool)
 	// TODO: Enhanced Terminal Mode実装
 	h.log.Info("Enhanced Terminal Mode開始（開発中）", map[string]interface{}{
 		"plan_mode": planMode,
-		"model": cfg.ModelName,
+		"model":     cfg.ModelName,
 	})
-	
+
 	return fmt.Errorf("Enhanced Terminal Mode機能は開発中です")
 }
-
-

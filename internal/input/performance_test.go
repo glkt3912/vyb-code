@@ -135,12 +135,17 @@ func TestDebouncer_Flush(t *testing.T) {
 
 	// フラッシュ後は新しいデバウンスが可能
 	var executed bool
+	var mu sync.Mutex
 	debouncer.Debounce("test", func() {
+		mu.Lock()
+		defer mu.Unlock()
 		executed = true
 	})
 
 	time.Sleep(150 * time.Millisecond)
 
+	mu.Lock()
+	defer mu.Unlock()
 	if !executed {
 		t.Error("Function should be executed after flush and new debounce")
 	}

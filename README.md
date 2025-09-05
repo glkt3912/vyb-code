@@ -13,6 +13,14 @@
 - **Markdown対応**: コードブロック枠線、シンタックスハイライト
 - **日本語IME完全対応**: 文字消失問題を解決済み
 
+### 🛠️ Claude Code完全互換ツール
+
+- **Bash**: セキュアなコマンド実行（タイムアウト・制約付き）
+- **File Operations**: Read, Write, Edit, MultiEdit（構造化編集）
+- **Search Tools**: Glob（パターン検索）, Grep（高度検索）, LS（リスト）
+- **Web Integration**: WebFetch（内容取得）, WebSearch（検索）
+- **全10個のツール**がClaude Codeと同等機能で利用可能
+
 ### 🔒 高度な入力システム
 
 - **セキュリティ強化**: 入力サニタイゼーション、レート制限、バッファ保護

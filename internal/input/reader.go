@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
-	"unsafe"
 
 	"golang.org/x/term"
 )
@@ -542,27 +540,7 @@ func (r *Reader) ReadMultiLine() (string, error) {
 	}
 }
 
-// 端末サイズを取得
-func getTerminalSize() (int, int) {
-	type winsize struct {
-		Row    uint16
-		Col    uint16
-		Xpixel uint16
-		Ypixel uint16
-	}
-
-	ws := &winsize{}
-	ret, _, _ := syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(os.Stdout.Fd()),
-		uintptr(syscall.TIOCGWINSZ),
-		uintptr(unsafe.Pointer(ws)))
-
-	if int(ret) == -1 {
-		return 80, 24 // デフォルト値
-	}
-
-	return int(ws.Col), int(ws.Row)
-}
+// getTerminalSize は reader_unix.go と reader_windows.go で実装
 
 // リーダーのクリーンアップ
 func (r *Reader) Close() error {

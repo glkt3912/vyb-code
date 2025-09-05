@@ -19,7 +19,7 @@ type Constraints struct {
 func NewDefaultConstraints(workspaceDir string) *Constraints {
 	return &Constraints{
 		AllowedCommands: []string{
-			"ls", "cat", "grep", "find", "head", "tail", "wc", "sort", "uniq",
+			"ls", "cat", "grep", "find", "head", "tail", "wc", "sort", "uniq", "echo",
 			"git", "go", "npm", "node", "python", "python3", "pip", "pip3",
 			"make", "cmake", "rustc", "cargo", "javac", "java", "mvn",
 			"docker", "kubectl", "helm", "terraform",

@@ -42,7 +42,8 @@ func NewMockLLMClient() *MockLLMClient {
 				"documentation_gaps": [],
 				"performance_insights": []
 			}`,
-			"code_generation": "```go\nfunc TestFunction() {\n\t// Generated test code\n\treturn\n}\n```",
+			"code_generation": "以下は生成されたGoのコードです：\n\n```go\npackage main\n\nfunc TestFunction() {\n\t// Generated test code\n\treturn\n}\n```",
+			"test_generation": "以下はテストコードです：\n\n```go\npackage main\n\nimport \"testing\"\n\nfunc TestTestFunction(t *testing.T) {\n\t// Generated test\n\tTestFunction()\n}\n```",
 			"summary": "This is a test summary of the analysis results.",
 		},
 	}
@@ -55,6 +56,10 @@ func (m *MockLLMClient) GenerateResponse(ctx context.Context, request *GenerateR
 	if strings.Contains(content, "分析") || strings.Contains(content, "analysis") {
 		return &GenerateResponse{
 			Content: m.responses["code_analysis"],
+		}, nil
+	} else if strings.Contains(content, "テスト") || strings.Contains(content, "test") {
+		return &GenerateResponse{
+			Content: m.responses["test_generation"],
 		}, nil
 	} else if strings.Contains(content, "生成") || strings.Contains(content, "generate") {
 		return &GenerateResponse{

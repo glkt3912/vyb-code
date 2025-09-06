@@ -456,9 +456,19 @@ func TestWatcher_DependencyChangeDetection(t *testing.T) {
 			// 初回チェック（ファイル作成による変更）
 			watcher.CheckChanges()
 
-			// ファイルを変更
+			// ファイルを変更（決定的なファイル変更時間を確保）
+			filePath := filepath.Join(tempDir, tt.filename)
+			time.Sleep(50 * time.Millisecond) // より確実な遅延
+			writeTestFile(t, filePath, "modified content")
+
+			// ファイル変更時刻を確実に更新
+			currentTime := time.Now()
+			if err := os.Chtimes(filePath, currentTime, currentTime); err != nil {
+				t.Fatalf("Failed to update file modification time: %v", err)
+			}
+
+			// 変更検出のための短い遅延
 			time.Sleep(10 * time.Millisecond)
-			writeTestFile(t, filepath.Join(tempDir, tt.filename), "modified content")
 
 			// 変更をチェック
 			changes := watcher.CheckChanges()

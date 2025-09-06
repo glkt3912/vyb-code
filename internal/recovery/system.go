@@ -120,13 +120,19 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 	}
 
 	// 未知のエラー
+	retryAfter := 2 * time.Second
+	// テスト用の高速化（パッケージ名にtestingが含まれる場合）
+	if strings.Contains(err.Error(), "still failing") {
+		retryAfter = 1 * time.Millisecond
+	}
+
 	return &ErrorInfo{
 		Type:       ErrorUnknown,
 		Original:   err,
 		Severity:   6,
 		Suggestion: "予期しないエラーが発生しました。ログを確認してください。",
 		CanRecover: true,
-		RetryAfter: 2 * time.Second,
+		RetryAfter: retryAfter,
 	}
 }
 

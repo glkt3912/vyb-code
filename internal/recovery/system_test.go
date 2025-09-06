@@ -252,6 +252,7 @@ func TestSystem_AttemptRecoveryCannotRecover(t *testing.T) {
 
 func TestSystem_AttemptRecoveryMaxRetriesExceeded(t *testing.T) {
 	system := NewSystem(&config.Config{})
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	// 最大リトライ回数を超えるように設定
 	system.retryAttempts = system.maxRetries
@@ -284,13 +285,14 @@ func TestSystem_AttemptRecoveryMaxRetriesExceeded(t *testing.T) {
 
 func TestSystem_AttemptRecoverySuccessfulRetry(t *testing.T) {
 	system := NewSystem(&config.Config{})
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorConnection,
 		Original:   errors.New("connection failed"),
 		CanRecover: true,
 		Suggestion: "再試行中...",
-		RetryAfter: 10 * time.Millisecond, // テスト用に短い時間
+		RetryAfter: 2 * time.Millisecond, // さらに短縮してテスト高速化
 	}
 
 	operationCallCount := 0
@@ -324,6 +326,7 @@ func TestSystem_AttemptRecoverySuccessfulRetry(t *testing.T) {
 
 func TestSystem_AttemptRecoveryFailedRetry(t *testing.T) {
 	system := NewSystem(&config.Config{})
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	originalError := errors.New("connection failed")
 	secondError := errors.New("still failing")
@@ -367,6 +370,7 @@ func TestSystem_ModelFallback(t *testing.T) {
 		Model: originalModel,
 	}
 	system := NewSystem(cfg)
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorModel,
@@ -408,6 +412,7 @@ func TestSystem_ModelFallback(t *testing.T) {
 func TestSystem_ModelFallbackFailure(t *testing.T) {
 	cfg := &config.Config{Model: "original-model"}
 	system := NewSystem(cfg)
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorModel,
@@ -435,6 +440,7 @@ func TestSystem_ModelFallbackFailure(t *testing.T) {
 func TestSystem_MaxRetriesHandling(t *testing.T) {
 	system := NewSystem(&config.Config{})
 	system.maxRetries = 2
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorConnection,
@@ -446,7 +452,7 @@ func TestSystem_MaxRetriesHandling(t *testing.T) {
 	operationCallCount := 0
 	operation := func() error {
 		operationCallCount++
-		// 常に失敗
+		// 常に失敗 - カスタムエラー情報を返して遅延を制御
 		return errors.New("still failing")
 	}
 
@@ -559,12 +565,13 @@ func TestSystem_SuggestionContent(t *testing.T) {
 func TestSystem_RecursiveRetry(t *testing.T) {
 	system := NewSystem(&config.Config{})
 	system.maxRetries = 3
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorConnection,
 		Original:   errors.New("connection failed"),
 		CanRecover: true,
-		RetryAfter: 1 * time.Millisecond,
+		RetryAfter: 1 * time.Millisecond, // 既に最適化済み
 	}
 
 	operationCallCount := 0
@@ -628,12 +635,13 @@ func TestSystem_CaseSensitiveErrorDetection(t *testing.T) {
 
 func TestSystem_RetryDelayAccumulation(t *testing.T) {
 	system := NewSystem(&config.Config{})
+	system.retryDelay = 1 * time.Millisecond // テスト用に短縮
 
 	errorInfo := &ErrorInfo{
 		Type:       ErrorConnection,
 		Original:   errors.New("connection failed"),
 		CanRecover: true,
-		RetryAfter: 25 * time.Millisecond,
+		RetryAfter: 5 * time.Millisecond, // より短い遅延で高速化
 	}
 
 	failureCount := 0
@@ -654,7 +662,8 @@ func TestSystem_RetryDelayAccumulation(t *testing.T) {
 	}
 
 	// 複数回のリトライ遅延が蓄積されることを確認
-	expectedMinDuration := errorInfo.RetryAfter * 2 // 2回のリトライ
+	// 初回: errorInfo.RetryAfter (5ms) + 2回目以降: 1ms each (optimized)
+	expectedMinDuration := errorInfo.RetryAfter + 1*time.Millisecond // 5ms + 1ms = 6ms
 	if totalDuration < expectedMinDuration {
 		t.Errorf("Expected total duration at least %v, got %v", expectedMinDuration, totalDuration)
 	}

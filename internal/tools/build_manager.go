@@ -13,28 +13,28 @@ import (
 
 // ビルド実行結果
 type BuildResult struct {
-	Success           bool                   `json:"success"`
-	Command           string                 `json:"command"`
-	Output            string                 `json:"output"`
-	ErrorOutput       string                 `json:"error_output"`
-	ExitCode          int                    `json:"exit_code"`
-	Duration          time.Duration          `json:"duration"`
-	BuildSystem       string                 `json:"build_system"`
-	Target            string                 `json:"target,omitempty"`
-	Artifacts         []string               `json:"artifacts,omitempty"`
-	Warnings          []string               `json:"warnings,omitempty"`
-	Recommendations   []string               `json:"recommendations,omitempty"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	Success         bool                   `json:"success"`
+	Command         string                 `json:"command"`
+	Output          string                 `json:"output"`
+	ErrorOutput     string                 `json:"error_output"`
+	ExitCode        int                    `json:"exit_code"`
+	Duration        time.Duration          `json:"duration"`
+	BuildSystem     string                 `json:"build_system"`
+	Target          string                 `json:"target,omitempty"`
+	Artifacts       []string               `json:"artifacts,omitempty"`
+	Warnings        []string               `json:"warnings,omitempty"`
+	Recommendations []string               `json:"recommendations,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ビルドパイプライン設定
 type BuildPipeline struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Steps       []BuildStep     `json:"steps"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Steps       []BuildStep       `json:"steps"`
 	Environment map[string]string `json:"environment,omitempty"`
-	Parallel    bool            `json:"parallel"`
-	OnFailure   string          `json:"on_failure"` // "stop", "continue", "retry"
+	Parallel    bool              `json:"parallel"`
+	OnFailure   string            `json:"on_failure"` // "stop", "continue", "retry"
 }
 
 // ビルドステップ
@@ -52,21 +52,21 @@ type BuildStep struct {
 
 // ビルドパフォーマンス統計
 type BuildPerformance struct {
-	TotalDuration     time.Duration     `json:"total_duration"`
-	StepDurations     map[string]time.Duration `json:"step_durations"`
-	CacheHits         int               `json:"cache_hits"`
-	CacheMisses       int               `json:"cache_misses"`
-	ParallelEfficiency float64          `json:"parallel_efficiency"`
-	Suggestions       []string          `json:"suggestions"`
+	TotalDuration      time.Duration            `json:"total_duration"`
+	StepDurations      map[string]time.Duration `json:"step_durations"`
+	CacheHits          int                      `json:"cache_hits"`
+	CacheMisses        int                      `json:"cache_misses"`
+	ParallelEfficiency float64                  `json:"parallel_efficiency"`
+	Suggestions        []string                 `json:"suggestions"`
 }
 
 // ビルドキャッシュ情報
 type BuildCache struct {
-	Enabled         bool              `json:"enabled"`
-	CacheDirectory  string            `json:"cache_directory"`
-	CacheSize       int64             `json:"cache_size_bytes"`
-	LastCleanup     time.Time         `json:"last_cleanup"`
-	HitRate         float64           `json:"hit_rate"`
+	Enabled         bool                      `json:"enabled"`
+	CacheDirectory  string                    `json:"cache_directory"`
+	CacheSize       int64                     `json:"cache_size_bytes"`
+	LastCleanup     time.Time                 `json:"last_cleanup"`
+	HitRate         float64                   `json:"hit_rate"`
 	CachedArtifacts map[string]CachedArtifact `json:"cached_artifacts"`
 }
 
@@ -214,13 +214,13 @@ func (bm *BuildManager) selectOptimalBuildSystem(systems []BuildSystemInfo) *Bui
 
 	// 優先順位：Makefile > 言語固有 > Docker > CI
 	priorities := map[string]int{
-		"makefile":      100,
-		"go_native":     90,
+		"makefile":          100,
+		"go_native":         90,
 		"javascript_native": 85,
-		"python_native": 85,
-		"docker":        70,
-		"github_actions": 50,
-		"gitlab_ci":     50,
+		"python_native":     85,
+		"docker":            70,
+		"github_actions":    50,
+		"gitlab_ci":         50,
 	}
 
 	var bestSystem *BuildSystemInfo
@@ -303,17 +303,17 @@ func (bm *BuildManager) executeBuildSystemWithTarget(system *BuildSystemInfo, ta
 	if len(args) > 0 {
 		fullCommand = fmt.Sprintf("%s %s", command, strings.Join(args, " "))
 	}
-	
+
 	result, err := bm.executor.Execute(fullCommand)
 	if err != nil {
 		return &BuildResult{
-			Success:      false,
-			Command:      fullCommand,
-			ErrorOutput:  err.Error(),
-			ExitCode:     -1,
-			Duration:     time.Since(startTime),
-			BuildSystem:  system.Type,
-			Target:       target,
+			Success:     false,
+			Command:     fullCommand,
+			ErrorOutput: err.Error(),
+			ExitCode:    -1,
+			Duration:    time.Since(startTime),
+			BuildSystem: system.Type,
+			Target:      target,
 		}, err
 	}
 
@@ -375,10 +375,10 @@ func (bm *BuildManager) executeStep(step *BuildStep, globalEnv map[string]string
 	if len(step.Args) > 0 {
 		fullCommand = fmt.Sprintf("%s %s", step.Command, strings.Join(step.Args, " "))
 	}
-	
+
 	// 環境変数を設定（現在のExecutorは環境変数設定をサポートしていないため、将来の拡張ポイント）
 	// TODO: CommandExecutorに環境変数とワーキングディレクトリサポートを追加
-	
+
 	result, err := bm.executor.Execute(fullCommand)
 
 	buildResult := &BuildResult{
@@ -446,13 +446,13 @@ func (bm *BuildManager) executeStepsParallel(steps []BuildStep, globalEnv map[st
 // ビルドアーティファクトを検出
 func (bm *BuildManager) detectBuildArtifacts(buildSystemType string) []string {
 	var artifacts []string
-	
+
 	commonArtifacts := map[string][]string{
-		"go_native":     {"vyb", "vyb.exe", "cmd/*/main", "*.exe"},
+		"go_native":         {"vyb", "vyb.exe", "cmd/*/main", "*.exe"},
 		"javascript_native": {"dist/", "build/", "lib/", "*.bundle.js"},
-		"python_native": {"dist/", "build/", "*.wheel", "*.egg"},
-		"docker":       {"Dockerfile", "*.tar", "docker-compose.yml"},
-		"makefile":     {"*.o", "*.a", "*.so", "bin/", "build/"},
+		"python_native":     {"dist/", "build/", "*.wheel", "*.egg"},
+		"docker":            {"Dockerfile", "*.tar", "docker-compose.yml"},
+		"makefile":          {"*.o", "*.a", "*.so", "bin/", "build/"},
 	}
 
 	patterns, exists := commonArtifacts[buildSystemType]
@@ -605,7 +605,7 @@ func (bm *BuildManager) CreatePresetPipeline(pipelineType string) (*BuildPipelin
 
 	case "javascript_standard":
 		return &BuildPipeline{
-			Name:        "JavaScript Standard Pipeline",  
+			Name:        "JavaScript Standard Pipeline",
 			Description: "JavaScript/Node.js プロジェクトの標準的なビルドパイプライン",
 			Steps: []BuildStep{
 				{Name: "dependencies", Command: "npm", Args: []string{"install"}},

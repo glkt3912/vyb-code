@@ -1059,9 +1059,9 @@ func (r *ToolRegistry) handleProjectAnalyzeTool(arguments map[string]interface{}
 			return map[string]interface{}{
 				"analysis_type": "architecture",
 				"result": map[string]interface{}{
-					"architecture":     result.Architecture,
-					"build_systems":    result.BuildSystems,
-					"basic_info":       result.BasicInfo,
+					"architecture":  result.Architecture,
+					"build_systems": result.BuildSystems,
+					"basic_info":    result.BasicInfo,
 				},
 			}, nil
 		default:
@@ -1101,9 +1101,9 @@ func (r *ToolRegistry) handleBuildTool(arguments map[string]interface{}) (interf
 		}
 
 		return map[string]interface{}{
-			"pipeline":      pipelineName,
-			"results":       results,
-			"performance":   r.buildManager.performance,
+			"pipeline":    pipelineName,
+			"results":     results,
+			"performance": r.buildManager.performance,
 		}, nil
 	}
 
@@ -1151,7 +1151,7 @@ func (r *ToolRegistry) handleArchitectureMapTool(arguments map[string]interface{
 	switch format {
 	case "json":
 		return map[string]interface{}{
-			"architecture": analysis.Architecture,
+			"architecture":  analysis.Architecture,
 			"build_systems": analysis.BuildSystems,
 		}, nil
 

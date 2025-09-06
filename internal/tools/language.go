@@ -146,17 +146,17 @@ func (r *RustLanguageSupport) ParseDependencies(content string) []string {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if line == "[dependencies]" || line == "[dev-dependencies]" {
 			inDeps = true
 			continue
 		}
-		
+
 		if strings.HasPrefix(line, "[") && line != "[dependencies]" && line != "[dev-dependencies]" {
 			inDeps = false
 			continue
 		}
-		
+
 		if inDeps && strings.Contains(line, "=") {
 			parts := strings.Split(line, "=")
 			if len(parts) >= 2 {
@@ -189,13 +189,13 @@ func (j *JavaLanguageSupport) ParseDependencies(content string) []string {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.Contains(line, "<dependency>") {
 			inDependency = true
 			currentDep = ""
 			continue
 		}
-		
+
 		if strings.Contains(line, "</dependency>") {
 			if currentDep != "" {
 				deps = append(deps, currentDep)
@@ -203,7 +203,7 @@ func (j *JavaLanguageSupport) ParseDependencies(content string) []string {
 			inDependency = false
 			continue
 		}
-		
+
 		if inDependency && strings.Contains(line, "<artifactId>") {
 			start := strings.Index(line, "<artifactId>") + 12
 			end := strings.Index(line, "</artifactId>")
@@ -234,7 +234,7 @@ func (c *CppLanguageSupport) ParseDependencies(content string) []string {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// find_package依存関係を検出
 		if strings.Contains(strings.ToLower(line), "find_package") {
 			start := strings.Index(strings.ToLower(line), "find_package(") + 13
@@ -250,7 +250,7 @@ func (c *CppLanguageSupport) ParseDependencies(content string) []string {
 				}
 			}
 		}
-		
+
 		// target_link_libraries依存関係を検出
 		if strings.Contains(strings.ToLower(line), "target_link_libraries") {
 			// 簡易的な解析（完全なCMakeパーサーではない）
@@ -266,12 +266,12 @@ func (c *CppLanguageSupport) ParseDependencies(content string) []string {
 // C言語サポート
 type CLanguageSupport struct{}
 
-func (c *CLanguageSupport) GetName() string             { return "C" }
-func (c *CLanguageSupport) GetExtensions() []string     { return []string{".c", ".h"} }
-func (c *CLanguageSupport) GetBuildCommand() string     { return "make" }
-func (c *CLanguageSupport) GetTestCommand() string      { return "make test" }
-func (c *CLanguageSupport) GetLintCommand() string      { return "cppcheck ." }
-func (c *CLanguageSupport) GetDependencyFile() string   { return "Makefile" }
+func (c *CLanguageSupport) GetName() string           { return "C" }
+func (c *CLanguageSupport) GetExtensions() []string   { return []string{".c", ".h"} }
+func (c *CLanguageSupport) GetBuildCommand() string   { return "make" }
+func (c *CLanguageSupport) GetTestCommand() string    { return "make test" }
+func (c *CLanguageSupport) GetLintCommand() string    { return "cppcheck ." }
+func (c *CLanguageSupport) GetDependencyFile() string { return "Makefile" }
 
 func (c *CLanguageSupport) ParseDependencies(content string) []string {
 	var deps []string
@@ -279,7 +279,7 @@ func (c *CLanguageSupport) ParseDependencies(content string) []string {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// pkg-config依存関係を検出
 		if strings.Contains(line, "pkg-config") {
 			start := strings.Index(line, "--libs") + 6
@@ -293,7 +293,7 @@ func (c *CLanguageSupport) ParseDependencies(content string) []string {
 				}
 			}
 		}
-		
+
 		// 標準的なライブラリリンクを検出
 		if strings.Contains(line, "-l") {
 			parts := strings.Fields(line)

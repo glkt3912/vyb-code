@@ -14,34 +14,34 @@ import (
 
 // 高度なプロジェクト解析結果を格納する構造体
 type AdvancedProjectAnalysis struct {
-	BasicInfo          *ProjectAnalysis         `json:"basic_info"`
-	BuildSystems       []BuildSystemInfo        `json:"build_systems"`
-	Architecture       *ProjectArchitecture     `json:"architecture"`
-	DetailedDeps       *DetailedDependencies    `json:"detailed_dependencies"`
-	HealthScore        *ProjectHealthScore      `json:"health_score"`
-	SecurityAnalysis   *SecurityAnalysis        `json:"security_analysis"`
-	AnalysisTimestamp  time.Time                `json:"analysis_timestamp"`
-	AnalysisVersion    string                   `json:"analysis_version"`
+	BasicInfo         *ProjectAnalysis      `json:"basic_info"`
+	BuildSystems      []BuildSystemInfo     `json:"build_systems"`
+	Architecture      *ProjectArchitecture  `json:"architecture"`
+	DetailedDeps      *DetailedDependencies `json:"detailed_dependencies"`
+	HealthScore       *ProjectHealthScore   `json:"health_score"`
+	SecurityAnalysis  *SecurityAnalysis     `json:"security_analysis"`
+	AnalysisTimestamp time.Time             `json:"analysis_timestamp"`
+	AnalysisVersion   string                `json:"analysis_version"`
 }
 
 // ビルドシステム情報
 type BuildSystemInfo struct {
-	Type            string            `json:"type"`             // "makefile", "docker", "ci", "language_native"
-	ConfigFile      string            `json:"config_file"`      // 設定ファイルパス
-	Commands        []string          `json:"commands"`         // 利用可能なコマンド
-	Dependencies    []string          `json:"dependencies"`     // ビルド依存関係
-	Targets         []string          `json:"targets"`          // ビルドターゲット
-	Metadata        map[string]string `json:"metadata"`         // 追加情報
+	Type         string            `json:"type"`         // "makefile", "docker", "ci", "language_native"
+	ConfigFile   string            `json:"config_file"`  // 設定ファイルパス
+	Commands     []string          `json:"commands"`     // 利用可能なコマンド
+	Dependencies []string          `json:"dependencies"` // ビルド依存関係
+	Targets      []string          `json:"targets"`      // ビルドターゲット
+	Metadata     map[string]string `json:"metadata"`     // 追加情報
 }
 
 // プロジェクトアーキテクチャ
 type ProjectArchitecture struct {
-	Layers            []ArchitectureLayer    `json:"layers"`            // アーキテクチャ層
-	Modules           []ModuleInfo           `json:"modules"`           // モジュール情報
-	Dependencies      []ModuleDependency     `json:"dependencies"`      // モジュール間依存関係
-	EntryPoints       []string               `json:"entry_points"`      // エントリポイント
-	DatabaseSchemas   []string               `json:"database_schemas"`  // データベーススキーマ
-	APIEndpoints      []APIEndpoint          `json:"api_endpoints"`     // API エンドポイント
+	Layers          []ArchitectureLayer `json:"layers"`           // アーキテクチャ層
+	Modules         []ModuleInfo        `json:"modules"`          // モジュール情報
+	Dependencies    []ModuleDependency  `json:"dependencies"`     // モジュール間依存関係
+	EntryPoints     []string            `json:"entry_points"`     // エントリポイント
+	DatabaseSchemas []string            `json:"database_schemas"` // データベーススキーマ
+	APIEndpoints    []APIEndpoint       `json:"api_endpoints"`    // API エンドポイント
 }
 
 // アーキテクチャ層
@@ -52,11 +52,11 @@ type ArchitectureLayer struct {
 	Files       []string `json:"files"`       // 重要ファイル
 }
 
-// モジュール情報  
+// モジュール情報
 type ModuleInfo struct {
 	Name        string   `json:"name"`
 	Path        string   `json:"path"`
-	Type        string   `json:"type"`        // "package", "service", "library", etc.
+	Type        string   `json:"type"` // "package", "service", "library", etc.
 	Language    string   `json:"language"`
 	Files       []string `json:"files"`
 	ExportedAPI []string `json:"exported_api"`
@@ -80,30 +80,30 @@ type APIEndpoint struct {
 
 // 詳細依存関係分析
 type DetailedDependencies struct {
-	DirectDeps     []DependencyInfo `json:"direct_dependencies"`
-	TransitiveDeps []DependencyInfo `json:"transitive_dependencies"`
-	DevDeps        []DependencyInfo `json:"dev_dependencies"`
-	Conflicts      []DependencyInfo `json:"conflicts"`
-	Outdated       []DependencyInfo `json:"outdated"`
+	DirectDeps      []DependencyInfo    `json:"direct_dependencies"`
+	TransitiveDeps  []DependencyInfo    `json:"transitive_dependencies"`
+	DevDeps         []DependencyInfo    `json:"dev_dependencies"`
+	Conflicts       []DependencyInfo    `json:"conflicts"`
+	Outdated        []DependencyInfo    `json:"outdated"`
 	Vulnerabilities []VulnerabilityInfo `json:"vulnerabilities"`
 }
 
 // 依存関係情報
 type DependencyInfo struct {
-	Name         string    `json:"name"`
-	Version      string    `json:"version"`
-	LatestVersion string   `json:"latest_version,omitempty"`
-	Language     string    `json:"language"`
-	Size         int64     `json:"size,omitempty"`
-	License      string    `json:"license,omitempty"`
-	LastUpdate   time.Time `json:"last_update,omitempty"`
-	Description  string    `json:"description,omitempty"`
+	Name          string    `json:"name"`
+	Version       string    `json:"version"`
+	LatestVersion string    `json:"latest_version,omitempty"`
+	Language      string    `json:"language"`
+	Size          int64     `json:"size,omitempty"`
+	License       string    `json:"license,omitempty"`
+	LastUpdate    time.Time `json:"last_update,omitempty"`
+	Description   string    `json:"description,omitempty"`
 }
 
 // 脆弱性情報
 type VulnerabilityInfo struct {
 	DependencyName string `json:"dependency_name"`
-	Severity       string `json:"severity"`       // "low", "medium", "high", "critical"
+	Severity       string `json:"severity"` // "low", "medium", "high", "critical"
 	CVE            string `json:"cve,omitempty"`
 	Description    string `json:"description"`
 	FixedVersion   string `json:"fixed_version,omitempty"`
@@ -111,23 +111,23 @@ type VulnerabilityInfo struct {
 
 // プロジェクト健康度スコア
 type ProjectHealthScore struct {
-	OverallScore     int                       `json:"overall_score"`      // 0-100
-	CodeQuality      int                       `json:"code_quality"`       // 0-100
-	TestCoverage     int                       `json:"test_coverage"`      // 0-100  
-	Documentation    int                       `json:"documentation"`      // 0-100
-	Dependencies     int                       `json:"dependencies"`       // 0-100
-	Security         int                       `json:"security"`           // 0-100
-	Maintainability  int                       `json:"maintainability"`    // 0-100
-	Recommendations  []string                  `json:"recommendations"`    // 改善提案
-	Metrics          map[string]interface{}    `json:"metrics"`            // 詳細メトリクス
+	OverallScore    int                    `json:"overall_score"`   // 0-100
+	CodeQuality     int                    `json:"code_quality"`    // 0-100
+	TestCoverage    int                    `json:"test_coverage"`   // 0-100
+	Documentation   int                    `json:"documentation"`   // 0-100
+	Dependencies    int                    `json:"dependencies"`    // 0-100
+	Security        int                    `json:"security"`        // 0-100
+	Maintainability int                    `json:"maintainability"` // 0-100
+	Recommendations []string               `json:"recommendations"` // 改善提案
+	Metrics         map[string]interface{} `json:"metrics"`         // 詳細メトリクス
 }
 
 // セキュリティ分析
 type SecurityAnalysis struct {
-	VulnerabilityCount int                     `json:"vulnerability_count"`
-	SecurityScore      int                     `json:"security_score"`      // 0-100
-	SecretLeaks        []SecretLeak           `json:"secret_leaks"`
-	InsecurePatterns   []InsecurePattern      `json:"insecure_patterns"`
+	VulnerabilityCount int                      `json:"vulnerability_count"`
+	SecurityScore      int                      `json:"security_score"` // 0-100
+	SecretLeaks        []SecretLeak             `json:"secret_leaks"`
+	InsecurePatterns   []InsecurePattern        `json:"insecure_patterns"`
 	Recommendations    []SecurityRecommendation `json:"recommendations"`
 }
 
@@ -135,7 +135,7 @@ type SecurityAnalysis struct {
 type SecretLeak struct {
 	File    string `json:"file"`
 	Line    int    `json:"line"`
-	Type    string `json:"type"`    // "api_key", "password", "token", etc.
+	Type    string `json:"type"` // "api_key", "password", "token", etc.
 	Pattern string `json:"pattern"`
 }
 
@@ -282,7 +282,7 @@ func (a *AdvancedProjectAnalyzer) analyzeMakefile(path string) (BuildSystemInfo,
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// ターゲット検出（行の開始がタブでなく、コロンを含む）
 		if !strings.HasPrefix(line, "\t") && strings.Contains(line, ":") && !strings.HasPrefix(line, "#") {
 			target := strings.Split(line, ":")[0]
@@ -316,7 +316,7 @@ func (a *AdvancedProjectAnalyzer) analyzeDockerfile(path string) (BuildSystemInf
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(line, "FROM ") {
 			baseImage := strings.TrimPrefix(line, "FROM ")
 			buildInfo.Metadata["base_image"] = baseImage
@@ -331,7 +331,7 @@ func (a *AdvancedProjectAnalyzer) analyzeDockerfile(path string) (BuildSystemInf
 	return buildInfo, nil
 }
 
-// CIシステムを解析  
+// CIシステムを解析
 func (a *AdvancedProjectAnalyzer) analyzeCISystems() ([]BuildSystemInfo, error) {
 	var ciSystems []BuildSystemInfo
 
@@ -579,10 +579,10 @@ func (a *AdvancedProjectAnalyzer) analyzeGoModDetailed(deps *DetailedDependencie
 
 	lines := strings.Split(string(content), "\n")
 	inRequireBlock := false
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(line, "require ") {
 			if strings.Contains(line, "(") {
 				inRequireBlock = true
@@ -695,11 +695,11 @@ func (a *AdvancedProjectAnalyzer) analyzeProjectSecurity() (*SecurityAnalysis, e
 func (a *AdvancedProjectAnalyzer) scanForSecretLeaks(security *SecurityAnalysis) error {
 	// 危険なパターン
 	secretPatterns := map[string]string{
-		"api_key":      `(?i)(api[_-]?key|apikey)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?`,
-		"password":     `(?i)(password|pwd)\s*[:=]\s*["\']?([^\s"']{8,})["\']?`,
-		"token":        `(?i)(token|auth[_-]?token)\s*[:=]\s*["\']?([a-zA-Z0-9_\-\.]{20,})["\']?`,
-		"secret":       `(?i)(secret|secret[_-]?key)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?`,
-		"private_key":  `-----BEGIN (RSA |)PRIVATE KEY-----`,
+		"api_key":     `(?i)(api[_-]?key|apikey)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?`,
+		"password":    `(?i)(password|pwd)\s*[:=]\s*["\']?([^\s"']{8,})["\']?`,
+		"token":       `(?i)(token|auth[_-]?token)\s*[:=]\s*["\']?([a-zA-Z0-9_\-\.]{20,})["\']?`,
+		"secret":      `(?i)(secret|secret[_-]?key)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?`,
+		"private_key": `-----BEGIN (RSA |)PRIVATE KEY-----`,
 	}
 
 	return filepath.Walk(a.projectDir, func(path string, info os.FileInfo, err error) error {
@@ -875,7 +875,7 @@ func (a *AdvancedProjectAnalyzer) calculateHealthScore(analysis *AdvancedProject
 	}
 
 	// 総合スコア計算
-	health.OverallScore = (health.CodeQuality + health.TestCoverage + health.Documentation + 
+	health.OverallScore = (health.CodeQuality + health.TestCoverage + health.Documentation +
 		health.Dependencies + health.Security + health.Maintainability) / 6
 
 	// 推奨事項を生成
@@ -887,7 +887,7 @@ func (a *AdvancedProjectAnalyzer) calculateHealthScore(analysis *AdvancedProject
 // コード品質スコアを計算
 func (a *AdvancedProjectAnalyzer) calculateCodeQualityScore(analysis *AdvancedProjectAnalysis) int {
 	_ = analysis // 将来の拡張用パラメータ
-	score := 70 // 基本スコア
+	score := 70  // 基本スコア
 
 	// ビルドシステムの存在確認
 	if len(analysis.BuildSystems) > 0 {
@@ -900,7 +900,7 @@ func (a *AdvancedProjectAnalyzer) calculateCodeQualityScore(analysis *AdvancedPr
 	}
 
 	// TODO: 実際のコード品質メトリクス（静的解析結果など）を統合
-	
+
 	if score > 100 {
 		score = 100
 	}

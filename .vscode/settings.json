@@ -16,6 +16,13 @@
   "go.testFlags": ["-v"],
   "go.testTimeout": "30s",
   
+  // Go 1.20.5を使用（ツール管理設定）
+  "go.toolsManagement.go": "/usr/local/go/bin/go",
+  "go.alternateTools": {
+    "go": "/usr/local/go/bin/go"
+  },
+  "go.goroot": "/usr/local/go",
+  
   // エディタ設定
   "editor.tabSize": 4,
   "editor.insertSpaces": false,

@@ -176,6 +176,11 @@ func NewAdvancedProjectAnalyzer(constraints *security.Constraints, projectDir st
 
 // 高度なプロジェクト解析を実行
 func (a *AdvancedProjectAnalyzer) AnalyzeAdvanced() (*AdvancedProjectAnalysis, error) {
+	// プロジェクトディレクトリの存在確認
+	if _, err := os.Stat(a.projectDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("プロジェクトディレクトリが存在しません: %s", a.projectDir)
+	}
+
 	analysis := &AdvancedProjectAnalysis{
 		AnalysisTimestamp: time.Now(),
 		AnalysisVersion:   "2.0.0",
@@ -748,7 +753,7 @@ func (a *AdvancedProjectAnalyzer) scanForSecretLeaks(security *SecurityAnalysis)
 func (a *AdvancedProjectAnalyzer) scanInsecurePatterns(security *SecurityAnalysis) error {
 	insecurePatterns := map[string]map[string]string{
 		"sql_injection": {
-			"pattern":     `(?i)(query|execute)\s*\(\s*["\']?.*\+.*["\']?\s*\)`,
+			"pattern":     `(?i)(query|execute)\s*\(\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\)`,
 			"description": "Potential SQL injection vulnerability",
 			"severity":    "high",
 		},
@@ -758,7 +763,7 @@ func (a *AdvancedProjectAnalyzer) scanInsecurePatterns(security *SecurityAnalysi
 			"severity":    "high",
 		},
 		"weak_hash": {
-			"pattern":     `(?i)(md5|sha1)\s*\(`,
+			"pattern":     `(?i)(md5|sha1)\.(sum|Sum)\(`,
 			"description": "Use of weak hashing algorithm",
 			"severity":    "medium",
 		},

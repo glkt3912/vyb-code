@@ -129,6 +129,186 @@ func (py *PythonLanguageSupport) ParseDependencies(content string) []string {
 	return deps
 }
 
+// Rust言語サポート
+type RustLanguageSupport struct{}
+
+func (r *RustLanguageSupport) GetName() string           { return "Rust" }
+func (r *RustLanguageSupport) GetExtensions() []string   { return []string{".rs"} }
+func (r *RustLanguageSupport) GetBuildCommand() string   { return "cargo build" }
+func (r *RustLanguageSupport) GetTestCommand() string    { return "cargo test" }
+func (r *RustLanguageSupport) GetLintCommand() string    { return "cargo clippy" }
+func (r *RustLanguageSupport) GetDependencyFile() string { return "Cargo.toml" }
+
+func (r *RustLanguageSupport) ParseDependencies(content string) []string {
+	var deps []string
+	lines := strings.Split(content, "\n")
+	inDeps := false
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		if line == "[dependencies]" || line == "[dev-dependencies]" {
+			inDeps = true
+			continue
+		}
+		
+		if strings.HasPrefix(line, "[") && line != "[dependencies]" && line != "[dev-dependencies]" {
+			inDeps = false
+			continue
+		}
+		
+		if inDeps && strings.Contains(line, "=") {
+			parts := strings.Split(line, "=")
+			if len(parts) >= 2 {
+				depName := strings.TrimSpace(parts[0])
+				if depName != "" && !strings.HasPrefix(depName, "#") {
+					deps = append(deps, depName)
+				}
+			}
+		}
+	}
+
+	return deps
+}
+
+// Java言語サポート
+type JavaLanguageSupport struct{}
+
+func (j *JavaLanguageSupport) GetName() string           { return "Java" }
+func (j *JavaLanguageSupport) GetExtensions() []string   { return []string{".java"} }
+func (j *JavaLanguageSupport) GetBuildCommand() string   { return "mvn compile" }
+func (j *JavaLanguageSupport) GetTestCommand() string    { return "mvn test" }
+func (j *JavaLanguageSupport) GetLintCommand() string    { return "mvn checkstyle:check" }
+func (j *JavaLanguageSupport) GetDependencyFile() string { return "pom.xml" }
+
+func (j *JavaLanguageSupport) ParseDependencies(content string) []string {
+	var deps []string
+	lines := strings.Split(content, "\n")
+	inDependency := false
+	var currentDep string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		if strings.Contains(line, "<dependency>") {
+			inDependency = true
+			currentDep = ""
+			continue
+		}
+		
+		if strings.Contains(line, "</dependency>") {
+			if currentDep != "" {
+				deps = append(deps, currentDep)
+			}
+			inDependency = false
+			continue
+		}
+		
+		if inDependency && strings.Contains(line, "<artifactId>") {
+			start := strings.Index(line, "<artifactId>") + 12
+			end := strings.Index(line, "</artifactId>")
+			if start >= 12 && end > start {
+				currentDep = line[start:end]
+			}
+		}
+	}
+
+	return deps
+}
+
+// C++言語サポート
+type CppLanguageSupport struct{}
+
+func (c *CppLanguageSupport) GetName() string { return "C++" }
+func (c *CppLanguageSupport) GetExtensions() []string {
+	return []string{".cpp", ".cc", ".cxx", ".c++", ".hpp", ".hh", ".hxx", ".h++"}
+}
+func (c *CppLanguageSupport) GetBuildCommand() string   { return "make" }
+func (c *CppLanguageSupport) GetTestCommand() string    { return "make test" }
+func (c *CppLanguageSupport) GetLintCommand() string    { return "cppcheck ." }
+func (c *CppLanguageSupport) GetDependencyFile() string { return "CMakeLists.txt" }
+
+func (c *CppLanguageSupport) ParseDependencies(content string) []string {
+	var deps []string
+	lines := strings.Split(content, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		// find_package依存関係を検出
+		if strings.Contains(strings.ToLower(line), "find_package") {
+			start := strings.Index(strings.ToLower(line), "find_package(") + 13
+			if start >= 13 {
+				remaining := line[start:]
+				end := strings.Index(remaining, " ")
+				if end == -1 {
+					end = strings.Index(remaining, ")")
+				}
+				if end > 0 {
+					dep := remaining[:end]
+					deps = append(deps, "cmake: "+dep)
+				}
+			}
+		}
+		
+		// target_link_libraries依存関係を検出
+		if strings.Contains(strings.ToLower(line), "target_link_libraries") {
+			// 簡易的な解析（完全なCMakeパーサーではない）
+			if strings.Contains(line, "pthread") {
+				deps = append(deps, "system: pthread")
+			}
+		}
+	}
+
+	return deps
+}
+
+// C言語サポート
+type CLanguageSupport struct{}
+
+func (c *CLanguageSupport) GetName() string             { return "C" }
+func (c *CLanguageSupport) GetExtensions() []string     { return []string{".c", ".h"} }
+func (c *CLanguageSupport) GetBuildCommand() string     { return "make" }
+func (c *CLanguageSupport) GetTestCommand() string      { return "make test" }
+func (c *CLanguageSupport) GetLintCommand() string      { return "cppcheck ." }
+func (c *CLanguageSupport) GetDependencyFile() string   { return "Makefile" }
+
+func (c *CLanguageSupport) ParseDependencies(content string) []string {
+	var deps []string
+	lines := strings.Split(content, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		// pkg-config依存関係を検出
+		if strings.Contains(line, "pkg-config") {
+			start := strings.Index(line, "--libs") + 6
+			if start >= 6 {
+				remaining := strings.TrimSpace(line[start:])
+				packages := strings.Fields(remaining)
+				for _, pkg := range packages {
+					if pkg != "" && !strings.HasPrefix(pkg, "-") {
+						deps = append(deps, "pkg-config: "+pkg)
+					}
+				}
+			}
+		}
+		
+		// 標準的なライブラリリンクを検出
+		if strings.Contains(line, "-l") {
+			parts := strings.Fields(line)
+			for _, part := range parts {
+				if strings.HasPrefix(part, "-l") && len(part) > 2 {
+					libName := part[2:]
+					deps = append(deps, "library: "+libName)
+				}
+			}
+		}
+	}
+
+	return deps
+}
+
 // 多言語サポートマネージャー
 type LanguageManager struct {
 	languages map[string]LanguageSupport
@@ -144,6 +324,11 @@ func NewLanguageManager() *LanguageManager {
 	manager.RegisterLanguage(&GoLanguageSupport{})
 	manager.RegisterLanguage(&JavaScriptLanguageSupport{})
 	manager.RegisterLanguage(&PythonLanguageSupport{})
+	// Phase 2: 追加言語サポート
+	manager.RegisterLanguage(&RustLanguageSupport{})
+	manager.RegisterLanguage(&JavaLanguageSupport{})
+	manager.RegisterLanguage(&CppLanguageSupport{})
+	manager.RegisterLanguage(&CLanguageSupport{})
 
 	return manager
 }

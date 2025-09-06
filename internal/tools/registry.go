@@ -53,6 +53,9 @@ type ToolRegistry struct {
 	multiEditTool *MultiEditTool
 	readTool      *ReadTool
 	writeTool     *WriteTool
+	// Phase 2 高度機能ツール
+	advancedAnalyzer *AdvancedProjectAnalyzer
+	buildManager     *BuildManager
 }
 
 // 新しいツールレジストリを作成
@@ -75,6 +78,9 @@ func NewToolRegistry(constraints *security.Constraints, workDir string, maxFileS
 		multiEditTool: NewMultiEditTool(constraints, workDir, maxFileSize),
 		readTool:      NewReadTool(constraints, workDir, maxFileSize),
 		writeTool:     NewWriteTool(constraints, workDir, maxFileSize),
+		// Phase 2 高度機能ツールを初期化
+		advancedAnalyzer: NewAdvancedProjectAnalyzer(constraints, workDir),
+		buildManager:     NewBuildManager(constraints, workDir),
 	}
 
 	// ネイティブツールを登録
@@ -443,6 +449,97 @@ func (r *ToolRegistry) registerClaudeTools() {
 			"required": []string{"file_path", "content"},
 		},
 		Handler: r.handleWriteTool,
+	}
+
+	// Phase 2: 高度プロジェクト解析ツール
+	r.nativeTools["project_analyze"] = UnifiedTool{
+		Name:        "project_analyze",
+		Description: "プロジェクトの高度な解析（アーキテクチャ、依存関係、セキュリティ）",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"analysis_type": map[string]interface{}{
+					"type":        "string",
+					"description": "解析タイプ（basic, advanced, security, architecture）",
+					"default":     "advanced",
+				},
+			},
+		},
+		Handler: r.handleProjectAnalyzeTool,
+	}
+
+	// Phase 2: ビルドツール
+	r.nativeTools["build"] = UnifiedTool{
+		Name:        "build",
+		Description: "プロジェクトの自動ビルドとパイプライン実行",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"system": map[string]interface{}{
+					"type":        "string",
+					"description": "ビルドシステム（auto, makefile, docker, go, javascript）",
+					"default":     "auto",
+				},
+				"target": map[string]interface{}{
+					"type":        "string",
+					"description": "ビルドターゲット（build, test, clean）",
+					"default":     "build",
+				},
+				"pipeline": map[string]interface{}{
+					"type":        "string",
+					"description": "パイプライン名（go_standard, javascript_standard, full_ci）",
+				},
+			},
+		},
+		Handler: r.handleBuildTool,
+	}
+
+	// Phase 2: アーキテクチャマッピングツール
+	r.nativeTools["architecture_map"] = UnifiedTool{
+		Name:        "architecture_map",
+		Description: "プロジェクト構造とモジュール依存関係の可視化",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"format": map[string]interface{}{
+					"type":        "string",
+					"description": "出力形式（json, summary, detailed）",
+					"default":     "summary",
+				},
+				"include_dependencies": map[string]interface{}{
+					"type":        "boolean",
+					"description": "モジュール間依存関係を含める",
+					"default":     true,
+				},
+			},
+		},
+		Handler: r.handleArchitectureMapTool,
+	}
+
+	// Phase 2: 依存関係分析ツール
+	r.nativeTools["dependency_scan"] = UnifiedTool{
+		Name:        "dependency_scan",
+		Description: "依存関係の詳細分析（脆弱性、ライセンス、更新可能性）",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"scan_type": map[string]interface{}{
+					"type":        "string",
+					"description": "スキャンタイプ（all, security, outdated, conflicts）",
+					"default":     "all",
+				},
+				"include_transitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "推移的依存関係を含める",
+					"default":     true,
+				},
+			},
+		},
+		Handler: r.handleDependencyScanTool,
 	}
 }
 
@@ -919,4 +1016,248 @@ func (r *ToolRegistry) ExecuteTool(toolName string, arguments map[string]interfa
 		Tool:    toolName,
 		Server:  serverName,
 	}, nil
+}
+
+// Phase 2 ツールハンドラー実装
+
+// プロジェクト解析ツールハンドラー
+func (r *ToolRegistry) handleProjectAnalyzeTool(arguments map[string]interface{}) (interface{}, error) {
+	analysisType := "advanced"
+	if aType, ok := arguments["analysis_type"].(string); ok {
+		analysisType = aType
+	}
+
+	switch analysisType {
+	case "basic":
+		basicAnalyzer := NewProjectAnalyzer(r.constraints, r.fileOps.WorkDir)
+		result, err := basicAnalyzer.AnalyzeProject()
+		if err != nil {
+			return nil, fmt.Errorf("基本分析エラー: %w", err)
+		}
+		return map[string]interface{}{
+			"analysis_type": "basic",
+			"result":        result,
+		}, nil
+
+	case "advanced", "security", "architecture":
+		result, err := r.advancedAnalyzer.AnalyzeAdvanced()
+		if err != nil {
+			return nil, fmt.Errorf("高度分析エラー: %w", err)
+		}
+
+		// 特定の分析タイプの場合は結果をフィルタリング
+		switch analysisType {
+		case "security":
+			return map[string]interface{}{
+				"analysis_type": "security",
+				"result": map[string]interface{}{
+					"security_analysis": result.SecurityAnalysis,
+					"health_score":      result.HealthScore,
+				},
+			}, nil
+		case "architecture":
+			return map[string]interface{}{
+				"analysis_type": "architecture",
+				"result": map[string]interface{}{
+					"architecture":     result.Architecture,
+					"build_systems":    result.BuildSystems,
+					"basic_info":       result.BasicInfo,
+				},
+			}, nil
+		default:
+			return map[string]interface{}{
+				"analysis_type": "advanced",
+				"result":        result,
+			}, nil
+		}
+
+	default:
+		return nil, fmt.Errorf("不明な分析タイプ: %s", analysisType)
+	}
+}
+
+// ビルドツールハンドラー
+func (r *ToolRegistry) handleBuildTool(arguments map[string]interface{}) (interface{}, error) {
+	system := "auto"
+	if s, ok := arguments["system"].(string); ok {
+		system = s
+	}
+
+	target := "build"
+	if t, ok := arguments["target"].(string); ok {
+		target = t
+	}
+
+	// パイプライン実行の場合
+	if pipelineName, ok := arguments["pipeline"].(string); ok {
+		pipeline, err := r.buildManager.CreatePresetPipeline(pipelineName)
+		if err != nil {
+			return nil, fmt.Errorf("パイプライン作成エラー: %w", err)
+		}
+
+		results, err := r.buildManager.ExecutePipeline(pipeline)
+		if err != nil {
+			return nil, fmt.Errorf("パイプライン実行エラー: %w", err)
+		}
+
+		return map[string]interface{}{
+			"pipeline":      pipelineName,
+			"results":       results,
+			"performance":   r.buildManager.performance,
+		}, nil
+	}
+
+	// 通常のビルド実行
+	var result *BuildResult
+	var err error
+
+	if system == "auto" {
+		result, err = r.buildManager.AutoBuild()
+	} else {
+		result, err = r.buildManager.BuildWithSystem(system, target)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("ビルドエラー: %w", err)
+	}
+
+	return map[string]interface{}{
+		"build_result": result,
+		"cache_stats":  r.buildManager.cache,
+	}, nil
+}
+
+// アーキテクチャマッピングツールハンドラー
+func (r *ToolRegistry) handleArchitectureMapTool(arguments map[string]interface{}) (interface{}, error) {
+	format := "summary"
+	if f, ok := arguments["format"].(string); ok {
+		format = f
+	}
+
+	includeDependencies := true
+	if inc, ok := arguments["include_dependencies"].(bool); ok {
+		includeDependencies = inc
+	}
+
+	analysis, err := r.advancedAnalyzer.AnalyzeAdvanced()
+	if err != nil {
+		return nil, fmt.Errorf("アーキテクチャ分析エラー: %w", err)
+	}
+
+	if analysis.Architecture == nil {
+		return nil, fmt.Errorf("アーキテクチャ情報が見つかりません")
+	}
+
+	switch format {
+	case "json":
+		return map[string]interface{}{
+			"architecture": analysis.Architecture,
+			"build_systems": analysis.BuildSystems,
+		}, nil
+
+	case "summary":
+		summary := map[string]interface{}{
+			"layers_count":        len(analysis.Architecture.Layers),
+			"modules_count":       len(analysis.Architecture.Modules),
+			"entry_points_count":  len(analysis.Architecture.EntryPoints),
+			"build_systems_count": len(analysis.BuildSystems),
+		}
+
+		if len(analysis.Architecture.Layers) > 0 {
+			layerNames := make([]string, len(analysis.Architecture.Layers))
+			for i, layer := range analysis.Architecture.Layers {
+				layerNames[i] = layer.Name
+			}
+			summary["layers"] = layerNames
+		}
+
+		if len(analysis.Architecture.EntryPoints) > 0 {
+			summary["entry_points"] = analysis.Architecture.EntryPoints
+		}
+
+		if includeDependencies && len(analysis.Architecture.Dependencies) > 0 {
+			summary["dependency_count"] = len(analysis.Architecture.Dependencies)
+		}
+
+		return summary, nil
+
+	case "detailed":
+		result := map[string]interface{}{
+			"architecture": analysis.Architecture,
+			"basic_info":   analysis.BasicInfo,
+		}
+
+		if includeDependencies {
+			result["detailed_dependencies"] = analysis.DetailedDeps
+		}
+
+		return result, nil
+
+	default:
+		return nil, fmt.Errorf("不明な出力形式: %s", format)
+	}
+}
+
+// 依存関係分析ツールハンドラー
+func (r *ToolRegistry) handleDependencyScanTool(arguments map[string]interface{}) (interface{}, error) {
+	scanType := "all"
+	if st, ok := arguments["scan_type"].(string); ok {
+		scanType = st
+	}
+
+	includeTransitive := true
+	if inc, ok := arguments["include_transitive"].(bool); ok {
+		includeTransitive = inc
+	}
+
+	analysis, err := r.advancedAnalyzer.AnalyzeAdvanced()
+	if err != nil {
+		return nil, fmt.Errorf("依存関係分析エラー: %w", err)
+	}
+
+	if analysis.DetailedDeps == nil {
+		return nil, fmt.Errorf("詳細依存関係情報が見つかりません")
+	}
+
+	result := make(map[string]interface{})
+
+	switch scanType {
+	case "all":
+		result["direct_dependencies"] = analysis.DetailedDeps.DirectDeps
+		result["dev_dependencies"] = analysis.DetailedDeps.DevDeps
+		if includeTransitive {
+			result["transitive_dependencies"] = analysis.DetailedDeps.TransitiveDeps
+		}
+		result["vulnerabilities"] = analysis.DetailedDeps.Vulnerabilities
+		result["conflicts"] = analysis.DetailedDeps.Conflicts
+		result["outdated"] = analysis.DetailedDeps.Outdated
+
+	case "security":
+		result["vulnerabilities"] = analysis.DetailedDeps.Vulnerabilities
+		if analysis.SecurityAnalysis != nil {
+			result["security_analysis"] = analysis.SecurityAnalysis
+		}
+
+	case "outdated":
+		result["outdated"] = analysis.DetailedDeps.Outdated
+		result["direct_dependencies"] = analysis.DetailedDeps.DirectDeps
+
+	case "conflicts":
+		result["conflicts"] = analysis.DetailedDeps.Conflicts
+
+	default:
+		return nil, fmt.Errorf("不明なスキャンタイプ: %s", scanType)
+	}
+
+	// 統計情報を追加
+	result["summary"] = map[string]interface{}{
+		"direct_deps_count":     len(analysis.DetailedDeps.DirectDeps),
+		"dev_deps_count":        len(analysis.DetailedDeps.DevDeps),
+		"transitive_deps_count": len(analysis.DetailedDeps.TransitiveDeps),
+		"vulnerabilities_count": len(analysis.DetailedDeps.Vulnerabilities),
+		"conflicts_count":       len(analysis.DetailedDeps.Conflicts),
+		"outdated_count":        len(analysis.DetailedDeps.Outdated),
+	}
+
+	return result, nil
 }

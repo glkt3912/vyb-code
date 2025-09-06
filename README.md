@@ -15,11 +15,19 @@
 
 ### 🛠️ Claude Code完全互換ツール
 
+**基本ツール（10個）**
 - **Bash**: セキュアなコマンド実行（タイムアウト・制約付き）
 - **File Operations**: Read, Write, Edit, MultiEdit（構造化編集）
 - **Search Tools**: Glob（パターン検索）, Grep（高度検索）, LS（リスト）
 - **Web Integration**: WebFetch（内容取得）, WebSearch（検索）
-- **全10個のツール**がClaude Codeと同等機能で利用可能
+
+**高度な開発支援ツール（4個）**
+- **Project Analyze**: プロジェクト構造・依存関係・セキュリティ分析
+- **Build**: 自動ビルドシステム検出・パイプライン実行・最適化提案
+- **Architecture Map**: コードアーキテクチャ可視化・モジュール依存関係分析
+- **Dependency Scan**: 依存関係脆弱性・ライセンス・更新可能性チェック
+
+**全14個のツール**がClaude Code同等＋高度機能で利用可能
 
 ### 🔒 高度な入力システム
 

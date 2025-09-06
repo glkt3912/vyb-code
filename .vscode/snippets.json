@@ -1,0 +1,81 @@
+{
+  "Go Test Function": {
+    "prefix": "gotest",
+    "body": [
+      "func Test${1:FunctionName}(t *testing.T) {",
+      "\ttests := []struct {",
+      "\t\tname string",
+      "\t\t// Add test fields here",
+      "\t}{",
+      "\t\t{",
+      "\t\t\tname: \"${2:test case}\",",
+      "\t\t\t// Add test values here", 
+      "\t\t},",
+      "\t}",
+      "",
+      "\tfor _, tt := range tests {",
+      "\t\tt.Run(tt.name, func(t *testing.T) {",
+      "\t\t\t${3:// Test implementation}",
+      "\t\t})",
+      "\t}",
+      "}"
+    ],
+    "description": "テスト関数のテンプレート"
+  },
+  "Go Error Check": {
+    "prefix": "iferr",
+    "body": [
+      "if err != nil {",
+      "\treturn ${1:nil, }err",
+      "}"
+    ],
+    "description": "エラーチェックのテンプレート"
+  },
+  "Go Struct": {
+    "prefix": "gostruct",
+    "body": [
+      "// ${1:StructName} ${2:説明}",
+      "type ${1:StructName} struct {",
+      "\t${3:// フィールドを追加}",
+      "}"
+    ],
+    "description": "構造体のテンプレート"
+  },
+  "Go Interface": {
+    "prefix": "gointerface",
+    "body": [
+      "// ${1:InterfaceName} ${2:説明}",
+      "type ${1:InterfaceName} interface {",
+      "\t${3:// メソッドを追加}",
+      "}"
+    ],
+    "description": "インターフェースのテンプレート"
+  },
+  "Claude Code Tool": {
+    "prefix": "claudetool",
+    "body": [
+      "// ${1:ToolName} - ${2:説明}",
+      "type ${1:ToolName} struct {",
+      "\tconstraints *security.Constraints",
+      "\tworkDir     string",
+      "}",
+      "",
+      "func New${1:ToolName}(constraints *security.Constraints, workDir string) *${1:ToolName} {",
+      "\treturn &${1:ToolName}{",
+      "\t\tconstraints: constraints,",
+      "\t\tworkDir:     workDir,",
+      "\t}",
+      "}",
+      "",
+      "func (t *${1:ToolName}) ${3:Execute}(${4:args}) (*ToolExecutionResult, error) {",
+      "\t${5:// 実装を追加}",
+      "\treturn &ToolExecutionResult{",
+      "\t\tContent: \"\",",
+      "\t\tIsError: false,",
+      "\t\tTool:    \"${6:toolname}\",",
+      "\t}, nil",
+      "}"
+    ],
+    "description": "Claude Codeツールのテンプレート"
+  }
+}

@@ -19,9 +19,21 @@ vyb.exe
 # Go workspace file
 go.work
 
-# IDE and editor files
-.vscode/
+# VSCode個人設定（チーム設定は含める）
+.vscode/settings.json.user
+.vscode/*.log
+
+# 一時ファイル
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE個人設定（チーム設定は除外）
 .idea/
+
+# VSCodeチーム設定は含める（個人設定のみ除外）
+# .vscode/ の代わりに具体的に個人設定を除外
 *.swp
 *.swo
 *~

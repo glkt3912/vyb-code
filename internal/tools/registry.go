@@ -42,6 +42,17 @@ type ToolRegistry struct {
 	fileOps     *FileOperations
 	executor    *CommandExecutor
 	gitOps      *GitOperations
+	// Claude Codeツール
+	bashTool      *BashTool
+	globTool      *GlobTool
+	grepTool      *GrepTool
+	lsTool        *LSTool
+	webFetchTool  *WebFetchTool
+	webSearchTool *WebSearchTool
+	editTool      *EditTool
+	multiEditTool *MultiEditTool
+	readTool      *ReadTool
+	writeTool     *WriteTool
 }
 
 // 新しいツールレジストリを作成
@@ -53,10 +64,23 @@ func NewToolRegistry(constraints *security.Constraints, workDir string, maxFileS
 		fileOps:     NewFileOperations(maxFileSize, workDir),
 		executor:    NewCommandExecutor(constraints, workDir),
 		gitOps:      NewGitOperations(constraints, workDir),
+		// Claude Codeツールを初期化
+		bashTool:      NewBashTool(constraints, workDir),
+		globTool:      NewGlobTool(workDir),
+		grepTool:      NewGrepTool(workDir),
+		lsTool:        NewLSTool(workDir),
+		webFetchTool:  NewWebFetchTool(),
+		webSearchTool: NewWebSearchTool(),
+		editTool:      NewEditTool(constraints, workDir, maxFileSize),
+		multiEditTool: NewMultiEditTool(constraints, workDir, maxFileSize),
+		readTool:      NewReadTool(constraints, workDir, maxFileSize),
+		writeTool:     NewWriteTool(constraints, workDir, maxFileSize),
 	}
 
 	// ネイティブツールを登録
 	registry.registerNativeTools()
+	// Claude Codeツールを登録
+	registry.registerClaudeTools()
 	return registry
 }
 
@@ -131,6 +155,609 @@ func (r *ToolRegistry) registerNativeTools() {
 		},
 		Handler: r.handleGitStatus,
 	}
+}
+
+// Claude Codeツールを登録
+func (r *ToolRegistry) registerClaudeTools() {
+	// Bashツール
+	r.nativeTools["bash"] = UnifiedTool{
+		Name:        "bash",
+		Description: "セキュアなシェルコマンド実行",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"command": map[string]interface{}{
+					"type":        "string",
+					"description": "実行するコマンド",
+				},
+				"description": map[string]interface{}{
+					"type":        "string",
+					"description": "コマンドの説明",
+				},
+				"timeout": map[string]interface{}{
+					"type":        "number",
+					"description": "タイムアウト（ミリ秒）",
+				},
+			},
+			"required": []string{"command"},
+		},
+		Handler: r.handleBashTool,
+	}
+
+	// Globツール
+	r.nativeTools["glob"] = UnifiedTool{
+		Name:        "glob",
+		Description: "ファイルパターンマッチング",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"pattern": map[string]interface{}{
+					"type":        "string",
+					"description": "検索パターン",
+				},
+				"path": map[string]interface{}{
+					"type":        "string",
+					"description": "検索パス（省略可）",
+				},
+			},
+			"required": []string{"pattern"},
+		},
+		Handler: r.handleGlobTool,
+	}
+
+	// Grepツール
+	r.nativeTools["grep"] = UnifiedTool{
+		Name:        "grep",
+		Description: "高度なファイル検索",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"pattern": map[string]interface{}{
+					"type":        "string",
+					"description": "検索パターン（正規表現）",
+				},
+				"path": map[string]interface{}{
+					"type":        "string",
+					"description": "検索パス",
+				},
+				"glob": map[string]interface{}{
+					"type":        "string",
+					"description": "ファイルフィルター",
+				},
+				"type": map[string]interface{}{
+					"type":        "string",
+					"description": "ファイル種別",
+				},
+				"output_mode": map[string]interface{}{
+					"type":        "string",
+					"description": "出力モード: content, files_with_matches, count",
+				},
+				"case_insensitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "大文字小文字を無視",
+				},
+			},
+			"required": []string{"pattern"},
+		},
+		Handler: r.handleGrepTool,
+	}
+
+	// LSツール
+	r.nativeTools["ls"] = UnifiedTool{
+		Name:        "ls",
+		Description: "ディレクトリリスト表示",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"path": map[string]interface{}{
+					"type":        "string",
+					"description": "リストするパス",
+				},
+				"ignore": map[string]interface{}{
+					"type":        "array",
+					"description": "無視するパターン",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+		},
+		Handler: r.handleLSTool,
+	}
+
+	// WebFetchツール
+	r.nativeTools["webfetch"] = UnifiedTool{
+		Name:        "webfetch",
+		Description: "Web内容の取得と処理",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"url": map[string]interface{}{
+					"type":        "string",
+					"description": "取得するURL",
+				},
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "処理プロンプト",
+				},
+			},
+			"required": []string{"url", "prompt"},
+		},
+		Handler: r.handleWebFetchTool,
+	}
+
+	// WebSearchツール
+	r.nativeTools["websearch"] = UnifiedTool{
+		Name:        "websearch",
+		Description: "Web検索機能",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"query": map[string]interface{}{
+					"type":        "string",
+					"description": "検索クエリ",
+				},
+				"allowed_domains": map[string]interface{}{
+					"type":        "array",
+					"description": "許可するドメイン",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+				"blocked_domains": map[string]interface{}{
+					"type":        "array",
+					"description": "ブロックするドメイン",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+				"max_results": map[string]interface{}{
+					"type":        "number",
+					"description": "最大結果数",
+				},
+			},
+			"required": []string{"query"},
+		},
+		Handler: r.handleWebSearchTool,
+	}
+
+	// Editツール
+	r.nativeTools["edit"] = UnifiedTool{
+		Name:        "edit",
+		Description: "ファイルの構造化編集",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"file_path": map[string]interface{}{
+					"type":        "string",
+					"description": "編集するファイルパス",
+				},
+				"old_string": map[string]interface{}{
+					"type":        "string",
+					"description": "置換対象の文字列",
+				},
+				"new_string": map[string]interface{}{
+					"type":        "string",
+					"description": "置換後の文字列",
+				},
+				"replace_all": map[string]interface{}{
+					"type":        "boolean",
+					"description": "全て置換するか",
+				},
+			},
+			"required": []string{"file_path", "old_string", "new_string"},
+		},
+		Handler: r.handleEditTool,
+	}
+
+	// MultiEditツール
+	r.nativeTools["multiedit"] = UnifiedTool{
+		Name:        "multiedit",
+		Description: "ファイルの複数箇所編集",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"file_path": map[string]interface{}{
+					"type":        "string",
+					"description": "編集するファイルパス",
+				},
+				"edits": map[string]interface{}{
+					"type":        "array",
+					"description": "編集操作の配列",
+					"items": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"old_string": map[string]interface{}{
+								"type":        "string",
+								"description": "置換対象の文字列",
+							},
+							"new_string": map[string]interface{}{
+								"type":        "string",
+								"description": "置換後の文字列",
+							},
+							"replace_all": map[string]interface{}{
+								"type":        "boolean",
+								"description": "全て置換するか",
+							},
+						},
+						"required": []string{"old_string", "new_string"},
+					},
+				},
+			},
+			"required": []string{"file_path", "edits"},
+		},
+		Handler: r.handleMultiEditTool,
+	}
+
+	// Readツール（拡張版）
+	r.nativeTools["read"] = UnifiedTool{
+		Name:        "read",
+		Description: "ファイル内容の読み取り",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"file_path": map[string]interface{}{
+					"type":        "string",
+					"description": "読み取るファイルパス",
+				},
+				"offset": map[string]interface{}{
+					"type":        "number",
+					"description": "読み取り開始行",
+				},
+				"limit": map[string]interface{}{
+					"type":        "number",
+					"description": "読み取る行数",
+				},
+			},
+			"required": []string{"file_path"},
+		},
+		Handler: r.handleReadTool,
+	}
+
+	// Writeツール
+	r.nativeTools["write"] = UnifiedTool{
+		Name:        "write",
+		Description: "ファイルへの書き込み",
+		Type:        "native",
+		Schema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"file_path": map[string]interface{}{
+					"type":        "string",
+					"description": "書き込むファイルパス",
+				},
+				"content": map[string]interface{}{
+					"type":        "string",
+					"description": "書き込む内容",
+				},
+			},
+			"required": []string{"file_path", "content"},
+		},
+		Handler: r.handleWriteTool,
+	}
+}
+
+// Claude Codeツールハンドラー実装
+func (r *ToolRegistry) handleBashTool(arguments map[string]interface{}) (interface{}, error) {
+	command, ok := arguments["command"].(string)
+	if !ok {
+		return nil, fmt.Errorf("command引数が必要です")
+	}
+
+	description := ""
+	if desc, ok := arguments["description"].(string); ok {
+		description = desc
+	}
+
+	timeout := 0
+	if timeoutVal, ok := arguments["timeout"].(float64); ok {
+		timeout = int(timeoutVal)
+	}
+
+	result, err := r.bashTool.Execute(command, description, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":   result.Content,
+		"exit_code": result.ExitCode,
+		"duration":  result.Duration,
+		"metadata":  result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleGlobTool(arguments map[string]interface{}) (interface{}, error) {
+	pattern, ok := arguments["pattern"].(string)
+	if !ok {
+		return nil, fmt.Errorf("pattern引数が必要です")
+	}
+
+	path := ""
+	if pathVal, ok := arguments["path"].(string); ok {
+		path = pathVal
+	}
+
+	result, err := r.globTool.Find(pattern, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleGrepTool(arguments map[string]interface{}) (interface{}, error) {
+	options := GrepOptions{}
+
+	if pattern, ok := arguments["pattern"].(string); ok {
+		options.Pattern = pattern
+	} else {
+		return nil, fmt.Errorf("pattern引数が必要です")
+	}
+
+	if path, ok := arguments["path"].(string); ok {
+		options.Path = path
+	}
+	if glob, ok := arguments["glob"].(string); ok {
+		options.Glob = glob
+	}
+	if fileType, ok := arguments["type"].(string); ok {
+		options.Type = fileType
+	}
+	if outputMode, ok := arguments["output_mode"].(string); ok {
+		options.OutputMode = outputMode
+	}
+	if caseInsensitive, ok := arguments["case_insensitive"].(bool); ok {
+		options.CaseInsensitive = caseInsensitive
+	}
+
+	result, err := r.grepTool.Search(options)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleLSTool(arguments map[string]interface{}) (interface{}, error) {
+	path := ""
+	if pathVal, ok := arguments["path"].(string); ok {
+		path = pathVal
+	}
+
+	var ignore []string
+	if ignoreVal, ok := arguments["ignore"].([]interface{}); ok {
+		for _, item := range ignoreVal {
+			if str, ok := item.(string); ok {
+				ignore = append(ignore, str)
+			}
+		}
+	}
+
+	result, err := r.lsTool.List(path, ignore)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleWebFetchTool(arguments map[string]interface{}) (interface{}, error) {
+	url, ok := arguments["url"].(string)
+	if !ok {
+		return nil, fmt.Errorf("url引数が必要です")
+	}
+
+	prompt, ok := arguments["prompt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("prompt引数が必要です")
+	}
+
+	result, err := r.webFetchTool.Fetch(url, prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleWebSearchTool(arguments map[string]interface{}) (interface{}, error) {
+	options := WebSearchOptions{}
+
+	if query, ok := arguments["query"].(string); ok {
+		options.Query = query
+	} else {
+		return nil, fmt.Errorf("query引数が必要です")
+	}
+
+	if allowedInterface, ok := arguments["allowed_domains"].([]interface{}); ok {
+		for _, domain := range allowedInterface {
+			if domainStr, ok := domain.(string); ok {
+				options.AllowedDomains = append(options.AllowedDomains, domainStr)
+			}
+		}
+	}
+
+	if blockedInterface, ok := arguments["blocked_domains"].([]interface{}); ok {
+		for _, domain := range blockedInterface {
+			if domainStr, ok := domain.(string); ok {
+				options.BlockedDomains = append(options.BlockedDomains, domainStr)
+			}
+		}
+	}
+
+	if maxResults, ok := arguments["max_results"].(float64); ok {
+		options.MaxResults = int(maxResults)
+	}
+
+	result, err := r.webSearchTool.Search(options)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleEditTool(arguments map[string]interface{}) (interface{}, error) {
+	req := EditRequest{}
+
+	if filePath, ok := arguments["file_path"].(string); ok {
+		req.FilePath = filePath
+	} else {
+		return nil, fmt.Errorf("file_path引数が必要です")
+	}
+
+	if oldString, ok := arguments["old_string"].(string); ok {
+		req.OldString = oldString
+	} else {
+		return nil, fmt.Errorf("old_string引数が必要です")
+	}
+
+	if newString, ok := arguments["new_string"].(string); ok {
+		req.NewString = newString
+	} else {
+		return nil, fmt.Errorf("new_string引数が必要です")
+	}
+
+	if replaceAll, ok := arguments["replace_all"].(bool); ok {
+		req.ReplaceAll = replaceAll
+	}
+
+	result, err := r.editTool.Edit(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleMultiEditTool(arguments map[string]interface{}) (interface{}, error) {
+	req := MultiEditRequest{}
+
+	if filePath, ok := arguments["file_path"].(string); ok {
+		req.FilePath = filePath
+	} else {
+		return nil, fmt.Errorf("file_path引数が必要です")
+	}
+
+	if editsInterface, ok := arguments["edits"].([]interface{}); ok {
+		for _, editInterface := range editsInterface {
+			if editMap, ok := editInterface.(map[string]interface{}); ok {
+				edit := EditRequest{}
+
+				if oldString, ok := editMap["old_string"].(string); ok {
+					edit.OldString = oldString
+				} else {
+					return nil, fmt.Errorf("各編集にold_string引数が必要です")
+				}
+
+				if newString, ok := editMap["new_string"].(string); ok {
+					edit.NewString = newString
+				} else {
+					return nil, fmt.Errorf("各編集にnew_string引数が必要です")
+				}
+
+				if replaceAll, ok := editMap["replace_all"].(bool); ok {
+					edit.ReplaceAll = replaceAll
+				}
+
+				req.Edits = append(req.Edits, edit)
+			}
+		}
+	} else {
+		return nil, fmt.Errorf("edits引数が必要です")
+	}
+
+	result, err := r.multiEditTool.MultiEdit(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleReadTool(arguments map[string]interface{}) (interface{}, error) {
+	req := ReadRequest{}
+
+	if filePath, ok := arguments["file_path"].(string); ok {
+		req.FilePath = filePath
+	} else {
+		return nil, fmt.Errorf("file_path引数が必要です")
+	}
+
+	if offset, ok := arguments["offset"].(float64); ok {
+		req.Offset = int(offset)
+	}
+
+	if limit, ok := arguments["limit"].(float64); ok {
+		req.Limit = int(limit)
+	}
+
+	result, err := r.readTool.Read(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
+}
+
+func (r *ToolRegistry) handleWriteTool(arguments map[string]interface{}) (interface{}, error) {
+	req := WriteRequest{}
+
+	if filePath, ok := arguments["file_path"].(string); ok {
+		req.FilePath = filePath
+	} else {
+		return nil, fmt.Errorf("file_path引数が必要です")
+	}
+
+	if content, ok := arguments["content"].(string); ok {
+		req.Content = content
+	} else {
+		return nil, fmt.Errorf("content引数が必要です")
+	}
+
+	result, err := r.writeTool.Write(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"content":  result.Content,
+		"metadata": result.Metadata,
+	}, nil
 }
 
 // ネイティブツールハンドラー実装

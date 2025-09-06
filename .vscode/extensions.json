@@ -1,0 +1,42 @@
+{
+  "recommendations": [
+    // Go開発必須プラグイン
+    "golang.go",
+    
+    // Git関連
+    "eamodio.gitlens",
+    "donjayamanne.githistory",
+    
+    // ファイル操作・検索
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-vscode-remote.remote-containers",
+    
+    // コードフォーマット・品質
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.makefile-tools",
+    
+    // ターミナル・シェル
+    "ms-vscode.remote-repositories",
+    "ms-vscode-remote.remote-ssh",
+    
+    // Markdown・ドキュメント
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    
+    // テスト・デバッグ
+    "ms-vscode.test-adapter-converter",
+    
+    // UI・テーマ
+    "pkief.material-icon-theme",
+    "zhuangtongfa.material-theme",
+    
+    // 日本語関連（オプション）
+    "ms-ceintl.vscode-language-pack-ja"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript-next",
+    "ms-python.python"
+  ]
+}

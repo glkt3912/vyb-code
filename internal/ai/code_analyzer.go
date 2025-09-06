@@ -14,25 +14,25 @@ import (
 
 // AIコード分析結果
 type CodeAnalysisResult struct {
-	Summary           string                 `json:"summary"`
-	Issues            []CodeIssue            `json:"issues"`
-	Suggestions       []CodeSuggestion       `json:"suggestions"`
-	Quality           QualityMetrics         `json:"quality"`
-	Refactoring       []RefactoringProposal  `json:"refactoring_proposals"`
-	Documentation     []DocumentationGap     `json:"documentation_gaps"`
-	Performance       []PerformanceInsight   `json:"performance_insights"`
-	Security          SecurityAnalysis       `json:"security"`
-	Dependencies      []DependencyIssue      `json:"dependency_issues"`
-	Complexity        ComplexityAnalysis     `json:"complexity"`
-	TestCoverage      TestCoverageAnalysis   `json:"test_coverage"`
-	AnalysisTimestamp time.Time              `json:"analysis_timestamp"`
-	ProcessingTime    time.Duration          `json:"processing_time"`
+	Summary           string                `json:"summary"`
+	Issues            []CodeIssue           `json:"issues"`
+	Suggestions       []CodeSuggestion      `json:"suggestions"`
+	Quality           QualityMetrics        `json:"quality"`
+	Refactoring       []RefactoringProposal `json:"refactoring_proposals"`
+	Documentation     []DocumentationGap    `json:"documentation_gaps"`
+	Performance       []PerformanceInsight  `json:"performance_insights"`
+	Security          SecurityAnalysis      `json:"security"`
+	Dependencies      []DependencyIssue     `json:"dependency_issues"`
+	Complexity        ComplexityAnalysis    `json:"complexity"`
+	TestCoverage      TestCoverageAnalysis  `json:"test_coverage"`
+	AnalysisTimestamp time.Time             `json:"analysis_timestamp"`
+	ProcessingTime    time.Duration         `json:"processing_time"`
 }
 
 // コードの問題
 type CodeIssue struct {
-	Type        string `json:"type"`        // "bug", "smell", "style", "performance"
-	Severity    string `json:"severity"`    // "low", "medium", "high", "critical"
+	Type        string `json:"type"`     // "bug", "smell", "style", "performance"
+	Severity    string `json:"severity"` // "low", "medium", "high", "critical"
 	File        string `json:"file"`
 	Line        int    `json:"line"`
 	Column      int    `json:"column,omitempty"`
@@ -44,50 +44,50 @@ type CodeIssue struct {
 
 // コード改善提案
 type CodeSuggestion struct {
-	Type         string `json:"type"`          // "optimization", "cleanup", "modernization"
-	Priority     string `json:"priority"`      // "low", "medium", "high"
-	File         string `json:"file"`
-	LineRange    [2]int `json:"line_range"`    // [start, end]
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Before       string `json:"before"`
-	After        string `json:"after"`
-	Explanation  string `json:"explanation"`
-	Benefits     string `json:"benefits"`
+	Type        string `json:"type"`     // "optimization", "cleanup", "modernization"
+	Priority    string `json:"priority"` // "low", "medium", "high"
+	File        string `json:"file"`
+	LineRange   [2]int `json:"line_range"` // [start, end]
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Before      string `json:"before"`
+	After       string `json:"after"`
+	Explanation string `json:"explanation"`
+	Benefits    string `json:"benefits"`
 }
 
 // 品質メトリクス
 type QualityMetrics struct {
-	OverallScore     int     `json:"overall_score"`      // 0-100
-	Maintainability  int     `json:"maintainability"`    // 0-100
-	Reliability      int     `json:"reliability"`        // 0-100
-	Performance      int     `json:"performance"`        // 0-100
-	Security         int     `json:"security"`           // 0-100
-	Readability      int     `json:"readability"`        // 0-100
-	TestQuality      int     `json:"test_quality"`       // 0-100
-	TechnicalDebt    float64 `json:"technical_debt"`     // in hours
-	CodeDuplication  float64 `json:"code_duplication"`   // percentage
+	OverallScore    int     `json:"overall_score"`    // 0-100
+	Maintainability int     `json:"maintainability"`  // 0-100
+	Reliability     int     `json:"reliability"`      // 0-100
+	Performance     int     `json:"performance"`      // 0-100
+	Security        int     `json:"security"`         // 0-100
+	Readability     int     `json:"readability"`      // 0-100
+	TestQuality     int     `json:"test_quality"`     // 0-100
+	TechnicalDebt   float64 `json:"technical_debt"`   // in hours
+	CodeDuplication float64 `json:"code_duplication"` // percentage
 }
 
 // リファクタリング提案
 type RefactoringProposal struct {
-	Type         string   `json:"type"`          // "extract_method", "rename", "move_class"
-	Priority     string   `json:"priority"`
-	Title        string   `json:"title"`
-	Description  string   `json:"description"`
-	Files        []string `json:"files"`
-	EstimatedEffort string `json:"estimated_effort"`
-	Benefits     string   `json:"benefits"`
-	Risks        string   `json:"risks"`
-	Steps        []string `json:"steps"`
+	Type            string   `json:"type"` // "extract_method", "rename", "move_class"
+	Priority        string   `json:"priority"`
+	Title           string   `json:"title"`
+	Description     string   `json:"description"`
+	Files           []string `json:"files"`
+	EstimatedEffort string   `json:"estimated_effort"`
+	Benefits        string   `json:"benefits"`
+	Risks           string   `json:"risks"`
+	Steps           []string `json:"steps"`
 }
 
 // ドキュメント不足
 type DocumentationGap struct {
-	Type        string `json:"type"`        // "missing_comment", "missing_docstring", "outdated"
+	Type        string `json:"type"` // "missing_comment", "missing_docstring", "outdated"
 	File        string `json:"file"`
 	Line        int    `json:"line"`
-	Element     string `json:"element"`     // "function", "class", "module"
+	Element     string `json:"element"` // "function", "class", "module"
 	ElementName string `json:"element_name"`
 	Suggestion  string `json:"suggestion"`
 	Template    string `json:"template"`
@@ -95,26 +95,26 @@ type DocumentationGap struct {
 
 // パフォーマンス洞察
 type PerformanceInsight struct {
-	Type         string `json:"type"`          // "bottleneck", "optimization_opportunity"
-	File         string `json:"file"`
-	Line         int    `json:"line"`
-	Function     string `json:"function"`
-	Issue        string `json:"issue"`
-	Impact       string `json:"impact"`        // "low", "medium", "high"
-	Suggestion   string `json:"suggestion"`
+	Type          string `json:"type"` // "bottleneck", "optimization_opportunity"
+	File          string `json:"file"`
+	Line          int    `json:"line"`
+	Function      string `json:"function"`
+	Issue         string `json:"issue"`
+	Impact        string `json:"impact"` // "low", "medium", "high"
+	Suggestion    string `json:"suggestion"`
 	EstimatedGain string `json:"estimated_gain"`
 }
 
 // セキュリティ発見事項
 type SecurityFinding struct {
-	Type        string `json:"type"`        // "vulnerability", "weakness", "bad_practice"
-	Severity    string `json:"severity"`
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Rule        string `json:"rule"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Fix         string `json:"fix"`
+	Type        string   `json:"type"` // "vulnerability", "weakness", "bad_practice"
+	Severity    string   `json:"severity"`
+	File        string   `json:"file"`
+	Line        int      `json:"line"`
+	Rule        string   `json:"rule"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Fix         string   `json:"fix"`
 	References  []string `json:"references"`
 }
 
@@ -126,7 +126,7 @@ type SecurityAnalysis struct {
 
 // 依存関係問題
 type DependencyIssue struct {
-	Type        string `json:"type"`        // "outdated", "vulnerable", "unused", "conflict"
+	Type        string `json:"type"` // "outdated", "vulnerable", "unused", "conflict"
 	Package     string `json:"package"`
 	Current     string `json:"current_version"`
 	Latest      string `json:"latest_version,omitempty"`
@@ -137,40 +137,40 @@ type DependencyIssue struct {
 
 // 複雑度分析
 type ComplexityAnalysis struct {
-	CyclomaticComplexity int                      `json:"cyclomatic_complexity"`
-	CognitiveComplexity  int                      `json:"cognitive_complexity"`
-	NestingDepth         int                      `json:"max_nesting_depth"`
+	CyclomaticComplexity  int                     `json:"cyclomatic_complexity"`
+	CognitiveComplexity   int                     `json:"cognitive_complexity"`
+	NestingDepth          int                     `json:"max_nesting_depth"`
 	FunctionsByComplexity map[string]int          `json:"functions_by_complexity"`
-	ComplexFunctions     []ComplexFunctionReport `json:"complex_functions"`
+	ComplexFunctions      []ComplexFunctionReport `json:"complex_functions"`
 }
 
 // 複雑な関数のレポート
 type ComplexFunctionReport struct {
-	File        string `json:"file"`
-	Function    string `json:"function"`
-	Line        int    `json:"line"`
-	Complexity  int    `json:"complexity"`
-	Suggestion  string `json:"suggestion"`
+	File       string `json:"file"`
+	Function   string `json:"function"`
+	Line       int    `json:"line"`
+	Complexity int    `json:"complexity"`
+	Suggestion string `json:"suggestion"`
 }
 
 // テストカバレッジ分析
 type TestCoverageAnalysis struct {
-	OverallCoverage    float64                    `json:"overall_coverage"`
-	LineCoverage       float64                    `json:"line_coverage"`
-	BranchCoverage     float64                    `json:"branch_coverage"`
-	FunctionCoverage   float64                    `json:"function_coverage"`
-	UncoveredFiles     []string                   `json:"uncovered_files"`
-	CriticalUncovered  []CriticalUncoveredCode    `json:"critical_uncovered"`
-	TestSuggestions    []string                   `json:"test_suggestions"`
+	OverallCoverage   float64                 `json:"overall_coverage"`
+	LineCoverage      float64                 `json:"line_coverage"`
+	BranchCoverage    float64                 `json:"branch_coverage"`
+	FunctionCoverage  float64                 `json:"function_coverage"`
+	UncoveredFiles    []string                `json:"uncovered_files"`
+	CriticalUncovered []CriticalUncoveredCode `json:"critical_uncovered"`
+	TestSuggestions   []string                `json:"test_suggestions"`
 }
 
 // 重要な未カバーコード
 type CriticalUncoveredCode struct {
-	File        string `json:"file"`
-	Function    string `json:"function"`
-	Line        int    `json:"line"`
-	Reason      string `json:"reason"`
-	Suggestion  string `json:"suggestion"`
+	File       string `json:"file"`
+	Function   string `json:"function"`
+	Line       int    `json:"line"`
+	Reason     string `json:"reason"`
+	Suggestion string `json:"suggestion"`
 }
 
 // AIコード分析器
@@ -183,14 +183,14 @@ type CodeAnalyzer struct {
 
 // 分析設定
 type AnalysisConfig struct {
-	MaxFileSize        int64    `json:"max_file_size"`        // bytes
-	IncludePatterns    []string `json:"include_patterns"`     // glob patterns
-	ExcludePatterns    []string `json:"exclude_patterns"`     // glob patterns
-	AnalysisDepth      string   `json:"analysis_depth"`       // "basic", "detailed", "comprehensive"
-	LanguageFilter     []string `json:"language_filter"`      // specific languages to analyze
-	EnableSecurityScan bool     `json:"enable_security_scan"`
-	EnablePerformance  bool     `json:"enable_performance"`
-	EnableRefactoring  bool     `json:"enable_refactoring"`
+	MaxFileSize        int64             `json:"max_file_size"`    // bytes
+	IncludePatterns    []string          `json:"include_patterns"` // glob patterns
+	ExcludePatterns    []string          `json:"exclude_patterns"` // glob patterns
+	AnalysisDepth      string            `json:"analysis_depth"`   // "basic", "detailed", "comprehensive"
+	LanguageFilter     []string          `json:"language_filter"`  // specific languages to analyze
+	EnableSecurityScan bool              `json:"enable_security_scan"`
+	EnablePerformance  bool              `json:"enable_performance"`
+	EnableRefactoring  bool              `json:"enable_refactoring"`
 	CustomPrompts      map[string]string `json:"custom_prompts"`
 }
 
@@ -201,8 +201,8 @@ func NewCodeAnalyzer(llmClient LLMClient, constraints *security.Constraints, pro
 		constraints: constraints,
 		projectDir:  projectDir,
 		config: &AnalysisConfig{
-			MaxFileSize:        1024 * 1024,     // 1MB
-			IncludePatterns:    []string{"**/*"}, 
+			MaxFileSize:        1024 * 1024, // 1MB
+			IncludePatterns:    []string{"**/*"},
 			ExcludePatterns:    []string{"**/node_modules/**", "**/vendor/**", "**/.git/**", "**/*.min.*"},
 			AnalysisDepth:      "detailed",
 			EnableSecurityScan: true,
@@ -223,7 +223,7 @@ func (ca *CodeAnalyzer) UpdateConfig(config *AnalysisConfig) {
 // プロジェクト全体を分析
 func (ca *CodeAnalyzer) AnalyzeProject(ctx context.Context) (*CodeAnalysisResult, error) {
 	startTime := time.Now()
-	
+
 	result := &CodeAnalysisResult{
 		Issues:            []CodeIssue{},
 		Suggestions:       []CodeSuggestion{},
@@ -284,7 +284,7 @@ func (ca *CodeAnalyzer) AnalyzeProject(ctx context.Context) (*CodeAnalysisResult
 	}
 
 	result.ProcessingTime = time.Since(startTime)
-	
+
 	return result, nil
 }
 
@@ -337,7 +337,7 @@ func (ca *CodeAnalyzer) shouldExcludeFile(relPath string) bool {
 				prefix := patternParts[0]
 				suffix := patternParts[1]
 				if (prefix == "" || strings.HasPrefix(relPath, prefix)) &&
-				   (suffix == "" || strings.HasSuffix(relPath, suffix)) {
+					(suffix == "" || strings.HasSuffix(relPath, suffix)) {
 					return true
 				}
 			}
@@ -383,10 +383,10 @@ func (ca *CodeAnalyzer) analyzeFile(ctx context.Context, filePath string) (*Code
 
 	contentStr := string(content)
 	relPath, _ := filepath.Rel(ca.projectDir, filePath)
-	
+
 	// LLMにコード分析を依頼
 	prompt := ca.buildAnalysisPrompt(relPath, contentStr)
-	
+
 	response, err := ca.llmClient.GenerateResponse(ctx, &GenerateRequest{
 		Messages: []Message{
 			{
@@ -483,26 +483,26 @@ func (ca *CodeAnalyzer) buildAnalysisPrompt(filename, content string) string {
 // 拡張子から言語を検出
 func (ca *CodeAnalyzer) detectLanguageFromExtension(ext string) string {
 	languageMap := map[string]string{
-		".go":   "Go",
-		".js":   "JavaScript",
-		".ts":   "TypeScript",
-		".jsx":  "JavaScript (React)",
-		".tsx":  "TypeScript (React)",
-		".py":   "Python",
-		".java": "Java",
-		".cpp":  "C++",
-		".c":    "C",
-		".h":    "C/C++",
-		".hpp":  "C++",
-		".rs":   "Rust",
-		".rb":   "Ruby",
-		".php":  "PHP",
-		".cs":   "C#",
-		".kt":   "Kotlin",
+		".go":    "Go",
+		".js":    "JavaScript",
+		".ts":    "TypeScript",
+		".jsx":   "JavaScript (React)",
+		".tsx":   "TypeScript (React)",
+		".py":    "Python",
+		".java":  "Java",
+		".cpp":   "C++",
+		".c":     "C",
+		".h":     "C/C++",
+		".hpp":   "C++",
+		".rs":    "Rust",
+		".rb":    "Ruby",
+		".php":   "PHP",
+		".cs":    "C#",
+		".kt":    "Kotlin",
 		".swift": "Swift",
 		".scala": "Scala",
-		".sql":  "SQL",
-		".sh":   "Shell Script",
+		".sql":   "SQL",
+		".sh":    "Shell Script",
 	}
 
 	if lang, exists := languageMap[ext]; exists {
@@ -516,17 +516,17 @@ func (ca *CodeAnalyzer) parseAnalysisResponse(response string) (*CodeAnalysisRes
 	// JSONブロックを抽出
 	jsonStart := strings.Index(response, "{")
 	jsonEnd := strings.LastIndex(response, "}") + 1
-	
+
 	if jsonStart == -1 || jsonEnd <= jsonStart {
 		return nil, fmt.Errorf("有効なJSONが見つかりません")
 	}
 
 	jsonStr := response[jsonStart:jsonEnd]
-	
+
 	var result struct {
-		Issues             []CodeIssue         `json:"issues"`
-		Suggestions        []CodeSuggestion    `json:"suggestions"`
-		DocumentationGaps  []DocumentationGap  `json:"documentation_gaps"`
+		Issues              []CodeIssue          `json:"issues"`
+		Suggestions         []CodeSuggestion     `json:"suggestions"`
+		DocumentationGaps   []DocumentationGap   `json:"documentation_gaps"`
 		PerformanceInsights []PerformanceInsight `json:"performance_insights"`
 	}
 
@@ -653,7 +653,7 @@ func (ca *CodeAnalyzer) analyzePackageJson(result *CodeAnalysisResult, path stri
 func (ca *CodeAnalyzer) analyzeArchitecture(ctx context.Context, result *CodeAnalysisResult, files []string) error {
 	// ディレクトリ構造を分析してアーキテクチャの改善提案を生成
 	dirStructure := ca.analyzeDirectoryStructure(files)
-	
+
 	// 循環依存をチェック
 	cycles := ca.detectCircularDependencies(files)
 	for _, cycle := range cycles {
@@ -685,7 +685,7 @@ func (ca *CodeAnalyzer) analyzeArchitecture(ctx context.Context, result *CodeAna
 // ディレクトリ構造を分析
 func (ca *CodeAnalyzer) analyzeDirectoryStructure(files []string) map[string]int {
 	dirCount := make(map[string]int)
-	
+
 	for _, file := range files {
 		relPath, _ := filepath.Rel(ca.projectDir, file)
 		dir := filepath.Dir(relPath)
@@ -693,7 +693,7 @@ func (ca *CodeAnalyzer) analyzeDirectoryStructure(files []string) map[string]int
 			dirCount[dir]++
 		}
 	}
-	
+
 	return dirCount
 }
 
@@ -701,7 +701,7 @@ func (ca *CodeAnalyzer) analyzeDirectoryStructure(files []string) map[string]int
 func (ca *CodeAnalyzer) detectCircularDependencies(files []string) [][]string {
 	// 簡略化された実装 - 実際にはASTパーサーを使用してimport文を解析
 	var cycles [][]string
-	
+
 	// この実装では、同じディレクトリ内で相互参照がある場合を検出
 	filesByDir := make(map[string][]string)
 	for _, file := range files {
@@ -709,14 +709,14 @@ func (ca *CodeAnalyzer) detectCircularDependencies(files []string) [][]string {
 		dir := filepath.Dir(relPath)
 		filesByDir[dir] = append(filesByDir[dir], relPath)
 	}
-	
+
 	// 実際の循環依存検出ロジックはより複雑になります
 	for dir, dirFiles := range filesByDir {
 		if len(dirFiles) > 10 { // 大きなディレクトリの場合
 			cycles = append(cycles, []string{fmt.Sprintf("%s/*.go", dir), fmt.Sprintf("%s/*.go", dir)})
 		}
 	}
-	
+
 	return cycles
 }
 
@@ -726,7 +726,7 @@ func (ca *CodeAnalyzer) calculateQualityMetrics(result *CodeAnalysisResult) {
 	totalIssues := len(result.Issues)
 	criticalIssues := 0
 	highIssues := 0
-	
+
 	for _, issue := range result.Issues {
 		switch issue.Severity {
 		case "critical":
@@ -735,21 +735,21 @@ func (ca *CodeAnalyzer) calculateQualityMetrics(result *CodeAnalysisResult) {
 			highIssues++
 		}
 	}
-	
+
 	// 品質スコア計算（100点満点から減算）
 	overallScore := 100
 	overallScore -= criticalIssues * 20
 	overallScore -= highIssues * 10
 	overallScore -= (totalIssues - criticalIssues - highIssues) * 5
-	
+
 	if overallScore < 0 {
 		overallScore = 0
 	}
-	
+
 	// セキュリティスコアを計算
 	securityScore := max(70, 100-len(result.Security.Findings)*10)
 	result.Security.SecurityScore = securityScore
-	
+
 	result.Quality = QualityMetrics{
 		OverallScore:    overallScore,
 		Maintainability: max(60, 100-(totalIssues*3)),
@@ -757,9 +757,9 @@ func (ca *CodeAnalyzer) calculateQualityMetrics(result *CodeAnalysisResult) {
 		Performance:     max(80, 100-len(result.Performance)*5),
 		Security:        securityScore,
 		Readability:     max(60, 100-len(result.Documentation)*3),
-		TestQuality:     50, // テスト分析は別途実装
+		TestQuality:     50,                         // テスト分析は別途実装
 		TechnicalDebt:   float64(totalIssues) * 0.5, // 1問題あたり30分と仮定
-		CodeDuplication: 0.0, // 重複コード検出は別途実装
+		CodeDuplication: 0.0,                        // 重複コード検出は別途実装
 	}
 }
 
@@ -783,8 +783,8 @@ func (ca *CodeAnalyzer) generateSummary(ctx context.Context, result *CodeAnalysi
 簡潔で実用的な要約を提供し、最も重要な改善ポイントを3つ挙げてください。`,
 		len(result.Issues),
 		ca.countIssuesBySeverity(result.Issues, "critical"),
-		ca.countIssuesBySeverity(result.Issues, "high"), 
-		len(result.Issues) - ca.countIssuesBySeverity(result.Issues, "critical") - ca.countIssuesBySeverity(result.Issues, "high"),
+		ca.countIssuesBySeverity(result.Issues, "high"),
+		len(result.Issues)-ca.countIssuesBySeverity(result.Issues, "critical")-ca.countIssuesBySeverity(result.Issues, "high"),
 		len(result.Suggestions),
 		len(result.Documentation),
 		len(result.Performance),
@@ -795,7 +795,7 @@ func (ca *CodeAnalyzer) generateSummary(ctx context.Context, result *CodeAnalysi
 	response, err := ca.llmClient.GenerateResponse(ctx, &GenerateRequest{
 		Messages: []Message{
 			{
-				Role:    "user", 
+				Role:    "user",
 				Content: summaryPrompt,
 			},
 		},

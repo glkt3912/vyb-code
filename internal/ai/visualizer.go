@@ -15,44 +15,44 @@ import (
 
 // 依存関係可視化結果
 type DependencyVisualization struct {
-	Nodes           []DependencyNode     `json:"nodes"`
-	Edges           []DependencyEdge     `json:"edges"`
-	Clusters        []DependencyCluster  `json:"clusters"`
-	Metrics         VisualizationMetrics `json:"metrics"`
-	Layout          LayoutConfig         `json:"layout"`
-	GeneratedAt     time.Time            `json:"generated_at"`
-	ProjectName     string               `json:"project_name"`
-	TotalFiles      int                  `json:"total_files"`
-	TotalDependencies int                `json:"total_dependencies"`
+	Nodes             []DependencyNode     `json:"nodes"`
+	Edges             []DependencyEdge     `json:"edges"`
+	Clusters          []DependencyCluster  `json:"clusters"`
+	Metrics           VisualizationMetrics `json:"metrics"`
+	Layout            LayoutConfig         `json:"layout"`
+	GeneratedAt       time.Time            `json:"generated_at"`
+	ProjectName       string               `json:"project_name"`
+	TotalFiles        int                  `json:"total_files"`
+	TotalDependencies int                  `json:"total_dependencies"`
 }
 
 // 依存関係ノード
 type DependencyNode struct {
-	ID           string            `json:"id"`
-	Label        string            `json:"label"`
-	Type         string            `json:"type"`         // "file", "package", "module", "external"
-	Category     string            `json:"category"`     // "core", "util", "test", "external"
-	Size         int               `json:"size"`         // ファイルサイズ or 重要度
-	Complexity   int               `json:"complexity"`   // 循環複雑度
-	Position     Position          `json:"position"`
-	Color        string            `json:"color"`
+	ID           string                 `json:"id"`
+	Label        string                 `json:"label"`
+	Type         string                 `json:"type"`       // "file", "package", "module", "external"
+	Category     string                 `json:"category"`   // "core", "util", "test", "external"
+	Size         int                    `json:"size"`       // ファイルサイズ or 重要度
+	Complexity   int                    `json:"complexity"` // 循環複雑度
+	Position     Position               `json:"position"`
+	Color        string                 `json:"color"`
 	Metadata     map[string]interface{} `json:"metadata"`
-	Dependencies []string          `json:"dependencies"` // 直接依存関係のID
-	Dependents   []string          `json:"dependents"`   // このノードに依存するもののID
+	Dependencies []string               `json:"dependencies"` // 直接依存関係のID
+	Dependents   []string               `json:"dependents"`   // このノードに依存するもののID
 }
 
 // 依存関係エッジ
 type DependencyEdge struct {
-	ID         string            `json:"id"`
-	Source     string            `json:"source"`     // ソースノードID
-	Target     string            `json:"target"`     // ターゲットノードID
-	Type       string            `json:"type"`       // "import", "call", "inheritance", "composition"
-	Weight     float64           `json:"weight"`     // 依存度の重み
-	Strength   string            `json:"strength"`   // "weak", "medium", "strong"
-	Color      string            `json:"color"`
-	Style      string            `json:"style"`      // "solid", "dashed", "dotted"
-	Label      string            `json:"label,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	ID       string                 `json:"id"`
+	Source   string                 `json:"source"`   // ソースノードID
+	Target   string                 `json:"target"`   // ターゲットノードID
+	Type     string                 `json:"type"`     // "import", "call", "inheritance", "composition"
+	Weight   float64                `json:"weight"`   // 依存度の重み
+	Strength string                 `json:"strength"` // "weak", "medium", "strong"
+	Color    string                 `json:"color"`
+	Style    string                 `json:"style"` // "solid", "dashed", "dotted"
+	Label    string                 `json:"label,omitempty"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // 依存関係クラスター
@@ -60,10 +60,10 @@ type DependencyCluster struct {
 	ID          string   `json:"id"`
 	Label       string   `json:"label"`
 	Description string   `json:"description"`
-	NodeIDs     []string `json:"node_ids"`     // クラスター内のノードID
-	Type        string   `json:"type"`         // "module", "layer", "feature", "external"
+	NodeIDs     []string `json:"node_ids"` // クラスター内のノードID
+	Type        string   `json:"type"`     // "module", "layer", "feature", "external"
 	Color       string   `json:"color"`
-	Boundary    Boundary `json:"boundary"`     // クラスターの境界
+	Boundary    Boundary `json:"boundary"` // クラスターの境界
 }
 
 // 境界定義
@@ -82,52 +82,52 @@ type Position struct {
 
 // 可視化メトリクス
 type VisualizationMetrics struct {
-	Coupling              float64            `json:"coupling"`               // 結合度
-	Cohesion              float64            `json:"cohesion"`               // 凝集度
-	CyclomaticComplexity  int                `json:"cyclomatic_complexity"`  // 循環複雑度
-	CircularDependencies  int                `json:"circular_dependencies"`  // 循環依存数
-	MaxDepth              int                `json:"max_depth"`              // 最大依存深度
-	CriticalPath          []string           `json:"critical_path"`          // 重要パス
-	Hotspots              []string           `json:"hotspots"`               // ホットスポット
-	IsolatedNodes         []string           `json:"isolated_nodes"`         // 孤立ノード
-	CentralityScores      map[string]float64 `json:"centrality_scores"`      // 中心性スコア
-	ModularityScore       float64            `json:"modularity_score"`       // モジュール性スコア
+	Coupling             float64            `json:"coupling"`              // 結合度
+	Cohesion             float64            `json:"cohesion"`              // 凝集度
+	CyclomaticComplexity int                `json:"cyclomatic_complexity"` // 循環複雑度
+	CircularDependencies int                `json:"circular_dependencies"` // 循環依存数
+	MaxDepth             int                `json:"max_depth"`             // 最大依存深度
+	CriticalPath         []string           `json:"critical_path"`         // 重要パス
+	Hotspots             []string           `json:"hotspots"`              // ホットスポット
+	IsolatedNodes        []string           `json:"isolated_nodes"`        // 孤立ノード
+	CentralityScores     map[string]float64 `json:"centrality_scores"`     // 中心性スコア
+	ModularityScore      float64            `json:"modularity_score"`      // モジュール性スコア
 }
 
 // レイアウト設定
 type LayoutConfig struct {
-	Algorithm   string            `json:"algorithm"`    // "force", "hierarchical", "circular", "grid"
-	Direction   string            `json:"direction"`    // "top-to-bottom", "left-to-right"
-	NodeSpacing float64           `json:"node_spacing"`
-	EdgeLength  float64           `json:"edge_length"`
-	Iterations  int               `json:"iterations"`
+	Algorithm   string                 `json:"algorithm"` // "force", "hierarchical", "circular", "grid"
+	Direction   string                 `json:"direction"` // "top-to-bottom", "left-to-right"
+	NodeSpacing float64                `json:"node_spacing"`
+	EdgeLength  float64                `json:"edge_length"`
+	Iterations  int                    `json:"iterations"`
 	Options     map[string]interface{} `json:"options"`
 }
 
 // プロジェクト洞察
 type ProjectInsights struct {
-	ArchitecturePatterns []ArchitecturePattern `json:"architecture_patterns"`
-	DesignIssues         []DesignIssue         `json:"design_issues"`
+	ArchitecturePatterns     []ArchitecturePattern    `json:"architecture_patterns"`
+	DesignIssues             []DesignIssue            `json:"design_issues"`
 	RefactoringOpportunities []RefactoringOpportunity `json:"refactoring_opportunities"`
-	QualityAssessment    QualityAssessment     `json:"quality_assessment"`
-	Recommendations      []Recommendation      `json:"recommendations"`
+	QualityAssessment        QualityAssessment        `json:"quality_assessment"`
+	Recommendations          []Recommendation         `json:"recommendations"`
 }
 
 // アーキテクチャパターン
 type ArchitecturePattern struct {
-	Name        string  `json:"name"`
-	Confidence  float64 `json:"confidence"`   // 0-1
-	Description string  `json:"description"`
+	Name        string   `json:"name"`
+	Confidence  float64  `json:"confidence"` // 0-1
+	Description string   `json:"description"`
 	Evidence    []string `json:"evidence"`
-	Benefits    string  `json:"benefits"`
-	Drawbacks   string  `json:"drawbacks"`
+	Benefits    string   `json:"benefits"`
+	Drawbacks   string   `json:"drawbacks"`
 }
 
 // 設計上の問題
 type DesignIssue struct {
-	Type        string   `json:"type"`        // "god_class", "circular_dependency", "tight_coupling"
-	Severity    string   `json:"severity"`    // "low", "medium", "high", "critical"
-	Nodes       []string `json:"nodes"`       // 関連ノード
+	Type        string   `json:"type"`     // "god_class", "circular_dependency", "tight_coupling"
+	Severity    string   `json:"severity"` // "low", "medium", "high", "critical"
+	Nodes       []string `json:"nodes"`    // 関連ノード
 	Description string   `json:"description"`
 	Impact      string   `json:"impact"`
 	Solution    string   `json:"solution"`
@@ -135,33 +135,33 @@ type DesignIssue struct {
 
 // リファクタリング機会
 type RefactoringOpportunity struct {
-	Type         string   `json:"type"`         // "extract_module", "merge_modules", "split_class"
-	Priority     string   `json:"priority"`     // "low", "medium", "high"
-	Nodes        []string `json:"nodes"`        // 対象ノード
-	Description  string   `json:"description"`
-	Benefits     string   `json:"benefits"`
-	Effort       string   `json:"effort"`       // "small", "medium", "large"
+	Type          string   `json:"type"`     // "extract_module", "merge_modules", "split_class"
+	Priority      string   `json:"priority"` // "low", "medium", "high"
+	Nodes         []string `json:"nodes"`    // 対象ノード
+	Description   string   `json:"description"`
+	Benefits      string   `json:"benefits"`
+	Effort        string   `json:"effort"` // "small", "medium", "large"
 	Prerequisites []string `json:"prerequisites"`
 }
 
 // 品質評価
 type QualityAssessment struct {
-	OverallScore      int                    `json:"overall_score"`       // 0-100
-	ArchitectureScore int                    `json:"architecture_score"`  // 0-100
-	MaintainabilityScore int                 `json:"maintainability_score"` // 0-100
-	ModularityScore   int                    `json:"modularity_score"`    // 0-100
-	TestabilityScore  int                    `json:"testability_score"`   // 0-100
-	DetailedMetrics   map[string]interface{} `json:"detailed_metrics"`
+	OverallScore         int                    `json:"overall_score"`         // 0-100
+	ArchitectureScore    int                    `json:"architecture_score"`    // 0-100
+	MaintainabilityScore int                    `json:"maintainability_score"` // 0-100
+	ModularityScore      int                    `json:"modularity_score"`      // 0-100
+	TestabilityScore     int                    `json:"testability_score"`     // 0-100
+	DetailedMetrics      map[string]interface{} `json:"detailed_metrics"`
 }
 
 // 推奨事項
 type Recommendation struct {
-	Category    string `json:"category"`    // "architecture", "performance", "maintainability"
-	Priority    string `json:"priority"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Category    string   `json:"category"` // "architecture", "performance", "maintainability"
+	Priority    string   `json:"priority"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
 	ActionItems []string `json:"action_items"`
-	Benefits    string `json:"benefits"`
+	Benefits    string   `json:"benefits"`
 	Resources   []string `json:"resources"`
 }
 
@@ -174,13 +174,13 @@ type DependencyVisualizer struct {
 
 // 可視化設定
 type VisualizationConfig struct {
-	MaxNodes        int      `json:"max_nodes"`
-	MaxDepth        int      `json:"max_depth"`
-	IncludeExternal bool     `json:"include_external"`
-	ExcludePatterns []string `json:"exclude_patterns"`
-	LayoutAlgorithm string   `json:"layout_algorithm"`
-	ColorScheme     string   `json:"color_scheme"`
-	GroupingStrategy string  `json:"grouping_strategy"` // "by_directory", "by_type", "by_layer"
+	MaxNodes         int      `json:"max_nodes"`
+	MaxDepth         int      `json:"max_depth"`
+	IncludeExternal  bool     `json:"include_external"`
+	ExcludePatterns  []string `json:"exclude_patterns"`
+	LayoutAlgorithm  string   `json:"layout_algorithm"`
+	ColorScheme      string   `json:"color_scheme"`
+	GroupingStrategy string   `json:"grouping_strategy"` // "by_directory", "by_type", "by_layer"
 }
 
 // 依存関係可視化器を作成
@@ -189,12 +189,12 @@ func NewDependencyVisualizer(constraints *security.Constraints, projectDir strin
 		constraints: constraints,
 		projectDir:  projectDir,
 		config: &VisualizationConfig{
-			MaxNodes:        200,
-			MaxDepth:        10,
-			IncludeExternal: false,
-			ExcludePatterns: []string{"**/node_modules/**", "**/vendor/**", "**/.git/**", "**/test/**"},
-			LayoutAlgorithm: "force",
-			ColorScheme:     "category10",
+			MaxNodes:         200,
+			MaxDepth:         10,
+			IncludeExternal:  false,
+			ExcludePatterns:  []string{"**/node_modules/**", "**/vendor/**", "**/.git/**", "**/test/**"},
+			LayoutAlgorithm:  "force",
+			ColorScheme:      "category10",
 			GroupingStrategy: "by_directory",
 		},
 	}
@@ -217,11 +217,11 @@ func (dv *DependencyVisualizer) VisualizeProject(ctx context.Context) (*Dependen
 	}
 
 	result := &DependencyVisualization{
-		Nodes:         []DependencyNode{},
-		Edges:         []DependencyEdge{},
-		Clusters:      []DependencyCluster{},
-		GeneratedAt:   startTime,
-		ProjectName:   filepath.Base(dv.projectDir),
+		Nodes:       []DependencyNode{},
+		Edges:       []DependencyEdge{},
+		Clusters:    []DependencyCluster{},
+		GeneratedAt: startTime,
+		ProjectName: filepath.Base(dv.projectDir),
 		Layout: LayoutConfig{
 			Algorithm:   dv.config.LayoutAlgorithm,
 			Direction:   "top-to-bottom",
@@ -316,7 +316,7 @@ func (dv *DependencyVisualizer) shouldExcludeFile(relPath string) bool {
 				prefix := parts[0]
 				suffix := parts[1]
 				if (prefix == "" || strings.HasPrefix(relPath, prefix)) &&
-				   (suffix == "" || strings.HasSuffix(relPath, suffix)) {
+					(suffix == "" || strings.HasSuffix(relPath, suffix)) {
 					return true
 				}
 			}
@@ -329,7 +329,7 @@ func (dv *DependencyVisualizer) shouldExcludeFile(relPath string) bool {
 func (dv *DependencyVisualizer) isAnalyzableFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	analyzableExtensions := []string{
-		".go", ".js", ".ts", ".jsx", ".tsx", ".py", ".java", 
+		".go", ".js", ".ts", ".jsx", ".tsx", ".py", ".java",
 		".cpp", ".c", ".h", ".hpp", ".rs", ".rb", ".php", ".cs",
 	}
 
@@ -345,7 +345,7 @@ func (dv *DependencyVisualizer) isAnalyzableFile(path string) bool {
 func (dv *DependencyVisualizer) createNodes(files []string, result *DependencyVisualization) error {
 	for _, filePath := range files {
 		relPath, _ := filepath.Rel(dv.projectDir, filePath)
-		
+
 		// ファイル情報を取得
 		info, err := os.Stat(filePath)
 		if err != nil {
@@ -396,7 +396,7 @@ func (dv *DependencyVisualizer) generateNodeID(path string) string {
 // ファイルを分類
 func (dv *DependencyVisualizer) categorizeFile(path string) string {
 	path = strings.ToLower(path)
-	
+
 	if strings.Contains(path, "test") || strings.Contains(path, "spec") {
 		return "test"
 	}
@@ -412,7 +412,7 @@ func (dv *DependencyVisualizer) categorizeFile(path string) string {
 	if strings.Contains(path, "internal") || strings.Contains(path, "lib") {
 		return "core"
 	}
-	
+
 	return "application"
 }
 
@@ -424,7 +424,7 @@ func (dv *DependencyVisualizer) calculateFileComplexity(filePath string) int {
 	}
 
 	contentStr := string(content)
-	
+
 	// 簡易的な複雑度計算
 	complexity := 1 // 基本複雑度
 
@@ -447,7 +447,7 @@ func (dv *DependencyVisualizer) calculateFileComplexity(filePath string) int {
 func (dv *DependencyVisualizer) getNodeColor(category string) string {
 	colors := map[string]string{
 		"core":        "#ff6b6b",
-		"application": "#4ecdc4", 
+		"application": "#4ecdc4",
 		"util":        "#45b7d1",
 		"test":        "#96ceb4",
 		"config":      "#feca57",
@@ -463,7 +463,7 @@ func (dv *DependencyVisualizer) getNodeColor(category string) string {
 // 言語を検出
 func (dv *DependencyVisualizer) detectLanguage(filePath string) string {
 	ext := strings.ToLower(filepath.Ext(filePath))
-	
+
 	languages := map[string]string{
 		".go":   "Go",
 		".js":   "JavaScript",
@@ -534,10 +534,10 @@ func (dv *DependencyVisualizer) extractExternalDependencies(filePath string) ([]
 	lines := strings.Split(contentStr, "\n")
 
 	ext := strings.ToLower(filepath.Ext(filePath))
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		switch ext {
 		case ".go":
 			if strings.HasPrefix(line, "import ") {
@@ -635,10 +635,10 @@ func (dv *DependencyVisualizer) isInternalPackage(pkg string) bool {
 			}
 		}
 	}
-	
+
 	// 相対パスまたは標準ライブラリ
-	return strings.HasPrefix(pkg, "./") || strings.HasPrefix(pkg, "../") || 
-		   !strings.Contains(pkg, ".") || strings.Contains(pkg, "/")
+	return strings.HasPrefix(pkg, "./") || strings.HasPrefix(pkg, "../") ||
+		!strings.Contains(pkg, ".") || strings.Contains(pkg, "/")
 }
 
 // 内部パス かチェック（JS/TS）
@@ -655,7 +655,7 @@ func (dv *DependencyVisualizer) isInternalPythonModule(module string) bool {
 			return true
 		}
 	}
-	
+
 	// 相対import
 	return strings.HasPrefix(module, ".")
 }
@@ -671,7 +671,7 @@ func (dv *DependencyVisualizer) createEdges(files []string, result *DependencyVi
 	for _, filePath := range files {
 		relPath, _ := filepath.Rel(dv.projectDir, filePath)
 		sourceID := dv.generateNodeID(relPath)
-		
+
 		// ファイルの依存関係を分析
 		deps, err := dv.analyzeDependencies(filePath, files)
 		if err != nil {
@@ -680,7 +680,7 @@ func (dv *DependencyVisualizer) createEdges(files []string, result *DependencyVi
 
 		for _, dep := range deps {
 			targetID := dv.generateNodeID(dep.Path)
-			
+
 			// ノードが存在するかチェック
 			if _, exists := nodeMap[targetID]; !exists {
 				continue
@@ -703,11 +703,11 @@ func (dv *DependencyVisualizer) createEdges(files []string, result *DependencyVi
 			}
 
 			result.Edges = append(result.Edges, edge)
-			
+
 			// ノードに依存関係情報を追加
 			nodeMap[sourceID].Dependencies = append(nodeMap[sourceID].Dependencies, targetID)
 			nodeMap[targetID].Dependents = append(nodeMap[targetID].Dependents, sourceID)
-			
+
 			edgeID++
 		}
 	}
@@ -731,7 +731,7 @@ func (dv *DependencyVisualizer) analyzeDependencies(filePath string, allFiles []
 
 	var deps []FileDependency
 	contentStr := string(content)
-	
+
 	// 他のファイルに対する参照を検索
 	for _, otherFile := range allFiles {
 		if otherFile == filePath {
@@ -740,7 +740,7 @@ func (dv *DependencyVisualizer) analyzeDependencies(filePath string, allFiles []
 
 		otherRel, _ := filepath.Rel(dv.projectDir, otherFile)
 		baseName := strings.TrimSuffix(filepath.Base(otherFile), filepath.Ext(otherFile))
-		
+
 		// ファイル名や関数名の参照を検索
 		if strings.Contains(contentStr, baseName) {
 			weight := dv.calculateReferenceWeight(contentStr, baseName)
@@ -772,51 +772,51 @@ func (dv *DependencyVisualizer) calculateReferenceWeight(content, target string)
 	if count == 0 {
 		return 0
 	}
-	
+
 	// 出現回数に基づいて重みを計算（最大1.0）
 	weight := count / 10.0
 	if weight > 1.0 {
 		weight = 1.0
 	}
-	
+
 	return weight
 }
 
 // 直接importがあるかチェック
 func (dv *DependencyVisualizer) hasDirectImport(content, targetPath, sourcePath string) bool {
 	ext := strings.ToLower(filepath.Ext(sourcePath))
-	
+
 	switch ext {
 	case ".go":
 		// Go の場合、相対パスでのimportをチェック
 		targetDir := filepath.Dir(targetPath)
 		sourceDir := filepath.Dir(sourcePath)
-		
+
 		if targetDir != sourceDir {
 			relativePath, _ := filepath.Rel(sourceDir, targetDir)
 			return strings.Contains(content, fmt.Sprintf("\"%s\"", relativePath))
 		}
 		return false
-		
+
 	case ".js", ".ts", ".jsx", ".tsx":
 		// JavaScript/TypeScript の場合
 		relativePath, _ := filepath.Rel(filepath.Dir(sourcePath), targetPath)
 		relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
-		
+
 		if !strings.HasPrefix(relativePath, ".") {
 			relativePath = "./" + relativePath
 		}
-		
+
 		return strings.Contains(content, fmt.Sprintf("'%s'", relativePath)) ||
-			   strings.Contains(content, fmt.Sprintf("\"%s\"", relativePath))
-			   
+			strings.Contains(content, fmt.Sprintf("\"%s\"", relativePath))
+
 	case ".py":
 		// Python の場合
 		targetModule := strings.ReplaceAll(strings.TrimSuffix(targetPath, ".py"), "/", ".")
 		return strings.Contains(content, fmt.Sprintf("import %s", targetModule)) ||
-			   strings.Contains(content, fmt.Sprintf("from %s", targetModule))
+			strings.Contains(content, fmt.Sprintf("from %s", targetModule))
 	}
-	
+
 	return false
 }
 
@@ -834,9 +834,9 @@ func (dv *DependencyVisualizer) calculateDependencyStrength(weight float64) stri
 // エッジの色を取得
 func (dv *DependencyVisualizer) getEdgeColor(depType string) string {
 	colors := map[string]string{
-		"import":    "#2d3436",
-		"call":      "#0984e3",
-		"reference": "#6c5ce7",
+		"import":      "#2d3436",
+		"call":        "#0984e3",
+		"reference":   "#6c5ce7",
 		"inheritance": "#e84393",
 	}
 
@@ -849,9 +849,9 @@ func (dv *DependencyVisualizer) getEdgeColor(depType string) string {
 // エッジのスタイルを取得
 func (dv *DependencyVisualizer) getEdgeStyle(depType string) string {
 	styles := map[string]string{
-		"import":    "solid",
-		"call":      "solid",
-		"reference": "dashed",
+		"import":      "solid",
+		"call":        "solid",
+		"reference":   "dashed",
 		"inheritance": "dotted",
 	}
 
@@ -867,7 +867,7 @@ func (dv *DependencyVisualizer) createClusters(result *DependencyVisualization) 
 	case "by_directory":
 		return dv.createDirectoryClusters(result)
 	case "by_type":
-		return dv.createTypeClusters(result) 
+		return dv.createTypeClusters(result)
 	case "by_layer":
 		return dv.createLayerClusters(result)
 	default:
@@ -878,7 +878,7 @@ func (dv *DependencyVisualizer) createClusters(result *DependencyVisualization) 
 // ディレクトリベースのクラスターを作成
 func (dv *DependencyVisualizer) createDirectoryClusters(result *DependencyVisualization) error {
 	dirGroups := make(map[string][]string)
-	
+
 	for _, node := range result.Nodes {
 		if node.Type == "file" {
 			if fullPath, ok := node.Metadata["full_path"].(string); ok {
@@ -890,7 +890,7 @@ func (dv *DependencyVisualizer) createDirectoryClusters(result *DependencyVisual
 			}
 		}
 	}
-	
+
 	clusterID := 0
 	for dir, nodeIDs := range dirGroups {
 		if len(nodeIDs) > 1 { // 複数ファイルがある場合のみクラスター化
@@ -906,18 +906,18 @@ func (dv *DependencyVisualizer) createDirectoryClusters(result *DependencyVisual
 			clusterID++
 		}
 	}
-	
+
 	return nil
 }
 
 // タイプベースのクラスターを作成
 func (dv *DependencyVisualizer) createTypeClusters(result *DependencyVisualization) error {
 	typeGroups := make(map[string][]string)
-	
+
 	for _, node := range result.Nodes {
 		typeGroups[node.Category] = append(typeGroups[node.Category], node.ID)
 	}
-	
+
 	clusterID := 0
 	for category, nodeIDs := range typeGroups {
 		if len(nodeIDs) > 1 {
@@ -933,7 +933,7 @@ func (dv *DependencyVisualizer) createTypeClusters(result *DependencyVisualizati
 			clusterID++
 		}
 	}
-	
+
 	return nil
 }
 
@@ -941,19 +941,19 @@ func (dv *DependencyVisualizer) createTypeClusters(result *DependencyVisualizati
 func (dv *DependencyVisualizer) createLayerClusters(result *DependencyVisualization) error {
 	// アーキテクチャレイヤーに基づいたクラスタリング
 	layerGroups := map[string][]string{
-		"presentation": {},
-		"application":  {},
-		"domain":       {},
+		"presentation":   {},
+		"application":    {},
+		"domain":         {},
 		"infrastructure": {},
 	}
-	
+
 	for _, node := range result.Nodes {
 		if fullPath, ok := node.Metadata["full_path"].(string); ok {
 			layer := dv.determineArchitecturalLayer(fullPath)
 			layerGroups[layer] = append(layerGroups[layer], node.ID)
 		}
 	}
-	
+
 	clusterID := 0
 	for layer, nodeIDs := range layerGroups {
 		if len(nodeIDs) > 0 {
@@ -969,14 +969,14 @@ func (dv *DependencyVisualizer) createLayerClusters(result *DependencyVisualizat
 			clusterID++
 		}
 	}
-	
+
 	return nil
 }
 
 // アーキテクチャレイヤーを決定
 func (dv *DependencyVisualizer) determineArchitecturalLayer(path string) string {
 	path = strings.ToLower(path)
-	
+
 	if strings.Contains(path, "ui") || strings.Contains(path, "view") || strings.Contains(path, "controller") {
 		return "presentation"
 	}
@@ -989,7 +989,7 @@ func (dv *DependencyVisualizer) determineArchitecturalLayer(path string) string 
 	if strings.Contains(path, "repository") || strings.Contains(path, "dao") || strings.Contains(path, "infrastructure") {
 		return "infrastructure"
 	}
-	
+
 	return "application" // デフォルト
 }
 
@@ -1057,7 +1057,7 @@ func (dv *DependencyVisualizer) calculateForceLayout(result *DependencyVisualiza
 			if neighbors, exists := edgeMap[result.Nodes[i].ID]; exists {
 				avgX, avgY := 0.0, 0.0
 				count := 0
-				
+
 				for j := range result.Nodes {
 					for _, neighborID := range neighbors {
 						if result.Nodes[j].ID == neighborID {
@@ -1067,11 +1067,11 @@ func (dv *DependencyVisualizer) calculateForceLayout(result *DependencyVisualiza
 						}
 					}
 				}
-				
+
 				if count > 0 {
 					avgX /= float64(count)
 					avgY /= float64(count)
-					
+
 					// 隣接ノードの重心に向かって移動（減衰係数付き）
 					alpha := 0.1
 					result.Nodes[i].Position.X += alpha * (avgX - result.Nodes[i].Position.X)
@@ -1088,7 +1088,7 @@ func (dv *DependencyVisualizer) calculateForceLayout(result *DependencyVisualiza
 func (dv *DependencyVisualizer) calculateHierarchicalLayout(result *DependencyVisualization) error {
 	// トポロジカルソートに基づく階層レイアウト
 	levels := dv.calculateNodeLevels(result)
-	
+
 	levelGroups := make(map[int][]int)
 	for nodeIndex, level := range levels {
 		levelGroups[level] = append(levelGroups[level], nodeIndex)
@@ -1129,13 +1129,13 @@ func (dv *DependencyVisualizer) calculateCircularLayout(result *DependencyVisual
 func (dv *DependencyVisualizer) calculateNodeLevels(result *DependencyVisualization) []int {
 	nodeCount := len(result.Nodes)
 	levels := make([]int, nodeCount)
-	
+
 	// ノードIDからインデックスへのマップ
 	nodeIndexMap := make(map[string]int)
 	for i, node := range result.Nodes {
 		nodeIndexMap[node.ID] = i
 	}
-	
+
 	// 入次数を計算
 	inDegree := make([]int, nodeCount)
 	for _, edge := range result.Edges {
@@ -1143,7 +1143,7 @@ func (dv *DependencyVisualizer) calculateNodeLevels(result *DependencyVisualizat
 			inDegree[targetIndex]++
 		}
 	}
-	
+
 	// BFSでレベルを計算
 	queue := []int{}
 	for i, degree := range inDegree {
@@ -1152,11 +1152,11 @@ func (dv *DependencyVisualizer) calculateNodeLevels(result *DependencyVisualizat
 			levels[i] = 0
 		}
 	}
-	
+
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		
+
 		// 隣接ノードを処理
 		for _, edge := range result.Edges {
 			if sourceIndex, exists := nodeIndexMap[edge.Source]; exists && sourceIndex == current {
@@ -1170,7 +1170,7 @@ func (dv *DependencyVisualizer) calculateNodeLevels(result *DependencyVisualizat
 			}
 		}
 	}
-	
+
 	return levels
 }
 
@@ -1193,7 +1193,7 @@ func (dv *DependencyVisualizer) calculateMetrics(result *DependencyVisualization
 	// 結合度と凝集度
 	metrics.Coupling = dv.calculateCoupling(result)
 	metrics.Cohesion = dv.calculateCohesion(result)
-	
+
 	// モジュール性スコア
 	metrics.ModularityScore = dv.calculateModularityScore(result)
 
@@ -1206,12 +1206,12 @@ func (dv *DependencyVisualizer) detectCircularDependencies(result *DependencyVis
 	visited := make(map[string]bool)
 	recStack := make(map[string]bool)
 	cycles := 0
-	
+
 	var dfs func(string) bool
 	dfs = func(nodeID string) bool {
 		visited[nodeID] = true
 		recStack[nodeID] = true
-		
+
 		// 隣接ノードを探索
 		for _, edge := range result.Edges {
 			if edge.Source == nodeID {
@@ -1226,24 +1226,24 @@ func (dv *DependencyVisualizer) detectCircularDependencies(result *DependencyVis
 				}
 			}
 		}
-		
+
 		recStack[nodeID] = false
 		return false
 	}
-	
+
 	for _, node := range result.Nodes {
 		if !visited[node.ID] {
 			dfs(node.ID)
 		}
 	}
-	
+
 	return cycles
 }
 
 // 最大深度を計算
 func (dv *DependencyVisualizer) calculateMaxDepth(result *DependencyVisualization) int {
 	maxDepth := 0
-	
+
 	// 各ノードから開始してDFSで最大深度を計算
 	for _, startNode := range result.Nodes {
 		depth := dv.calculateDepthFromNode(result, startNode.ID, make(map[string]bool))
@@ -1251,7 +1251,7 @@ func (dv *DependencyVisualizer) calculateMaxDepth(result *DependencyVisualizatio
 			maxDepth = depth
 		}
 	}
-	
+
 	return maxDepth
 }
 
@@ -1260,10 +1260,10 @@ func (dv *DependencyVisualizer) calculateDepthFromNode(result *DependencyVisuali
 	if visited[nodeID] {
 		return 0 // 循環を避ける
 	}
-	
+
 	visited[nodeID] = true
 	maxChildDepth := 0
-	
+
 	for _, edge := range result.Edges {
 		if edge.Source == nodeID {
 			childDepth := dv.calculateDepthFromNode(result, edge.Target, visited)
@@ -1272,7 +1272,7 @@ func (dv *DependencyVisualizer) calculateDepthFromNode(result *DependencyVisuali
 			}
 		}
 	}
-	
+
 	delete(visited, nodeID)
 	return maxChildDepth + 1
 }
@@ -1281,14 +1281,14 @@ func (dv *DependencyVisualizer) calculateDepthFromNode(result *DependencyVisuali
 func (dv *DependencyVisualizer) findCriticalPath(result *DependencyVisualization) []string {
 	// 最も長い依存チェーンを見つける
 	longestPath := []string{}
-	
+
 	for _, startNode := range result.Nodes {
 		path := dv.findLongestPath(result, startNode.ID, make(map[string]bool))
 		if len(path) > len(longestPath) {
 			longestPath = path
 		}
 	}
-	
+
 	return longestPath
 }
 
@@ -1297,10 +1297,10 @@ func (dv *DependencyVisualizer) findLongestPath(result *DependencyVisualization,
 	if visited[nodeID] {
 		return []string{}
 	}
-	
+
 	visited[nodeID] = true
 	longestChildPath := []string{}
-	
+
 	for _, edge := range result.Edges {
 		if edge.Source == nodeID {
 			childPath := dv.findLongestPath(result, edge.Target, visited)
@@ -1309,7 +1309,7 @@ func (dv *DependencyVisualizer) findLongestPath(result *DependencyVisualization,
 			}
 		}
 	}
-	
+
 	delete(visited, nodeID)
 	return append([]string{nodeID}, longestChildPath...)
 }
@@ -1317,41 +1317,41 @@ func (dv *DependencyVisualizer) findLongestPath(result *DependencyVisualization,
 // ホットスポットを特定
 func (dv *DependencyVisualizer) identifyHotspots(result *DependencyVisualization) []string {
 	degreeMap := make(map[string]int)
-	
+
 	// 各ノードの次数を計算
 	for _, edge := range result.Edges {
 		degreeMap[edge.Source]++
 		degreeMap[edge.Target]++
 	}
-	
+
 	var hotspots []string
 	threshold := len(result.Edges) / len(result.Nodes) * 2 // 平均の2倍以上
-	
+
 	for nodeID, degree := range degreeMap {
 		if degree >= threshold {
 			hotspots = append(hotspots, nodeID)
 		}
 	}
-	
+
 	return hotspots
 }
 
 // 孤立ノードを見つける
 func (dv *DependencyVisualizer) findIsolatedNodes(result *DependencyVisualization) []string {
 	connected := make(map[string]bool)
-	
+
 	for _, edge := range result.Edges {
 		connected[edge.Source] = true
 		connected[edge.Target] = true
 	}
-	
+
 	var isolated []string
 	for _, node := range result.Nodes {
 		if !connected[node.ID] {
 			isolated = append(isolated, node.ID)
 		}
 	}
-	
+
 	return isolated
 }
 
@@ -1374,7 +1374,7 @@ func (dv *DependencyVisualizer) calculateCoupling(result *DependencyVisualizatio
 	if len(result.Nodes) <= 1 {
 		return 0.0
 	}
-	
+
 	maxPossibleEdges := len(result.Nodes) * (len(result.Nodes) - 1)
 	return float64(len(result.Edges)) / float64(maxPossibleEdges)
 }
@@ -1384,18 +1384,18 @@ func (dv *DependencyVisualizer) calculateCohesion(result *DependencyVisualizatio
 	if len(result.Clusters) == 0 {
 		return 0.0
 	}
-	
+
 	totalInternalEdges := 0
 	totalPossibleInternalEdges := 0
-	
+
 	for _, cluster := range result.Clusters {
 		internalEdges := 0
 		possibleInternalEdges := len(cluster.NodeIDs) * (len(cluster.NodeIDs) - 1)
-		
+
 		for _, edge := range result.Edges {
 			sourceInCluster := false
 			targetInCluster := false
-			
+
 			for _, nodeID := range cluster.NodeIDs {
 				if edge.Source == nodeID {
 					sourceInCluster = true
@@ -1404,20 +1404,20 @@ func (dv *DependencyVisualizer) calculateCohesion(result *DependencyVisualizatio
 					targetInCluster = true
 				}
 			}
-			
+
 			if sourceInCluster && targetInCluster {
 				internalEdges++
 			}
 		}
-		
+
 		totalInternalEdges += internalEdges
 		totalPossibleInternalEdges += possibleInternalEdges
 	}
-	
+
 	if totalPossibleInternalEdges == 0 {
 		return 0.0
 	}
-	
+
 	return float64(totalInternalEdges) / float64(totalPossibleInternalEdges)
 }
 
@@ -1427,27 +1427,27 @@ func (dv *DependencyVisualizer) calculateModularityScore(result *DependencyVisua
 	if len(result.Clusters) == 0 {
 		return 0.0
 	}
-	
+
 	// クラスター内のエッジ数 vs クラスター間のエッジ数
 	intraClusterEdges := 0
 	interClusterEdges := 0
-	
+
 	for _, edge := range result.Edges {
 		sourceCluster := dv.findNodeCluster(edge.Source, result)
 		targetCluster := dv.findNodeCluster(edge.Target, result)
-		
+
 		if sourceCluster == targetCluster && sourceCluster != "" {
 			intraClusterEdges++
 		} else {
 			interClusterEdges++
 		}
 	}
-	
+
 	totalEdges := intraClusterEdges + interClusterEdges
 	if totalEdges == 0 {
 		return 0.0
 	}
-	
+
 	return float64(intraClusterEdges) / float64(totalEdges)
 }
 
@@ -1467,4 +1467,3 @@ func (dv *DependencyVisualizer) findNodeCluster(nodeID string, result *Dependenc
 func (dv *DependencyVisualizer) ExportToJSON(visualization *DependencyVisualization) ([]byte, error) {
 	return json.MarshalIndent(visualization, "", "  ")
 }
-

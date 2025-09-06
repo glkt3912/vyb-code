@@ -44,7 +44,7 @@ func NewMockLLMClient() *MockLLMClient {
 			}`,
 			"code_generation": "以下は生成されたGoのコードです：\n\n```go\npackage main\n\nfunc TestFunction() {\n\t// Generated test code\n\treturn\n}\n```",
 			"test_generation": "以下はテストコードです：\n\n```go\npackage main\n\nimport \"testing\"\n\nfunc TestTestFunction(t *testing.T) {\n\t// Generated test\n\tTestFunction()\n}\n```",
-			"summary": "This is a test summary of the analysis results.",
+			"summary":         "This is a test summary of the analysis results.",
 		},
 	}
 }
@@ -86,7 +86,7 @@ func setupTestProject(t *testing.T) string {
 	// テスト用ファイル構造を作成
 	dirs := []string{
 		"internal/service",
-		"internal/repository", 
+		"internal/repository",
 		"cmd/server",
 		"pkg/utils",
 		"test",
@@ -231,7 +231,7 @@ func TestCodeAnalyzer_AnalyzeProject(t *testing.T) {
 	// プロジェクト分析を実行
 	ctx := context.Background()
 	result, err := analyzer.AnalyzeProject(ctx)
-	
+
 	if err != nil {
 		t.Fatalf("プロジェクト分析エラー: %v", err)
 	}
@@ -456,11 +456,11 @@ func TestMultiRepoManager_DiscoverRepositories(t *testing.T) {
 
 	// 複数のリポジトリを作成
 	repos := []string{"project-a", "project-b", "shared-lib"}
-	
+
 	for _, repoName := range repos {
 		repoDir := filepath.Join(workspaceDir, repoName)
 		gitDir := filepath.Join(repoDir, ".git")
-		
+
 		if err := os.MkdirAll(gitDir, 0755); err != nil {
 			t.Fatalf("リポジトリディレクトリ作成エラー: %v", err)
 		}
@@ -513,20 +513,20 @@ go 1.20`
 		for _, repo := range repositories {
 			if repo.Name == repoName {
 				found = true
-				
+
 				// 基本プロパティを検証
 				if repo.Language != "Go" {
 					t.Errorf("リポジトリ %s の言語が正しくありません: %s", repoName, repo.Language)
 				}
-				
+
 				if repo.Branch != "main" {
 					t.Errorf("リポジトリ %s のブランチが正しくありません: %s", repoName, repo.Branch)
 				}
-				
+
 				break
 			}
 		}
-		
+
 		if !found {
 			t.Errorf("リポジトリ %s が発見されませんでした", repoName)
 		}
@@ -546,7 +546,7 @@ func TestMultiRepoManager_AnalyzeWorkspace(t *testing.T) {
 	// 単一リポジトリを作成
 	repoDir := filepath.Join(workspaceDir, "test-repo")
 	gitDir := filepath.Join(repoDir, ".git")
-	
+
 	if err := os.MkdirAll(gitDir, 0755); err != nil {
 		t.Fatalf("リポジトリディレクトリ作成エラー: %v", err)
 	}

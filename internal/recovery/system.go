@@ -125,7 +125,7 @@ func (r *System) AnalyzeError(err error) *ErrorInfo {
 	if strings.Contains(err.Error(), "still failing") {
 		retryAfter = 1 * time.Millisecond
 	}
-	
+
 	return &ErrorInfo{
 		Type:       ErrorUnknown,
 		Original:   err,

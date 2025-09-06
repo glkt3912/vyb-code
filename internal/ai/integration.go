@@ -23,53 +23,53 @@ type AIService struct {
 
 // 統合分析結果
 type IntegratedAnalysisResult struct {
-	CodeAnalysis     *CodeAnalysisResult     `json:"code_analysis"`
-	Visualization    *DependencyVisualization `json:"dependency_visualization"`
-	WorkspaceAnalysis *WorkspaceAnalysis     `json:"workspace_analysis,omitempty"`
-	GeneratedCode    *CodeGenerationResult   `json:"generated_code,omitempty"`
-	Recommendations  []IntegratedRecommendation `json:"integrated_recommendations"`
-	Summary          string                  `json:"summary"`
-	ProcessingInfo   ProcessingInfo          `json:"processing_info"`
+	CodeAnalysis      *CodeAnalysisResult        `json:"code_analysis"`
+	Visualization     *DependencyVisualization   `json:"dependency_visualization"`
+	WorkspaceAnalysis *WorkspaceAnalysis         `json:"workspace_analysis,omitempty"`
+	GeneratedCode     *CodeGenerationResult      `json:"generated_code,omitempty"`
+	Recommendations   []IntegratedRecommendation `json:"integrated_recommendations"`
+	Summary           string                     `json:"summary"`
+	ProcessingInfo    ProcessingInfo             `json:"processing_info"`
 }
 
 // 統合推奨事項
 type IntegratedRecommendation struct {
-	Category    string   `json:"category"`    // "code_quality", "architecture", "security", "performance"
-	Priority    string   `json:"priority"`    // "low", "medium", "high", "critical"
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Sources     []string `json:"sources"`     // どのAIコンポーネントからの推奨か
+	Category    string              `json:"category"` // "code_quality", "architecture", "security", "performance"
+	Priority    string              `json:"priority"` // "low", "medium", "high", "critical"
+	Title       string              `json:"title"`
+	Description string              `json:"description"`
+	Sources     []string            `json:"sources"` // どのAIコンポーネントからの推奨か
 	Actions     []RecommendedAction `json:"actions"`
-	Benefits    string   `json:"benefits"`
-	Effort      string   `json:"effort"`
+	Benefits    string              `json:"benefits"`
+	Effort      string              `json:"effort"`
 }
 
 // 推奨アクション
 type RecommendedAction struct {
-	Type        string `json:"type"`        // "code_change", "refactor", "add_test", "add_doc"
+	Type        string `json:"type"` // "code_change", "refactor", "add_test", "add_doc"
 	Description string `json:"description"`
-	Priority    int    `json:"priority"`    // 実行順序
-	Automated   bool   `json:"automated"`   // 自動化可能か
+	Priority    int    `json:"priority"`  // 実行順序
+	Automated   bool   `json:"automated"` // 自動化可能か
 }
 
 // 処理情報
 type ProcessingInfo struct {
-	TotalProcessingTime string            `json:"total_processing_time"`
-	ComponentTimes      map[string]string `json:"component_times"`
-	FilesAnalyzed       int               `json:"files_analyzed"`
-	IssuesFound         int               `json:"issues_found"`
-	SuggestionsGenerated int              `json:"suggestions_generated"`
+	TotalProcessingTime  string            `json:"total_processing_time"`
+	ComponentTimes       map[string]string `json:"component_times"`
+	FilesAnalyzed        int               `json:"files_analyzed"`
+	IssuesFound          int               `json:"issues_found"`
+	SuggestionsGenerated int               `json:"suggestions_generated"`
 }
 
 // AIサービスリクエスト
 type AIServiceRequest struct {
-	ProjectPath     string                     `json:"project_path"`
-	AnalysisType    string                     `json:"analysis_type"`    // "basic", "detailed", "comprehensive"
-	IncludeCodeGen  bool                       `json:"include_code_gen"`
-	IncludeVisualization bool                  `json:"include_visualization"`
-	IncludeMultiRepo bool                      `json:"include_multi_repo"`
-	CodeGenRequests []CodeGenerationRequest    `json:"code_gen_requests,omitempty"`
-	CustomPrompts   map[string]string          `json:"custom_prompts,omitempty"`
+	ProjectPath          string                  `json:"project_path"`
+	AnalysisType         string                  `json:"analysis_type"` // "basic", "detailed", "comprehensive"
+	IncludeCodeGen       bool                    `json:"include_code_gen"`
+	IncludeVisualization bool                    `json:"include_visualization"`
+	IncludeMultiRepo     bool                    `json:"include_multi_repo"`
+	CodeGenRequests      []CodeGenerationRequest `json:"code_gen_requests,omitempty"`
+	CustomPrompts        map[string]string       `json:"custom_prompts,omitempty"`
 }
 
 // AIサービスを作成
@@ -83,7 +83,7 @@ func NewAIService(llmClient LLMClient, constraints *security.Constraints) *AISer
 // プロジェクト全体の統合分析を実行
 func (ai *AIService) AnalyzeProject(ctx context.Context, request *AIServiceRequest) (*IntegratedAnalysisResult, error) {
 	startTime := getCurrentTime()
-	
+
 	result := &IntegratedAnalysisResult{
 		Recommendations: []IntegratedRecommendation{},
 		ProcessingInfo: ProcessingInfo{
@@ -223,8 +223,8 @@ func (ai *AIService) generateIntegratedRecommendations(result *IntegratedAnalysi
 							Automated:   false,
 						},
 					},
-					Benefits:    insight.EstimatedGain,
-					Effort:      "medium",
+					Benefits: insight.EstimatedGain,
+					Effort:   "medium",
 				}
 				recommendations = append(recommendations, recommendation)
 			}
@@ -311,13 +311,13 @@ func (ai *AIService) generateIntegratedRecommendations(result *IntegratedAnalysi
 // 重要な問題をフィルタ
 func (ai *AIService) filterCriticalIssues(issues []CodeIssue) []CodeIssue {
 	var criticalIssues []CodeIssue
-	
+
 	for _, issue := range issues {
 		if issue.Severity == "critical" || issue.Severity == "high" {
 			criticalIssues = append(criticalIssues, issue)
 		}
 	}
-	
+
 	return criticalIssues
 }
 
@@ -450,11 +450,11 @@ func (ai *AIService) buildSummaryPrompt(result *IntegratedAnalysisResult) string
 // 推奨事項を分類
 func (ai *AIService) categorizeRecommendations(recommendations []IntegratedRecommendation) string {
 	counts := make(map[string]int)
-	
+
 	for _, rec := range recommendations {
 		counts[rec.Priority]++
 	}
-	
+
 	return fmt.Sprintf("Critical: %d, High: %d, Medium: %d, Low: %d",
 		counts["critical"], counts["high"], counts["medium"], counts["low"])
 }
@@ -476,11 +476,11 @@ func (ai *AIService) countAnalyzedFiles(result *IntegratedAnalysisResult) int {
 		}
 		return len(fileSet)
 	}
-	
+
 	if result.Visualization != nil {
 		return result.Visualization.TotalFiles
 	}
-	
+
 	return 0
 }
 
@@ -532,9 +532,9 @@ func (ai *AIService) GetInteractiveRecommendations(ctx context.Context, projectP
 
 // インタラクティブレスポンス
 type InteractiveResponse struct {
-	Response    string               `json:"response"`
-	ProjectInfo ProjectInfoSummary   `json:"project_info"`
-	Suggestions []CodeSuggestion     `json:"relevant_suggestions"`
+	Response    string             `json:"response"`
+	ProjectInfo ProjectInfoSummary `json:"project_info"`
+	Suggestions []CodeSuggestion   `json:"relevant_suggestions"`
 }
 
 // プロジェクト情報サマリー
@@ -557,19 +557,19 @@ func (ai *AIService) summarizeProjectInfo(analysis *CodeAnalysisResult) ProjectI
 func (ai *AIService) extractRelevantSuggestions(analysis *CodeAnalysisResult, query string) []CodeSuggestion {
 	var relevant []CodeSuggestion
 	queryLower := strings.ToLower(query)
-	
+
 	for _, suggestion := range analysis.Suggestions {
 		if strings.Contains(strings.ToLower(suggestion.Title), queryLower) ||
-		   strings.Contains(strings.ToLower(suggestion.Description), queryLower) {
+			strings.Contains(strings.ToLower(suggestion.Description), queryLower) {
 			relevant = append(relevant, suggestion)
 		}
 	}
-	
+
 	// 最大5件まで
 	if len(relevant) > 5 {
 		relevant = relevant[:5]
 	}
-	
+
 	return relevant
 }
 
@@ -577,12 +577,12 @@ func (ai *AIService) extractRelevantSuggestions(analysis *CodeAnalysisResult, qu
 func (ai *AIService) IntegrateWithTools(toolRegistry *tools.ToolRegistry) error {
 	// TODO: Implement tool registration when ToolRegistry has RegisterTool method
 	// For now, this is a placeholder for future integration
-	
+
 	// カスタムツールとしてAI機能を登録する予定
 	// プロジェクト分析ツール: "ai_analyze"
-	// コード生成ツール: "ai_generate"  
+	// コード生成ツール: "ai_generate"
 	// 対話的推奨ツール: "ai_ask"
-	
+
 	return nil
 }
 
@@ -620,8 +620,8 @@ func (ai *AIService) handleAnalysisTool(params map[string]interface{}) (*ToolRes
 		Content: string(resultJSON),
 		Metadata: map[string]interface{}{
 			"processing_time": result.ProcessingInfo.TotalProcessingTime,
-			"files_analyzed": result.ProcessingInfo.FilesAnalyzed,
-			"issues_found":   result.ProcessingInfo.IssuesFound,
+			"files_analyzed":  result.ProcessingInfo.FilesAnalyzed,
+			"issues_found":    result.ProcessingInfo.IssuesFound,
 		},
 	}, nil
 }
@@ -676,10 +676,10 @@ func (ai *AIService) handleGenerationTool(params map[string]interface{}) (*ToolR
 		IsError: false,
 		Content: string(resultJSON),
 		Metadata: map[string]interface{}{
-			"generation_time":   result.GenerationTime.String(),
-			"generated_files":   len(result.GeneratedCode),
-			"created_tests":     len(result.CreatedTests),
-			"generated_docs":    len(result.Documentation),
+			"generation_time": result.GenerationTime.String(),
+			"generated_files": len(result.GeneratedCode),
+			"created_tests":   len(result.CreatedTests),
+			"generated_docs":  len(result.Documentation),
 		},
 	}, nil
 }

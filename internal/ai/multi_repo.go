@@ -14,7 +14,7 @@ import (
 
 // マルチリポジトリ管理システム
 type MultiRepoManager struct {
-	constraints *security.Constraints
+	constraints  *security.Constraints
 	workspaceDir string
 	repositories map[string]*Repository
 	config       *MultiRepoConfig
@@ -22,128 +22,128 @@ type MultiRepoManager struct {
 
 // リポジトリ情報
 type Repository struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Path         string            `json:"path"`
-	RemoteURL    string            `json:"remote_url,omitempty"`
-	Branch       string            `json:"branch"`
-	Language     string            `json:"primary_language"`
-	Type         string            `json:"type"`         // "service", "library", "tool", "config"
-	Status       string            `json:"status"`       // "active", "archived", "deprecated"
-	LastAnalysis time.Time         `json:"last_analysis"`
-	Dependencies []RepoDependency  `json:"dependencies"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Path         string                 `json:"path"`
+	RemoteURL    string                 `json:"remote_url,omitempty"`
+	Branch       string                 `json:"branch"`
+	Language     string                 `json:"primary_language"`
+	Type         string                 `json:"type"`   // "service", "library", "tool", "config"
+	Status       string                 `json:"status"` // "active", "archived", "deprecated"
+	LastAnalysis time.Time              `json:"last_analysis"`
+	Dependencies []RepoDependency       `json:"dependencies"`
 	Metadata     map[string]interface{} `json:"metadata"`
 	Analysis     *CodeAnalysisResult    `json:"analysis,omitempty"`
 }
 
 // リポジトリ間依存関係
 type RepoDependency struct {
-	TargetRepo   string  `json:"target_repo"`
-	DependencyType string `json:"dependency_type"` // "api_call", "library", "config", "data"
-	Strength     string  `json:"strength"`         // "weak", "medium", "strong"
-	Description  string  `json:"description"`
-	Weight       float64 `json:"weight"`
+	TargetRepo     string  `json:"target_repo"`
+	DependencyType string  `json:"dependency_type"` // "api_call", "library", "config", "data"
+	Strength       string  `json:"strength"`        // "weak", "medium", "strong"
+	Description    string  `json:"description"`
+	Weight         float64 `json:"weight"`
 }
 
 // マルチリポジトリ設定
 type MultiRepoConfig struct {
-	WorkspaceDir     string   `json:"workspace_dir"`
-	AutoDiscovery    bool     `json:"auto_discovery"`
-	IncludePatterns  []string `json:"include_patterns"`
-	ExcludePatterns  []string `json:"exclude_patterns"`
-	MaxRepositories  int      `json:"max_repositories"`
-	AnalysisDepth    string   `json:"analysis_depth"`    // "basic", "detailed", "comprehensive"
-	SyncInterval     string   `json:"sync_interval"`     // "hourly", "daily", "weekly"
-	EnableCaching    bool     `json:"enable_caching"`
-	CacheExpiration  string   `json:"cache_expiration"`
+	WorkspaceDir    string   `json:"workspace_dir"`
+	AutoDiscovery   bool     `json:"auto_discovery"`
+	IncludePatterns []string `json:"include_patterns"`
+	ExcludePatterns []string `json:"exclude_patterns"`
+	MaxRepositories int      `json:"max_repositories"`
+	AnalysisDepth   string   `json:"analysis_depth"` // "basic", "detailed", "comprehensive"
+	SyncInterval    string   `json:"sync_interval"`  // "hourly", "daily", "weekly"
+	EnableCaching   bool     `json:"enable_caching"`
+	CacheExpiration string   `json:"cache_expiration"`
 }
 
 // ワークスペース分析結果
 type WorkspaceAnalysis struct {
-	Overview           WorkspaceOverview      `json:"overview"`
-	Dependencies       []CrossRepoDependency  `json:"cross_repo_dependencies"`
-	Architecture       WorkspaceArchitecture  `json:"architecture"`
-	QualityMetrics     WorkspaceQuality       `json:"quality_metrics"`
-	SecurityAssessment WorkspaceSecurity      `json:"security_assessment"`
+	Overview           WorkspaceOverview         `json:"overview"`
+	Dependencies       []CrossRepoDependency     `json:"cross_repo_dependencies"`
+	Architecture       WorkspaceArchitecture     `json:"architecture"`
+	QualityMetrics     WorkspaceQuality          `json:"quality_metrics"`
+	SecurityAssessment WorkspaceSecurity         `json:"security_assessment"`
 	Recommendations    []WorkspaceRecommendation `json:"recommendations"`
-	AnalyzedAt         time.Time              `json:"analyzed_at"`
-	ProcessingTime     time.Duration          `json:"processing_time"`
+	AnalyzedAt         time.Time                 `json:"analyzed_at"`
+	ProcessingTime     time.Duration             `json:"processing_time"`
 }
 
 // ワークスペース概要
 type WorkspaceOverview struct {
-	TotalRepositories   int                    `json:"total_repositories"`
-	ActiveRepositories  int                    `json:"active_repositories"`
-	LanguageDistribution map[string]int        `json:"language_distribution"`
-	TypeDistribution    map[string]int         `json:"type_distribution"`
-	TotalLinesOfCode    int64                  `json:"total_lines_of_code"`
-	TotalFiles          int                    `json:"total_files"`
-	LastUpdated         time.Time              `json:"last_updated"`
-	RepositorySummary   []RepositorySummary    `json:"repository_summary"`
+	TotalRepositories    int                 `json:"total_repositories"`
+	ActiveRepositories   int                 `json:"active_repositories"`
+	LanguageDistribution map[string]int      `json:"language_distribution"`
+	TypeDistribution     map[string]int      `json:"type_distribution"`
+	TotalLinesOfCode     int64               `json:"total_lines_of_code"`
+	TotalFiles           int                 `json:"total_files"`
+	LastUpdated          time.Time           `json:"last_updated"`
+	RepositorySummary    []RepositorySummary `json:"repository_summary"`
 }
 
 // リポジトリサマリー
 type RepositorySummary struct {
-	Name             string    `json:"name"`
-	Language         string    `json:"language"`
-	Type             string    `json:"type"`
-	LinesOfCode      int64     `json:"lines_of_code"`
-	Files            int       `json:"files"`
-	LastCommit       time.Time `json:"last_commit"`
-	HealthScore      int       `json:"health_score"`
-	IssueCount       int       `json:"issue_count"`
-	TestCoverage     float64   `json:"test_coverage"`
+	Name         string    `json:"name"`
+	Language     string    `json:"language"`
+	Type         string    `json:"type"`
+	LinesOfCode  int64     `json:"lines_of_code"`
+	Files        int       `json:"files"`
+	LastCommit   time.Time `json:"last_commit"`
+	HealthScore  int       `json:"health_score"`
+	IssueCount   int       `json:"issue_count"`
+	TestCoverage float64   `json:"test_coverage"`
 }
 
 // クロスリポジトリ依存関係
 type CrossRepoDependency struct {
-	SourceRepo      string                 `json:"source_repo"`
-	TargetRepo      string                 `json:"target_repo"`
-	DependencyType  string                 `json:"dependency_type"`
-	Interfaces      []InterfaceDefinition  `json:"interfaces"`
-	APIEndpoints    []APIEndpoint          `json:"api_endpoints"`
-	DataFlows       []DataFlow             `json:"data_flows"`
-	Strength        float64                `json:"strength"`
-	RiskLevel       string                 `json:"risk_level"`
-	LastVerified    time.Time              `json:"last_verified"`
+	SourceRepo     string                `json:"source_repo"`
+	TargetRepo     string                `json:"target_repo"`
+	DependencyType string                `json:"dependency_type"`
+	Interfaces     []InterfaceDefinition `json:"interfaces"`
+	APIEndpoints   []APIEndpoint         `json:"api_endpoints"`
+	DataFlows      []DataFlow            `json:"data_flows"`
+	Strength       float64               `json:"strength"`
+	RiskLevel      string                `json:"risk_level"`
+	LastVerified   time.Time             `json:"last_verified"`
 }
 
 // インターフェース定義
 type InterfaceDefinition struct {
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`        // "API", "Library", "Protocol"
-	Version     string            `json:"version"`
-	Methods     []MethodSignature `json:"methods"`
-	Schema      string            `json:"schema,omitempty"`
-	Documentation string          `json:"documentation"`
+	Name          string            `json:"name"`
+	Type          string            `json:"type"` // "API", "Library", "Protocol"
+	Version       string            `json:"version"`
+	Methods       []MethodSignature `json:"methods"`
+	Schema        string            `json:"schema,omitempty"`
+	Documentation string            `json:"documentation"`
 }
 
 // メソッドシグネチャ
 type MethodSignature struct {
-	Name       string      `json:"name"`
-	Parameters []Parameter `json:"parameters"`
-	Returns    []Parameter `json:"returns"`
-	Description string     `json:"description"`
+	Name        string      `json:"name"`
+	Parameters  []Parameter `json:"parameters"`
+	Returns     []Parameter `json:"returns"`
+	Description string      `json:"description"`
 }
 
 // パラメータ
 type Parameter struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Required bool   `json:"required"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Required    bool   `json:"required"`
 	Description string `json:"description,omitempty"`
 }
 
 // データフロー
 type DataFlow struct {
-	Source       string            `json:"source"`
-	Target       string            `json:"target"`
-	DataType     string            `json:"data_type"`
-	Format       string            `json:"format"`       // "JSON", "XML", "Binary", etc.
-	Frequency    string            `json:"frequency"`    // "real-time", "batch", "on-demand"
-	Volume       string            `json:"volume"`       // "low", "medium", "high"
-	Sensitivity  string            `json:"sensitivity"`  // "public", "internal", "confidential"
-	Validation   []ValidationRule  `json:"validation"`
+	Source      string           `json:"source"`
+	Target      string           `json:"target"`
+	DataType    string           `json:"data_type"`
+	Format      string           `json:"format"`      // "JSON", "XML", "Binary", etc.
+	Frequency   string           `json:"frequency"`   // "real-time", "batch", "on-demand"
+	Volume      string           `json:"volume"`      // "low", "medium", "high"
+	Sensitivity string           `json:"sensitivity"` // "public", "internal", "confidential"
+	Validation  []ValidationRule `json:"validation"`
 }
 
 // バリデーションルール
@@ -155,18 +155,18 @@ type ValidationRule struct {
 
 // ワークスペースアーキテクチャ
 type WorkspaceArchitecture struct {
-	Patterns        []ArchitecturalPattern    `json:"patterns"`
-	Layers          []ArchitecturalLayer      `json:"layers"`
-	ServiceMap      []ServiceDefinition       `json:"service_map"`
-	DeploymentUnits []DeploymentUnit          `json:"deployment_units"`
-	Integration     IntegrationArchitecture   `json:"integration"`
+	Patterns        []ArchitecturalPattern  `json:"patterns"`
+	Layers          []ArchitecturalLayer    `json:"layers"`
+	ServiceMap      []ServiceDefinition     `json:"service_map"`
+	DeploymentUnits []DeploymentUnit        `json:"deployment_units"`
+	Integration     IntegrationArchitecture `json:"integration"`
 }
 
 // サービス定義
 type ServiceDefinition struct {
 	Name         string   `json:"name"`
 	Repository   string   `json:"repository"`
-	Type         string   `json:"type"`         // "microservice", "monolith", "library"
+	Type         string   `json:"type"` // "microservice", "monolith", "library"
 	Endpoints    []string `json:"endpoints"`
 	Dependencies []string `json:"dependencies"`
 	Consumers    []string `json:"consumers"`
@@ -177,74 +177,74 @@ type ServiceDefinition struct {
 
 // デプロイメントユニット
 type DeploymentUnit struct {
-	Name          string   `json:"name"`
-	Repositories  []string `json:"repositories"`
-	Type          string   `json:"type"`          // "container", "lambda", "vm"
-	Environment   string   `json:"environment"`   // "development", "staging", "production"
-	Dependencies  []string `json:"dependencies"`
-	ScalingPolicy string   `json:"scaling_policy"`
+	Name          string            `json:"name"`
+	Repositories  []string          `json:"repositories"`
+	Type          string            `json:"type"`        // "container", "lambda", "vm"
+	Environment   string            `json:"environment"` // "development", "staging", "production"
+	Dependencies  []string          `json:"dependencies"`
+	ScalingPolicy string            `json:"scaling_policy"`
 	Resources     map[string]string `json:"resources"`
 }
 
 // 統合アーキテクチャ
 type IntegrationArchitecture struct {
-	Patterns      []string                `json:"patterns"`       // "API Gateway", "Event Bus", "Message Queue"
-	Protocols     []string                `json:"protocols"`      // "HTTP", "gRPC", "AMQP", "WebSocket"
-	MessageBrokers []MessageBrokerConfig   `json:"message_brokers"`
-	APIGateways   []APIGatewayConfig      `json:"api_gateways"`
-	Databases     []DatabaseConfig        `json:"databases"`
+	Patterns       []string              `json:"patterns"`  // "API Gateway", "Event Bus", "Message Queue"
+	Protocols      []string              `json:"protocols"` // "HTTP", "gRPC", "AMQP", "WebSocket"
+	MessageBrokers []MessageBrokerConfig `json:"message_brokers"`
+	APIGateways    []APIGatewayConfig    `json:"api_gateways"`
+	Databases      []DatabaseConfig      `json:"databases"`
 }
 
 // メッセージブローカー設定
 type MessageBrokerConfig struct {
-	Name     string   `json:"name"`
-	Type     string   `json:"type"`     // "Kafka", "RabbitMQ", "Redis"
-	Topics   []string `json:"topics"`
-	Used_by  []string `json:"used_by"`
+	Name    string   `json:"name"`
+	Type    string   `json:"type"` // "Kafka", "RabbitMQ", "Redis"
+	Topics  []string `json:"topics"`
+	Used_by []string `json:"used_by"`
 }
 
 // APIゲートウェイ設定
 type APIGatewayConfig struct {
 	Name     string   `json:"name"`
-	Type     string   `json:"type"`     // "Kong", "Nginx", "AWS API Gateway"
+	Type     string   `json:"type"` // "Kong", "Nginx", "AWS API Gateway"
 	Routes   []string `json:"routes"`
 	Services []string `json:"services"`
 }
 
 // データベース設定
 type DatabaseConfig struct {
-	Name     string   `json:"name"`
-	Type     string   `json:"type"`     // "PostgreSQL", "MongoDB", "Redis"
-	Used_by  []string `json:"used_by"`
-	Schema   string   `json:"schema,omitempty"`
+	Name    string   `json:"name"`
+	Type    string   `json:"type"` // "PostgreSQL", "MongoDB", "Redis"
+	Used_by []string `json:"used_by"`
+	Schema  string   `json:"schema,omitempty"`
 }
 
 // ワークスペース品質
 type WorkspaceQuality struct {
-	OverallScore      int                    `json:"overall_score"`
-	ConsistencyScore  int                    `json:"consistency_score"`
-	IntegrationScore  int                    `json:"integration_score"`
-	MaintainabilityScore int                 `json:"maintainability_score"`
-	TestCoverageAverage  float64             `json:"test_coverage_average"`
-	CodeDuplication   float64                `json:"code_duplication"`
-	TechnicalDebt     float64                `json:"technical_debt"`     // in hours
-	QualityTrends     map[string][]float64   `json:"quality_trends"`     // time series data
-	ProblemRepositories []string             `json:"problem_repositories"`
+	OverallScore         int                  `json:"overall_score"`
+	ConsistencyScore     int                  `json:"consistency_score"`
+	IntegrationScore     int                  `json:"integration_score"`
+	MaintainabilityScore int                  `json:"maintainability_score"`
+	TestCoverageAverage  float64              `json:"test_coverage_average"`
+	CodeDuplication      float64              `json:"code_duplication"`
+	TechnicalDebt        float64              `json:"technical_debt"` // in hours
+	QualityTrends        map[string][]float64 `json:"quality_trends"` // time series data
+	ProblemRepositories  []string             `json:"problem_repositories"`
 }
 
 // ワークスペースセキュリティ
 type WorkspaceSecurity struct {
-	OverallRisk         string                   `json:"overall_risk"`         // "low", "medium", "high", "critical"
-	VulnerabilityCount  int                      `json:"vulnerability_count"`
-	SecurityScore       int                      `json:"security_score"`
-	CrossRepoRisks      []CrossRepoSecurityRisk  `json:"cross_repo_risks"`
-	ComplianceStatus    map[string]string        `json:"compliance_status"`    // e.g., "GDPR": "compliant"
+	OverallRisk             string                   `json:"overall_risk"` // "low", "medium", "high", "critical"
+	VulnerabilityCount      int                      `json:"vulnerability_count"`
+	SecurityScore           int                      `json:"security_score"`
+	CrossRepoRisks          []CrossRepoSecurityRisk  `json:"cross_repo_risks"`
+	ComplianceStatus        map[string]string        `json:"compliance_status"` // e.g., "GDPR": "compliant"
 	SecurityRecommendations []SecurityRecommendation `json:"security_recommendations"`
 }
 
 // クロスリポジトリセキュリティリスク
 type CrossRepoSecurityRisk struct {
-	Type         string   `json:"type"`         // "data_exposure", "privilege_escalation", "secret_sharing"
+	Type         string   `json:"type"` // "data_exposure", "privilege_escalation", "secret_sharing"
 	Severity     string   `json:"severity"`
 	Repositories []string `json:"repositories"`
 	Description  string   `json:"description"`
@@ -253,15 +253,15 @@ type CrossRepoSecurityRisk struct {
 
 // ワークスペース推奨事項
 type WorkspaceRecommendation struct {
-	Category     string   `json:"category"`     // "architecture", "security", "quality", "process"
-	Priority     string   `json:"priority"`     // "low", "medium", "high", "critical"
-	Title        string   `json:"title"`
-	Description  string   `json:"description"`
-	Affected     []string `json:"affected_repositories"`
-	ActionItems  []string `json:"action_items"`
-	Benefits     string   `json:"benefits"`
-	Effort       string   `json:"effort"`       // "small", "medium", "large"
-	Timeline     string   `json:"timeline"`     // suggested completion time
+	Category    string   `json:"category"` // "architecture", "security", "quality", "process"
+	Priority    string   `json:"priority"` // "low", "medium", "high", "critical"
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Affected    []string `json:"affected_repositories"`
+	ActionItems []string `json:"action_items"`
+	Benefits    string   `json:"benefits"`
+	Effort      string   `json:"effort"`   // "small", "medium", "large"
+	Timeline    string   `json:"timeline"` // suggested completion time
 }
 
 // マルチリポジトリマネージャーを作成
@@ -364,7 +364,7 @@ func (mrm *MultiRepoManager) shouldExcludeRepository(relPath string) bool {
 				prefix := parts[0]
 				suffix := parts[1]
 				if (prefix == "" || strings.HasPrefix(relPath, prefix)) &&
-				   (suffix == "" || strings.HasSuffix(relPath, suffix)) {
+					(suffix == "" || strings.HasSuffix(relPath, suffix)) {
 					return true
 				}
 			}
@@ -434,7 +434,7 @@ func (mrm *MultiRepoManager) extractGitInfo(repo *Repository) error {
 // 主要プログラミング言語を検出
 func (mrm *MultiRepoManager) detectPrimaryLanguage(repoPath string) string {
 	languageCounts := make(map[string]int)
-	
+
 	err := filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
@@ -473,18 +473,18 @@ func (mrm *MultiRepoManager) detectPrimaryLanguage(repoPath string) string {
 // 拡張子から言語をマッピング
 func (mrm *MultiRepoManager) extensionToLanguage(ext string) string {
 	mapping := map[string]string{
-		".go":   "Go",
-		".js":   "JavaScript",
-		".ts":   "TypeScript",
-		".py":   "Python",
-		".java": "Java",
-		".cpp":  "C++",
-		".c":    "C",
-		".rs":   "Rust",
-		".rb":   "Ruby",
-		".php":  "PHP",
-		".cs":   "C#",
-		".kt":   "Kotlin",
+		".go":    "Go",
+		".js":    "JavaScript",
+		".ts":    "TypeScript",
+		".py":    "Python",
+		".java":  "Java",
+		".cpp":   "C++",
+		".c":     "C",
+		".rs":    "Rust",
+		".rb":    "Ruby",
+		".php":   "PHP",
+		".cs":    "C#",
+		".kt":    "Kotlin",
 		".swift": "Swift",
 	}
 
@@ -495,18 +495,18 @@ func (mrm *MultiRepoManager) extensionToLanguage(ext string) string {
 func (mrm *MultiRepoManager) inferRepositoryType(repoPath string) string {
 	// 特定のファイルの存在でタイプを推測
 	files := map[string]string{
-		"main.go":       "service",
-		"cmd/main.go":   "service",
-		"server.go":     "service",
-		"package.json":  "service",
-		"Dockerfile":    "service",
-		"go.mod":        "library",
-		"setup.py":      "library",
-		"pom.xml":       "library",
-		"Makefile":      "tool",
+		"main.go":            "service",
+		"cmd/main.go":        "service",
+		"server.go":          "service",
+		"package.json":       "service",
+		"Dockerfile":         "service",
+		"go.mod":             "library",
+		"setup.py":           "library",
+		"pom.xml":            "library",
+		"Makefile":           "tool",
 		"docker-compose.yml": "config",
-		"terraform":     "config",
-		"ansible":       "config",
+		"terraform":          "config",
+		"ansible":            "config",
 	}
 
 	for filename, repoType := range files {
@@ -536,7 +536,7 @@ func (mrm *MultiRepoManager) collectRepositoryStats(repo *Repository) error {
 		// ソースファイルのみカウント
 		if mrm.isSourceFile(path) {
 			totalFiles++
-			
+
 			// 行数をカウント
 			if content, err := os.ReadFile(path); err == nil {
 				lines := strings.Split(string(content), "\n")
@@ -637,7 +637,7 @@ func (mrm *MultiRepoManager) generateOverview() WorkspaceOverview {
 		// 言語分布
 		overview.LanguageDistribution[repo.Language]++
 
-		// タイプ分布  
+		// タイプ分布
 		overview.TypeDistribution[repo.Type]++
 
 		// 統計集計
@@ -748,7 +748,7 @@ func (mrm *MultiRepoManager) detectRepoDependencies(source, target *Repository) 
 func (mrm *MultiRepoManager) hasNameReference(sourcePath, targetName string) bool {
 	// 簡略化された実装
 	found := false
-	
+
 	filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !mrm.isSourceFile(path) {
 			return nil
@@ -759,10 +759,10 @@ func (mrm *MultiRepoManager) hasNameReference(sourcePath, targetName string) boo
 				found = true
 			}
 		}
-		
+
 		return nil
 	})
-	
+
 	return found
 }
 
@@ -779,7 +779,7 @@ func (mrm *MultiRepoManager) hasAPIReference(sourcePath, targetName string) bool
 	}
 
 	found := false
-	
+
 	filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !mrm.isSourceFile(path) {
 			return nil
@@ -794,10 +794,10 @@ func (mrm *MultiRepoManager) hasAPIReference(sourcePath, targetName string) bool
 				}
 			}
 		}
-		
+
 		return nil
 	})
-	
+
 	return found
 }
 
@@ -805,7 +805,7 @@ func (mrm *MultiRepoManager) hasAPIReference(sourcePath, targetName string) bool
 func (mrm *MultiRepoManager) hasLibraryDependency(sourcePath, targetName string) bool {
 	// go.mod, package.json, requirements.txt などをチェック
 	depFiles := []string{"go.mod", "package.json", "requirements.txt", "pom.xml"}
-	
+
 	for _, depFile := range depFiles {
 		depPath := filepath.Join(sourcePath, depFile)
 		if content, err := os.ReadFile(depPath); err == nil {
@@ -814,7 +814,7 @@ func (mrm *MultiRepoManager) hasLibraryDependency(sourcePath, targetName string)
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -1093,19 +1093,19 @@ func (mrm *MultiRepoManager) calculateWorkspaceQuality() WorkspaceQuality {
 	for _, repo := range mrm.repositories {
 		if repo.Status == "active" {
 			repoCount++
-			
+
 			// 仮の健康スコア（実際の実装では詳細分析）
 			healthScore := 80
 			if files, ok := repo.Metadata["total_files"].(int); ok && files > 200 {
 				healthScore -= 10 // 大きすぎるリポジトリはペナルティ
 			}
-			
+
 			totalScore += healthScore
-			
+
 			if healthScore < 60 {
 				quality.ProblemRepositories = append(quality.ProblemRepositories, repo.Name)
 			}
-			
+
 			// テストカバレッジ（仮の値）
 			coverage := 75.0
 			totalCoverage += coverage
@@ -1124,8 +1124,8 @@ func (mrm *MultiRepoManager) calculateWorkspaceQuality() WorkspaceQuality {
 		quality.TestCoverageAverage = totalCoverage / float64(coverageCount)
 	}
 
-	quality.CodeDuplication = 5.0    // 仮の値
-	quality.TechnicalDebt = 120.0    // 仮の値（時間）
+	quality.CodeDuplication = 5.0 // 仮の値
+	quality.TechnicalDebt = 120.0 // 仮の値（時間）
 
 	return quality
 }
@@ -1134,17 +1134,17 @@ func (mrm *MultiRepoManager) calculateWorkspaceQuality() WorkspaceQuality {
 func (mrm *MultiRepoManager) calculateConsistencyScore() int {
 	// 言語、構造、パターンの一貫性を評価
 	languageCount := len(mrm.getUniqueLanguages())
-	
+
 	// 言語が少ないほど一貫性が高い
 	consistencyScore := 100
 	if languageCount > 3 {
 		consistencyScore -= (languageCount - 3) * 10
 	}
-	
+
 	if consistencyScore < 0 {
 		consistencyScore = 0
 	}
-	
+
 	return consistencyScore
 }
 
@@ -1153,35 +1153,35 @@ func (mrm *MultiRepoManager) calculateIntegrationScore() int {
 	// 依存関係の健全性を評価
 	totalDependencies := 0
 	circularDependencies := 0
-	
+
 	for _, repo := range mrm.repositories {
 		totalDependencies += len(repo.Dependencies)
 		// 循環依存の検出（簡略化）
 	}
-	
+
 	integrationScore := 80
 	if circularDependencies > 0 {
 		integrationScore -= circularDependencies * 20
 	}
-	
+
 	return integrationScore
 }
 
 // ユニークな言語を取得
 func (mrm *MultiRepoManager) getUniqueLanguages() []string {
 	languages := make(map[string]bool)
-	
+
 	for _, repo := range mrm.repositories {
 		if repo.Language != "Unknown" && repo.Language != "" {
 			languages[repo.Language] = true
 		}
 	}
-	
+
 	var uniqueLanguages []string
 	for lang := range languages {
 		uniqueLanguages = append(uniqueLanguages, lang)
 	}
-	
+
 	return uniqueLanguages
 }
 
@@ -1200,11 +1200,11 @@ func (mrm *MultiRepoManager) assessWorkspaceSecurity() WorkspaceSecurity {
 	for _, repo := range mrm.repositories {
 		if repo.Status == "active" {
 			repoCount++
-			
+
 			// 仮のセキュリティ評価
 			vulnerabilities := mrm.countVulnerabilities(repo.Path)
 			totalVulnerabilities += vulnerabilities
-			
+
 			securityScore := 90 - (vulnerabilities * 10)
 			if securityScore < 0 {
 				securityScore = 0
@@ -1214,7 +1214,7 @@ func (mrm *MultiRepoManager) assessWorkspaceSecurity() WorkspaceSecurity {
 	}
 
 	security.VulnerabilityCount = totalVulnerabilities
-	
+
 	if repoCount > 0 {
 		security.SecurityScore = totalSecurityScore / repoCount
 	}
@@ -1247,7 +1247,7 @@ func (mrm *MultiRepoManager) countVulnerabilities(repoPath string) int {
 	}
 
 	count := 0
-	
+
 	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !mrm.isSourceFile(path) {
 			return nil

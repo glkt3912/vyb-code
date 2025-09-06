@@ -9,7 +9,6 @@ import (
 	"github.com/glkt/vyb-code/internal/config"
 )
 
-
 func TestSystem_Creation(t *testing.T) {
 	cfg := &config.Config{
 		Model:    "qwen2.5-coder:14b",

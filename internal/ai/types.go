@@ -27,7 +27,7 @@ type GenerateResponse struct {
 // Message represents a single message in conversation
 // 会話における1つのメッセージ
 type Message struct {
-	Role    string `json:"role"`    // "user", "assistant", "system"
+	Role    string `json:"role"` // "user", "assistant", "system"
 	Content string `json:"content"`
 }
 
@@ -41,12 +41,12 @@ type APIEndpoint struct {
 
 // ArchitecturalPattern - アーキテクチャパターン
 type ArchitecturalPattern struct {
-	Name        string  `json:"name"`
-	Confidence  float64 `json:"confidence"`   // 0-1
-	Description string  `json:"description"`
+	Name        string   `json:"name"`
+	Confidence  float64  `json:"confidence"` // 0-1
+	Description string   `json:"description"`
 	Evidence    []string `json:"evidence"`
-	Benefits    string  `json:"benefits"`
-	Drawbacks   string  `json:"drawbacks"`
+	Benefits    string   `json:"benefits"`
+	Drawbacks   string   `json:"drawbacks"`
 }
 
 // ArchitecturalLayer - アーキテクチャ層

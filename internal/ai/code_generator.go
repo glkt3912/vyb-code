@@ -13,24 +13,24 @@ import (
 
 // コード生成結果
 type CodeGenerationResult struct {
-	GeneratedCode     []GeneratedFile        `json:"generated_code"`
-	ModifiedFiles     []ModifiedFile         `json:"modified_files"`
-	CreatedTests      []GeneratedTest        `json:"created_tests"`
-	Documentation     []GeneratedDoc         `json:"documentation"`
-	Summary           string                 `json:"summary"`
-	GenerationTime    time.Duration          `json:"generation_time"`
-	Suggestions       []GenerationSuggestion `json:"suggestions"`
-	Warnings          []string               `json:"warnings"`
-	GeneratedTimestamp time.Time             `json:"generated_timestamp"`
+	GeneratedCode      []GeneratedFile        `json:"generated_code"`
+	ModifiedFiles      []ModifiedFile         `json:"modified_files"`
+	CreatedTests       []GeneratedTest        `json:"created_tests"`
+	Documentation      []GeneratedDoc         `json:"documentation"`
+	Summary            string                 `json:"summary"`
+	GenerationTime     time.Duration          `json:"generation_time"`
+	Suggestions        []GenerationSuggestion `json:"suggestions"`
+	Warnings           []string               `json:"warnings"`
+	GeneratedTimestamp time.Time              `json:"generated_timestamp"`
 }
 
 // 生成されたファイル
 type GeneratedFile struct {
-	Path        string `json:"path"`
-	Content     string `json:"content"`
-	Language    string `json:"language"`
-	Type        string `json:"type"`        // "function", "class", "module", "config"
-	Description string `json:"description"`
+	Path         string   `json:"path"`
+	Content      string   `json:"content"`
+	Language     string   `json:"language"`
+	Type         string   `json:"type"` // "function", "class", "module", "config"
+	Description  string   `json:"description"`
 	Dependencies []string `json:"dependencies"`
 }
 
@@ -45,97 +45,97 @@ type ModifiedFile struct {
 
 // コード変更
 type Change struct {
-	Type        string `json:"type"`        // "addition", "modification", "deletion"
-	LineStart   int    `json:"line_start"`
-	LineEnd     int    `json:"line_end"`
-	OldContent  string `json:"old_content"`
-	NewContent  string `json:"new_content"`
-	Reason      string `json:"reason"`
+	Type       string `json:"type"` // "addition", "modification", "deletion"
+	LineStart  int    `json:"line_start"`
+	LineEnd    int    `json:"line_end"`
+	OldContent string `json:"old_content"`
+	NewContent string `json:"new_content"`
+	Reason     string `json:"reason"`
 }
 
 // 生成されたテスト
 type GeneratedTest struct {
-	Path            string   `json:"path"`
-	TestContent     string   `json:"test_content"`
-	TestedFunction  string   `json:"tested_function"`
-	TestCases       []string `json:"test_cases"`
-	CoverageAreas   []string `json:"coverage_areas"`
-	Dependencies    []string `json:"dependencies"`
+	Path           string   `json:"path"`
+	TestContent    string   `json:"test_content"`
+	TestedFunction string   `json:"tested_function"`
+	TestCases      []string `json:"test_cases"`
+	CoverageAreas  []string `json:"coverage_areas"`
+	Dependencies   []string `json:"dependencies"`
 }
 
 // 生成されたドキュメント
 type GeneratedDoc struct {
-	Path        string `json:"path"`
-	Content     string `json:"content"`
-	DocType     string `json:"doc_type"`    // "README", "API", "user_guide", "comment"
-	Target      string `json:"target"`      // what is being documented
-	Format      string `json:"format"`      // "markdown", "rst", "plain"
+	Path    string `json:"path"`
+	Content string `json:"content"`
+	DocType string `json:"doc_type"` // "README", "API", "user_guide", "comment"
+	Target  string `json:"target"`   // what is being documented
+	Format  string `json:"format"`   // "markdown", "rst", "plain"
 }
 
 // 生成提案
 type GenerationSuggestion struct {
-	Type         string `json:"type"`         // "improvement", "alternative", "extension"
-	Priority     string `json:"priority"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
+	Type           string `json:"type"` // "improvement", "alternative", "extension"
+	Priority       string `json:"priority"`
+	Title          string `json:"title"`
+	Description    string `json:"description"`
 	Implementation string `json:"implementation"`
-	Benefits     string `json:"benefits"`
+	Benefits       string `json:"benefits"`
 }
 
 // コード生成リクエスト
 type CodeGenerationRequest struct {
-	Type            string            `json:"type"`             // "function", "class", "module", "test", "refactor"
-	Language        string            `json:"language"`         // target programming language
-	Description     string            `json:"description"`      // what to generate
-	Context         *GenerationContext `json:"context"`         // surrounding code context
-	Requirements    []string          `json:"requirements"`     // specific requirements
-	Style           *StylePreferences `json:"style"`           // coding style preferences
-	TargetFile      string            `json:"target_file"`      // where to place the code
-	ExistingCode    string            `json:"existing_code"`    // existing code to modify
-	Dependencies    []string          `json:"dependencies"`     // required dependencies
-	TestRequired    bool              `json:"test_required"`    // whether to generate tests
-	DocRequired     bool              `json:"doc_required"`     // whether to generate docs
+	Type         string             `json:"type"`          // "function", "class", "module", "test", "refactor"
+	Language     string             `json:"language"`      // target programming language
+	Description  string             `json:"description"`   // what to generate
+	Context      *GenerationContext `json:"context"`       // surrounding code context
+	Requirements []string           `json:"requirements"`  // specific requirements
+	Style        *StylePreferences  `json:"style"`         // coding style preferences
+	TargetFile   string             `json:"target_file"`   // where to place the code
+	ExistingCode string             `json:"existing_code"` // existing code to modify
+	Dependencies []string           `json:"dependencies"`  // required dependencies
+	TestRequired bool               `json:"test_required"` // whether to generate tests
+	DocRequired  bool               `json:"doc_required"`  // whether to generate docs
 }
 
 // 生成コンテキスト
 type GenerationContext struct {
-	ProjectType     string            `json:"project_type"`     // "web", "cli", "library", etc.
-	Framework       string            `json:"framework"`        // "react", "gin", "django", etc.
-	Architecture    string            `json:"architecture"`     // "mvc", "clean", "hexagonal"
-	ExistingFiles   []string          `json:"existing_files"`   // related existing files
-	ImportStatements []string         `json:"import_statements"` // existing imports
-	GlobalVariables []string          `json:"global_variables"` // available global vars
-	CustomTypes     map[string]string `json:"custom_types"`     // project-specific types
+	ProjectType      string            `json:"project_type"`      // "web", "cli", "library", etc.
+	Framework        string            `json:"framework"`         // "react", "gin", "django", etc.
+	Architecture     string            `json:"architecture"`      // "mvc", "clean", "hexagonal"
+	ExistingFiles    []string          `json:"existing_files"`    // related existing files
+	ImportStatements []string          `json:"import_statements"` // existing imports
+	GlobalVariables  []string          `json:"global_variables"`  // available global vars
+	CustomTypes      map[string]string `json:"custom_types"`      // project-specific types
 }
 
 // スタイル設定
 type StylePreferences struct {
-	IndentationType string            `json:"indentation_type"` // "spaces", "tabs"
-	IndentationSize int               `json:"indentation_size"`
-	LineLength      int               `json:"line_length"`
-	NamingConvention string           `json:"naming_convention"` // "camelCase", "snake_case", etc.
-	CommentStyle    string            `json:"comment_style"`     // preferred comment format
-	ErrorHandling   string            `json:"error_handling"`    // error handling strategy
-	CustomRules     map[string]string `json:"custom_rules"`      // project-specific style rules
+	IndentationType  string            `json:"indentation_type"` // "spaces", "tabs"
+	IndentationSize  int               `json:"indentation_size"`
+	LineLength       int               `json:"line_length"`
+	NamingConvention string            `json:"naming_convention"` // "camelCase", "snake_case", etc.
+	CommentStyle     string            `json:"comment_style"`     // preferred comment format
+	ErrorHandling    string            `json:"error_handling"`    // error handling strategy
+	CustomRules      map[string]string `json:"custom_rules"`      // project-specific style rules
 }
 
 // AIコード生成器
 type CodeGenerator struct {
-	llmClient     LLMClient
-	constraints   *security.Constraints
-	projectDir    string
-	config        *GenerationConfig
+	llmClient   LLMClient
+	constraints *security.Constraints
+	projectDir  string
+	config      *GenerationConfig
 }
 
 // 生成設定
 type GenerationConfig struct {
-	MaxFileSize       int64             `json:"max_file_size"`
-	AllowedLanguages  []string          `json:"allowed_languages"`
-	DefaultStyle      *StylePreferences `json:"default_style"`
-	SafetyMode        bool              `json:"safety_mode"`        // extra validation
-	BackupOriginals   bool              `json:"backup_originals"`   // backup before modification
-	CustomPrompts     map[string]string `json:"custom_prompts"`     // custom generation prompts
-	ValidationRules   []string          `json:"validation_rules"`   // code validation rules
+	MaxFileSize      int64             `json:"max_file_size"`
+	AllowedLanguages []string          `json:"allowed_languages"`
+	DefaultStyle     *StylePreferences `json:"default_style"`
+	SafetyMode       bool              `json:"safety_mode"`      // extra validation
+	BackupOriginals  bool              `json:"backup_originals"` // backup before modification
+	CustomPrompts    map[string]string `json:"custom_prompts"`   // custom generation prompts
+	ValidationRules  []string          `json:"validation_rules"` // code validation rules
 }
 
 // AIコード生成器を作成
@@ -253,7 +253,7 @@ func (cg *CodeGenerator) GenerateCode(ctx context.Context, request *CodeGenerati
 	}
 
 	result.GenerationTime = time.Since(startTime)
-	
+
 	return result, nil
 }
 
@@ -285,7 +285,7 @@ func (cg *CodeGenerator) validateRequest(request *CodeGenerationRequest) error {
 			"rm -rf", "delete", "drop database", "exec", "eval", "system",
 			"shell_exec", "passthru", "__import__", "subprocess",
 		}
-		
+
 		descLower := strings.ToLower(request.Description)
 		for _, keyword := range dangerousKeywords {
 			if strings.Contains(descLower, keyword) {
@@ -300,10 +300,10 @@ func (cg *CodeGenerator) validateRequest(request *CodeGenerationRequest) error {
 // プロジェクトコンテキストを分析
 func (cg *CodeGenerator) analyzeProjectContext(request *CodeGenerationRequest) (*GenerationContext, error) {
 	context := &GenerationContext{
-		ExistingFiles:   []string{},
+		ExistingFiles:    []string{},
 		ImportStatements: []string{},
-		GlobalVariables: []string{},
-		CustomTypes:     make(map[string]string),
+		GlobalVariables:  []string{},
+		CustomTypes:      make(map[string]string),
 	}
 
 	// プロジェクトタイプを推測
@@ -331,12 +331,12 @@ func (cg *CodeGenerator) analyzeProjectContext(request *CodeGenerationRequest) (
 func (cg *CodeGenerator) detectProjectType() string {
 	// 各種ファイルの存在をチェックしてプロジェクトタイプを推測
 	files := map[string]string{
-		"main.go":       "cli",
-		"server.go":     "web",
-		"package.json":  "web",
-		"Dockerfile":    "containerized",
-		"go.mod":        "library",
-		"setup.py":      "python_package",
+		"main.go":      "cli",
+		"server.go":    "web",
+		"package.json": "web",
+		"Dockerfile":   "containerized",
+		"go.mod":       "library",
+		"setup.py":     "python_package",
 	}
 
 	for filename, projectType := range files {
@@ -352,10 +352,10 @@ func (cg *CodeGenerator) detectProjectType() string {
 func (cg *CodeGenerator) detectFramework(language string) string {
 	frameworkFiles := map[string]map[string]string{
 		"go": {
-			"gin":     "github.com/gin-gonic/gin",
-			"echo":    "github.com/labstack/echo",
-			"fiber":   "github.com/gofiber/fiber",
-			"cobra":   "github.com/spf13/cobra",
+			"gin":   "github.com/gin-gonic/gin",
+			"echo":  "github.com/labstack/echo",
+			"fiber": "github.com/gofiber/fiber",
+			"cobra": "github.com/spf13/cobra",
 		},
 		"javascript": {
 			"react":   "react",
@@ -402,11 +402,11 @@ func (cg *CodeGenerator) hasFrameworkDependency(language, importPath string) boo
 // import文を抽出
 func (cg *CodeGenerator) extractImports(content, language string) []string {
 	var imports []string
-	
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		switch strings.ToLower(language) {
 		case "go":
 			if strings.HasPrefix(line, "import ") {
@@ -422,18 +422,18 @@ func (cg *CodeGenerator) extractImports(content, language string) []string {
 			}
 		}
 	}
-	
+
 	return imports
 }
 
 // カスタムタイプを抽出
 func (cg *CodeGenerator) extractCustomTypes(content, language string) map[string]string {
 	types := make(map[string]string)
-	
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		switch strings.ToLower(language) {
 		case "go":
 			if strings.HasPrefix(line, "type ") {
@@ -451,14 +451,14 @@ func (cg *CodeGenerator) extractCustomTypes(content, language string) map[string
 			}
 		}
 	}
-	
+
 	return types
 }
 
 // 関数を生成
 func (cg *CodeGenerator) generateFunction(ctx context.Context, request *CodeGenerationRequest, context *GenerationContext, result *CodeGenerationResult) error {
 	prompt := cg.buildFunctionPrompt(request, context)
-	
+
 	response, err := cg.llmClient.GenerateResponse(ctx, &GenerateRequest{
 		Messages: []Message{
 			{
@@ -481,11 +481,11 @@ func (cg *CodeGenerator) generateFunction(ctx context.Context, request *CodeGene
 
 	// 生成されたファイルを追加
 	generatedFile := GeneratedFile{
-		Path:        cg.generateFilePath(request),
-		Content:     code,
-		Language:    request.Language,
-		Type:        "function",
-		Description: request.Description,
+		Path:         cg.generateFilePath(request),
+		Content:      code,
+		Language:     request.Language,
+		Type:         "function",
+		Description:  request.Description,
 		Dependencies: cg.extractDependencies(code, request.Language),
 	}
 
@@ -548,7 +548,7 @@ func (cg *CodeGenerator) buildFunctionPrompt(request *CodeGenerationRequest, con
 func (cg *CodeGenerator) generateClass(ctx context.Context, request *CodeGenerationRequest, context *GenerationContext, result *CodeGenerationResult) error {
 	// クラス生成の実装（関数生成と似たパターン）
 	prompt := cg.buildClassPrompt(request, context)
-	
+
 	response, err := cg.llmClient.GenerateResponse(ctx, &GenerateRequest{
 		Messages: []Message{
 			{
@@ -569,11 +569,11 @@ func (cg *CodeGenerator) generateClass(ctx context.Context, request *CodeGenerat
 	}
 
 	generatedFile := GeneratedFile{
-		Path:        cg.generateFilePath(request),
-		Content:     code,
-		Language:    request.Language,
-		Type:        "class",
-		Description: request.Description,
+		Path:         cg.generateFilePath(request),
+		Content:      code,
+		Language:     request.Language,
+		Type:         "class",
+		Description:  request.Description,
 		Dependencies: cg.extractDependencies(code, request.Language),
 	}
 
@@ -604,7 +604,7 @@ func (cg *CodeGenerator) generateModule(ctx context.Context, request *CodeGenera
 // テストを生成
 func (cg *CodeGenerator) generateTest(ctx context.Context, request *CodeGenerationRequest, context *GenerationContext, result *CodeGenerationResult) error {
 	prompt := cg.buildTestPrompt(request, context)
-	
+
 	response, err := cg.llmClient.GenerateResponse(ctx, &GenerateRequest{
 		Messages: []Message{
 			{
@@ -672,7 +672,7 @@ func (cg *CodeGenerator) generateAdditionalTests(ctx context.Context, request *C
 			Description:  generatedFile.Description,
 			ExistingCode: generatedFile.Content,
 		}
-		
+
 		err := cg.generateTest(ctx, testRequest, &GenerationContext{}, result)
 		if err != nil {
 			return err
@@ -686,7 +686,7 @@ func (cg *CodeGenerator) generateDocumentation(ctx context.Context, request *Cod
 	// ドキュメント生成の実装
 	for _, generatedFile := range result.GeneratedCode {
 		docContent := cg.generateDocContent(generatedFile)
-		
+
 		doc := GeneratedDoc{
 			Path:    strings.TrimSuffix(generatedFile.Path, filepath.Ext(generatedFile.Path)) + "_doc.md",
 			Content: docContent,
@@ -694,7 +694,7 @@ func (cg *CodeGenerator) generateDocumentation(ctx context.Context, request *Cod
 			Target:  generatedFile.Description,
 			Format:  "markdown",
 		}
-		
+
 		result.Documentation = append(result.Documentation, doc)
 	}
 	return nil
@@ -720,8 +720,8 @@ See the generated code in %s
 `+"```"+`%s
 %s
 `+"```"+`
-`, file.Description, file.Description, file.Language, 
-		strings.Join(file.Dependencies, ", "), file.Path, 
+`, file.Description, file.Description, file.Language,
+		strings.Join(file.Dependencies, ", "), file.Path,
 		file.Language, file.Content)
 }
 
@@ -732,7 +732,7 @@ func (cg *CodeGenerator) validateGeneratedCode(result *CodeGenerationResult) err
 		if err := cg.performBasicSyntaxCheck(file); err != nil {
 			return fmt.Errorf("構文チェックエラー in %s: %w", file.Path, err)
 		}
-		
+
 		// セキュリティチェック
 		if err := cg.performSecurityCheck(file); err != nil {
 			return fmt.Errorf("セキュリティチェックエラー in %s: %w", file.Path, err)
@@ -761,12 +761,12 @@ func (cg *CodeGenerator) checkGoSyntax(content string) error {
 	if !strings.Contains(content, "package ") {
 		return fmt.Errorf("package宣言がありません")
 	}
-	
+
 	// 括弧の対応チェック
 	if strings.Count(content, "{") != strings.Count(content, "}") {
 		return fmt.Errorf("括弧の対応が不正です")
 	}
-	
+
 	return nil
 }
 
@@ -787,7 +787,7 @@ func (cg *CodeGenerator) checkPythonSyntax(content string) error {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		
+
 		if strings.HasSuffix(strings.TrimSpace(line), ":") {
 			// 次の行のインデントをチェック
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) != "" {
@@ -803,20 +803,20 @@ func (cg *CodeGenerator) checkPythonSyntax(content string) error {
 // セキュリティチェック
 func (cg *CodeGenerator) performSecurityCheck(file GeneratedFile) error {
 	content := strings.ToLower(file.Content)
-	
+
 	// 危険なパターンをチェック
 	dangerousPatterns := []string{
-		"eval(", "exec(", "system(", "shell_exec(", 
+		"eval(", "exec(", "system(", "shell_exec(",
 		"rm -rf", "delete from", "drop table",
 		"password", "secret", "api_key", "token",
 	}
-	
+
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(content, pattern) {
 			return fmt.Errorf("潜在的に危険なパターンを検出: %s", pattern)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -824,23 +824,23 @@ func (cg *CodeGenerator) performSecurityCheck(file GeneratedFile) error {
 func (cg *CodeGenerator) generateImprovementSuggestions(ctx context.Context, request *CodeGenerationRequest, result *CodeGenerationResult) {
 	// パフォーマンス改善提案
 	result.Suggestions = append(result.Suggestions, GenerationSuggestion{
-		Type:        "improvement",
-		Priority:    "medium",
-		Title:       "パフォーマンス最適化",
-		Description: "生成されたコードのパフォーマンスを向上させる機会があります",
+		Type:           "improvement",
+		Priority:       "medium",
+		Title:          "パフォーマンス最適化",
+		Description:    "生成されたコードのパフォーマンスを向上させる機会があります",
 		Implementation: "アルゴリズムの最適化とメモリ使用量の削減を検討してください",
-		Benefits:    "実行時間の短縮とリソース使用量の削減",
+		Benefits:       "実行時間の短縮とリソース使用量の削減",
 	})
 
 	// テスト拡張提案
 	if !request.TestRequired {
 		result.Suggestions = append(result.Suggestions, GenerationSuggestion{
-			Type:        "extension",
-			Priority:    "high", 
-			Title:       "テストケースの追加",
-			Description: "生成されたコードに対する包括的なテストの作成を推奨します",
+			Type:           "extension",
+			Priority:       "high",
+			Title:          "テストケースの追加",
+			Description:    "生成されたコードに対する包括的なテストの作成を推奨します",
 			Implementation: "単体テスト、統合テスト、エッジケースのテストを追加",
-			Benefits:    "コードの信頼性と保守性の向上",
+			Benefits:       "コードの信頼性と保守性の向上",
 		})
 	}
 }
@@ -889,29 +889,29 @@ func (cg *CodeGenerator) extractCodeBlock(content string) string {
 	if start == -1 {
 		return ""
 	}
-	
+
 	// 最初の改行までスキップ
 	start = strings.Index(content[start:], "\n") + start + 1
 	if start <= 0 {
 		return ""
 	}
-	
+
 	end := strings.Index(content[start:], "```")
 	if end == -1 {
 		return content[start:]
 	}
-	
+
 	return strings.TrimSpace(content[start : start+end])
 }
 
 // 依存関係を抽出
 func (cg *CodeGenerator) extractDependencies(code, language string) []string {
 	var deps []string
-	
+
 	lines := strings.Split(code, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		switch strings.ToLower(language) {
 		case "go":
 			if strings.HasPrefix(line, "import ") {
@@ -927,7 +927,7 @@ func (cg *CodeGenerator) extractDependencies(code, language string) []string {
 			}
 		}
 	}
-	
+
 	return deps
 }
 
@@ -936,12 +936,12 @@ func (cg *CodeGenerator) generateFilePath(request *CodeGenerationRequest) string
 	if request.TargetFile != "" {
 		return request.TargetFile
 	}
-	
+
 	// デフォルトのファイル名を生成
 	extension := cg.getFileExtension(request.Language)
 	filename := strings.ReplaceAll(strings.ToLower(request.Description), " ", "_")
 	filename = strings.ReplaceAll(filename, "-", "_")
-	
+
 	// 安全なファイル名に変換
 	validChars := "abcdefghijklmnopqrstuvwxyz0123456789_"
 	var safeName strings.Builder
@@ -950,7 +950,7 @@ func (cg *CodeGenerator) generateFilePath(request *CodeGenerationRequest) string
 			safeName.WriteRune(char)
 		}
 	}
-	
+
 	return safeName.String() + extension
 }
 
@@ -959,7 +959,7 @@ func (cg *CodeGenerator) generateTestFilePath(request *CodeGenerationRequest) st
 	basePath := cg.generateFilePath(request)
 	extension := filepath.Ext(basePath)
 	name := strings.TrimSuffix(basePath, extension)
-	
+
 	switch strings.ToLower(request.Language) {
 	case "go":
 		return name + "_test" + extension
@@ -985,7 +985,7 @@ func (cg *CodeGenerator) getFileExtension(language string) string {
 		"cpp":        ".cpp",
 		"c++":        ".cpp",
 	}
-	
+
 	if ext, exists := extensions[strings.ToLower(language)]; exists {
 		return ext
 	}
@@ -995,26 +995,26 @@ func (cg *CodeGenerator) getFileExtension(language string) string {
 // テストケースを抽出
 func (cg *CodeGenerator) extractTestCases(code string) []string {
 	var testCases []string
-	
+
 	lines := strings.Split(code, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Goのテスト関数
 		if strings.HasPrefix(line, "func Test") && strings.Contains(line, "(") {
 			testCases = append(testCases, line)
 		}
-		
+
 		// JavaScriptのテスト
 		if (strings.HasPrefix(line, "it(") || strings.HasPrefix(line, "test(")) && strings.Contains(line, "\"") {
 			testCases = append(testCases, line)
 		}
-		
+
 		// Pythonのテスト
 		if strings.HasPrefix(line, "def test_") && strings.Contains(line, "(") {
 			testCases = append(testCases, line)
 		}
 	}
-	
+
 	return testCases
 }

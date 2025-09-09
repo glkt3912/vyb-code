@@ -77,12 +77,18 @@ type Config struct {
 	TUI          TUIConfig                  `json:"tui"`           // TUI設定
 	TerminalMode TerminalModeConfig         `json:"terminal_mode"` // ターミナルモード設定
 	Markdown     MarkdownConfig             `json:"markdown"`      // Markdown設定
+	Features     *Features                  `json:"features"`      // 機能設定
 }
 
 // Markdown設定
 type MarkdownConfig struct {
 	Enabled         bool `json:"enabled"`          // Markdown有効/無効
 	SyntaxHighlight bool `json:"syntax_highlight"` // シンタックスハイライト
+}
+
+// 機能設定
+type Features struct {
+	VibeMode bool `json:"vibe_mode"` // バイブコーディングモード
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -149,6 +155,9 @@ func DefaultConfig() *Config {
 			Enabled:         true,
 			SyntaxHighlight: true,
 		},
+		Features: &Features{
+			VibeMode: true, // バイブコーディングモード有効
+		},
 	}
 }
 
@@ -194,6 +203,13 @@ func Load() (*Config, error) {
 	var config Config
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// 後方互換性のためのフィールド初期化
+	if config.Features == nil {
+		config.Features = &Features{
+			VibeMode: true, // バイブコーディングモード有効
+		}
 	}
 
 	return &config, nil

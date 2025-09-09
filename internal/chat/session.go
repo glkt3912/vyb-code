@@ -10,8 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glkt/vyb-code/internal/ai"
 	"github.com/glkt/vyb-code/internal/config"
+	"github.com/glkt/vyb-code/internal/contextmanager"
+	"github.com/glkt/vyb-code/internal/conversation"
 	"github.com/glkt/vyb-code/internal/input"
+	"github.com/glkt/vyb-code/internal/interactive"
 	"github.com/glkt/vyb-code/internal/interrupt"
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/markdown"
@@ -19,12 +23,47 @@ import (
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/streaming"
 	"github.com/glkt/vyb-code/internal/tools"
+	"github.com/glkt/vyb-code/internal/ui"
 )
+
+// llm.ProviderをAI.LLMClientに適応するアダプター
+type llmProviderAdapter struct {
+	provider llm.Provider
+}
+
+func (l *llmProviderAdapter) GenerateResponse(ctx context.Context, request *ai.GenerateRequest) (*ai.GenerateResponse, error) {
+	// ai.GenerateRequestをllm.ChatRequestに変換
+	messages := make([]llm.ChatMessage, len(request.Messages))
+	for i, msg := range request.Messages {
+		messages[i] = llm.ChatMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	chatReq := llm.ChatRequest{
+		Model:    "qwen2.5-coder:14b", // TODO: 設定から取得
+		Messages: messages,
+		Stream:   false,
+	}
+
+	// LLMプロバイダーを呼び出し
+	resp, err := l.provider.Chat(ctx, chatReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// レスポンスを変換
+	return &ai.GenerateResponse{
+		Content: resp.Message.Content,
+	}, nil
+}
 
 // 会話セッションを管理する構造体
 type Session struct {
+	// 既存フィールド（後方互換性のため維持）
 	provider        llm.Provider         // LLMプロバイダー
-	messages        []llm.ChatMessage    // 会話履歴
+	messages        []llm.ChatMessage    // 会話履歴（段階的移行用）
 	model           string               // 使用するモデル名
 	mcpManager      *mcp.Manager         // MCPマネージャー
 	workDir         string               // 作業ディレクトリ
@@ -35,6 +74,14 @@ type Session struct {
 	inputReader     *input.Reader        // 拡張入力リーダー
 	streamProcessor *streaming.Processor // ストリーミングプロセッサー
 	gitOps          *tools.GitOperations // Git操作
+
+	// Phase 7 統合フィールド
+	vibeMode            bool                             // バイブコーディングモード有効/無効
+	contextManager      contextmanager.ContextManager    // コンテキスト圧縮管理
+	interactiveSession  interactive.SessionManager       // インタラクティブセッション管理
+	conversationManager conversation.ConversationManager // メモリ効率会話管理
+	currentSessionID    string                           // 現在のインタラクティブセッションID
+	currentThreadID     string                           // 現在の会話スレッドID
 }
 
 // プロジェクトコンテキスト情報
@@ -157,9 +204,62 @@ func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Confi
 		if cfg.TerminalMode.HistorySize > 0 {
 			session.inputHistory = NewInputHistory(cfg.TerminalMode.HistorySize)
 		}
+
+		// Phase 7: バイブコーディングモード設定
+		session.vibeMode = cfg.Features.VibeMode || false // デフォルトfalse（段階的導入）
+
+		// バイブモード有効時のみPhase 7コンポーネントを初期化
+		if session.vibeMode {
+			session.initializeVibeModeComponents(provider)
+		}
 	}
 
 	return session
+}
+
+// バイブモードコンポーネントを初期化
+func (s *Session) initializeVibeModeComponents(provider llm.Provider) error {
+	// コンテキスト管理を初期化
+	s.contextManager = contextmanager.NewSmartContextManager()
+
+	// AI服務を初期化（簡易版）
+	workspaceDir, _ := os.Getwd() // 現在の作業ディレクトリを取得
+	constraints := security.NewDefaultConstraints(workspaceDir)
+	llmClient := &llmProviderAdapter{provider: provider} // プロバイダーをLLMClientに適応
+	aiService := ai.NewAIService(llmClient, constraints)
+
+	// ファイル編集ツールを初期化
+	editTool := tools.NewEditTool(constraints, workspaceDir, 10*1024*1024) // 10MB制限
+
+	// インタラクティブセッション管理を初期化
+	vibeConfig := interactive.DefaultVibeConfig()
+	s.interactiveSession = interactive.NewInteractiveSessionManager(
+		s.contextManager,
+		provider,
+		aiService,
+		editTool,
+		vibeConfig,
+	)
+
+	// TODO: 会話管理の初期化（実装待ち）
+	// s.conversationManager = conversation.NewConversationManager(...)
+
+	return nil
+}
+
+// バイブコーディングモードでセッションを作成
+func NewVibeSession(provider llm.Provider, model string, cfg *config.Config) *Session {
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+
+	// バイブモードを強制有効化
+	if cfg.Features == nil {
+		cfg.Features = &config.Features{}
+	}
+	cfg.Features.VibeMode = true
+
+	return NewSessionWithConfig(provider, model, cfg)
 }
 
 // 対話ループを開始する
@@ -422,18 +522,13 @@ func (s *Session) StartEnhancedTerminal() error {
 		// 質問ヘッダーと内容を同じ行に表示
 		s.printUserMessageWithContent(input)
 
-		// コンテキスト情報付きでユーザーメッセージを履歴に追加
-		contextualInput := s.buildContextualPrompt(input)
-		s.messages = append(s.messages, llm.ChatMessage{
-			Role:    "user",
-			Content: contextualInput,
-		})
-
-		// thinking状態表示を開始
-		stopThinking := s.startThinkingAnimation()
-
-		// Claude Code風ストリーミング応答で送信
-		err = s.sendToLLMStreamingWithThinking(stopThinking)
+		// Phase 7: バイブモード対応処理
+		if s.vibeMode {
+			err = s.processVibeInput(trimmed)
+		} else {
+			// 従来の処理
+			err = s.processTraditionalInput(trimmed)
+		}
 
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -1133,4 +1228,222 @@ func (s *Session) saveConversation(filename string) {
 
 	// TODO: 実装予定 - 会話履歴をJSONまたはMarkdown形式で保存
 	fmt.Printf("%s会話保存機能は開発中です: %s%s\n", red, filename, reset)
+}
+
+// Phase 7: バイブコーディング用入力処理
+func (s *Session) processVibeInput(input string) error {
+	// インタラクティブセッションが未初期化の場合は初期化
+	if s.currentSessionID == "" {
+		session, err := s.interactiveSession.CreateSession(interactive.CodingSessionTypeGeneral)
+		if err != nil {
+			return fmt.Errorf("インタラクティブセッション作成エラー: %w", err)
+		}
+		s.currentSessionID = session.ID
+	}
+
+	// コンテキストマネージャーにユーザー入力を追加
+	if s.contextManager != nil {
+		contextItem := &contextmanager.ContextItem{
+			Type:       contextmanager.ContextTypeImmediate,
+			Content:    fmt.Sprintf("ユーザー入力: %s", input),
+			Metadata:   map[string]string{"type": "user_input", "session_id": s.currentSessionID},
+			Importance: 0.7,
+		}
+		s.contextManager.AddContext(contextItem)
+	}
+
+	// thinking状態表示を開始
+	stopThinking := s.startThinkingAnimation()
+
+	// インタラクティブセッション処理
+	ctx := context.Background()
+	response, err := s.interactiveSession.ProcessUserInput(ctx, s.currentSessionID, input)
+
+	// thinking停止
+	stopThinking()
+
+	if err != nil {
+		return fmt.Errorf("バイブモード処理エラー: %w", err)
+	}
+
+	// 応答タイプに応じて処理
+	switch response.ResponseType {
+	case interactive.ResponseTypeCodeSuggestion:
+		return s.handleCodeSuggestionResponse(response)
+	case interactive.ResponseTypeConfirmation:
+		return s.handleConfirmationResponse(response)
+	case interactive.ResponseTypeMessage:
+		return s.handleMessageResponse(response)
+	default:
+		return s.handleMessageResponse(response)
+	}
+}
+
+// 従来の入力処理（後方互換性）
+func (s *Session) processTraditionalInput(input string) error {
+	// コンテキスト情報付きでユーザーメッセージを履歴に追加
+	contextualInput := s.buildContextualPrompt(input)
+	s.messages = append(s.messages, llm.ChatMessage{
+		Role:    "user",
+		Content: contextualInput,
+	})
+
+	// thinking状態表示を開始
+	stopThinking := s.startThinkingAnimation()
+
+	// Claude Code風ストリーミング応答で送信
+	return s.sendToLLMStreamingWithThinking(stopThinking)
+}
+
+// コード提案応答の処理
+func (s *Session) handleCodeSuggestionResponse(response *interactive.InteractionResponse) error {
+	if len(response.Suggestions) == 0 {
+		return s.handleMessageResponse(response)
+	}
+
+	suggestion := response.Suggestions[0]
+
+	// 提案表示
+	s.displayCodeSuggestion(suggestion)
+
+	if response.RequiresConfirmation {
+		// ユーザー確認を求める
+		confirmed, err := s.getUserConfirmation("この提案を適用しますか？")
+		if err != nil {
+			return err
+		}
+
+		// 確認応答を送信
+		err = s.interactiveSession.ConfirmSuggestion(s.currentSessionID, suggestion.ID, confirmed)
+		if err != nil {
+			return err
+		}
+
+		// 確認された場合は提案を適用
+		if confirmed {
+			ctx := context.Background()
+			err = s.interactiveSession.ApplySuggestion(ctx, s.currentSessionID, suggestion.ID)
+			if err != nil {
+				return fmt.Errorf("提案適用エラー: %w", err)
+			}
+			fmt.Printf("✅ 提案を適用しました！\n")
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
+// 確認応答の処理
+func (s *Session) handleConfirmationResponse(response *interactive.InteractionResponse) error {
+	// 確認が必要な場合の処理
+	if response.RequiresConfirmation {
+		confirmed, err := s.getUserConfirmation(response.Message)
+		if err != nil {
+			return err
+		}
+
+		if confirmed && len(response.Suggestions) > 0 {
+			// 提案を適用
+			ctx := context.Background()
+			return s.interactiveSession.ApplySuggestion(ctx, s.currentSessionID, response.Suggestions[0].ID)
+		}
+	}
+
+	return nil
+}
+
+// メッセージ応答の処理
+func (s *Session) handleMessageResponse(response *interactive.InteractionResponse) error {
+	// ストリーミング風に応答を表示
+	err := s.streamProcessor.StreamContent(response.Message)
+	if err != nil {
+		// ストリーミングに失敗した場合は通常表示
+		fmt.Print(response.Message)
+	}
+
+	// コンテキストマネージャーに応答を追加
+	if s.contextManager != nil {
+		contextItem := &contextmanager.ContextItem{
+			Type:       contextmanager.ContextTypeImmediate,
+			Content:    fmt.Sprintf("アシスタント応答: %s", response.Message),
+			Metadata:   map[string]string{"type": "assistant_response", "session_id": s.currentSessionID},
+			Importance: 0.6,
+		}
+		s.contextManager.AddContext(contextItem)
+	}
+
+	return nil
+}
+
+// コード提案の表示
+func (s *Session) displayCodeSuggestion(suggestion *interactive.CodeSuggestion) {
+	cyan := "\033[36m"
+	green := "\033[32m"
+	yellow := "\033[33m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s💡 コード提案%s\n", cyan, reset)
+	fmt.Printf("%s信頼度:%s %.1f%% ", green, reset, suggestion.Confidence*100)
+
+	impactText := map[interactive.ImpactLevel]string{
+		interactive.ImpactLevelLow:      "低影響",
+		interactive.ImpactLevelMedium:   "中影響",
+		interactive.ImpactLevelHigh:     "高影響",
+		interactive.ImpactLevelCritical: "重大影響",
+	}
+	fmt.Printf("%s影響:%s %s\n", yellow, reset, impactText[suggestion.ImpactLevel])
+
+	if suggestion.Explanation != "" {
+		fmt.Printf("\n%s説明:%s %s\n", cyan, reset, suggestion.Explanation)
+	}
+
+	if suggestion.SuggestedCode != suggestion.OriginalCode {
+		fmt.Printf("\n%s提案コード:%s\n", green, reset)
+		fmt.Printf("```\n%s\n```\n", suggestion.SuggestedCode)
+	}
+}
+
+// ユーザー確認を取得
+func (s *Session) getUserConfirmation(message string) (bool, error) {
+	// TTY利用可能性をチェック
+	if s.isTTYAvailable() {
+		// Bubble Teaベースの確認ダイアログを使用
+		dialog := ui.NewConfirmationDialog("📝 確認", message, []string{"✅ はい", "❌ いいえ"})
+
+		confirmed, err := ui.RunConfirmationDialog(dialog)
+		if err == nil {
+			return confirmed, nil
+		}
+		// Bubble Teaでエラーが発生した場合はフォールバック
+	}
+
+	// 従来の方式（TTY利用不可またはBubble Teaエラー時）
+	fmt.Printf("\n%s [y/N]: ", message)
+	response, readErr := s.inputReader.ReadLine()
+	if readErr != nil {
+		return false, readErr
+	}
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == "yes", nil
+}
+
+// TTYが利用可能かどうかを確認
+func (s *Session) isTTYAvailable() bool {
+	// 標準入力がTTYかどうかを確認
+	file, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		return false
+	}
+	file.Close()
+
+	// また、標準入出力がパイプでないことも確認
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+
+	// パイプ経由の場合はTTYではない
+	return (stat.Mode() & os.ModeCharDevice) != 0
 }

@@ -31,6 +31,7 @@ type ToolExecutionResult struct {
 	Server   string                 `json:"server,omitempty"`
 	Duration string                 `json:"duration"`
 	ExitCode int                    `json:"exitCode,omitempty"`
+	TimedOut bool                   `json:"timedOut,omitempty"` // タイムアウトフラグ追加
 }
 
 // ツールレジストリ：ネイティブとMCPツールを統合管理
@@ -39,7 +40,7 @@ type ToolRegistry struct {
 	nativeTools map[string]UnifiedTool
 	mcpManager  *mcp.Manager
 	constraints *security.Constraints
-	fileOps     *FileOperations
+	fileOps     *UnifiedFileOperations
 	executor    *CommandExecutor
 	gitOps      *GitOperations
 	// Claude Codeツール
@@ -64,7 +65,7 @@ func NewToolRegistry(constraints *security.Constraints, workDir string, maxFileS
 		nativeTools: make(map[string]UnifiedTool),
 		mcpManager:  mcpManager,
 		constraints: constraints,
-		fileOps:     NewFileOperations(maxFileSize, workDir),
+		fileOps:     NewUnifiedFileOperations(maxFileSize, workDir),
 		executor:    NewCommandExecutor(constraints, workDir),
 		gitOps:      NewGitOperations(constraints, workDir),
 		// Claude Codeツールを初期化

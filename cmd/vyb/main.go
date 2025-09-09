@@ -17,8 +17,8 @@ var (
 // メインコマンド：vyb単体で実行される処理
 var rootCmd = &cobra.Command{
 	Use:     "vyb",
-	Short:   "Local AI coding assistant",
-	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant that prioritizes privacy and developer experience.`,
+	Short:   "Local AI coding assistant with vibe coding mode",
+	Long:    `vyb - Feel the rhythm of perfect code. A local LLM-based coding assistant with AI-powered interactive vibe coding mode as default experience.`,
 	Version: version.GetVersion(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// コンテナー初期化
@@ -35,18 +35,8 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// フラグをチェック
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
-		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
-		noTerminalMode, _ := cmd.Flags().GetBool("no-terminal-mode")
-		planMode, _ := cmd.Flags().GetBool("plan-mode")
 		continueSession, _ := cmd.Flags().GetBool("continue")
 		resumeID, _ := cmd.Flags().GetString("resume")
-
-		// terminal-modeのロジック調整（デフォルトtrue、no-terminal-modeでfalse）
-		if noTerminalMode {
-			terminalMode = false
-		} else {
-			terminalMode = true // デフォルトでterminal-mode
-		}
 
 		chatHandler, err := appContainer.GetChatHandler()
 		if err != nil {
@@ -54,8 +44,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		if len(args) == 0 {
-			// 引数なし：対話モード開始
-			return chatHandler.StartInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
+			// 引数なし：バイブコーディングモードをデフォルトで開始
+			return chatHandler.StartVibeCodingMode()
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
@@ -64,10 +54,10 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// チャットコマンド：明示的に対話モードを開始
+// チャットコマンド：従来のターミナルモード
 var chatCmd = &cobra.Command{
 	Use:   "chat",
-	Short: "Start interactive chat mode",
+	Short: "Start legacy terminal mode (traditional chat interface)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		noTUI, _ := cmd.Flags().GetBool("no-tui")
 		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
@@ -92,6 +82,22 @@ var chatCmd = &cobra.Command{
 	},
 }
 
+// バイブコーディングコマンド：明示的なバイブモード（デフォルトでも利用可能）
+var vibeCmd = &cobra.Command{
+	Use:   "vibe",
+	Short: "Start vibe coding mode explicitly (same as default vyb)",
+	Long:  `Start vibe coding mode - an interactive coding experience with Claude Code-equivalent context compression and AI-powered assistance. This is the same as running 'vyb' with no arguments.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		chatHandler, err := appContainer.GetChatHandler()
+		if err != nil {
+			return fmt.Errorf("チャットハンドラー取得エラー: %w", err)
+		}
+
+		// バイブコーディングモードで開始
+		return chatHandler.StartVibeCodingMode()
+	},
+}
+
 func init() {
 	// ルートコマンドにフラグを追加
 	rootCmd.PersistentFlags().Bool("no-tui", false, "Disable TUI mode")
@@ -111,6 +117,7 @@ func init() {
 
 	// サブコマンドを追加（これらは初期化時に動的に追加される）
 	rootCmd.AddCommand(chatCmd)
+	rootCmd.AddCommand(vibeCmd)
 }
 
 func main() {

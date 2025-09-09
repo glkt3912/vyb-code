@@ -26,18 +26,20 @@ type GitProjectInfo struct {
 	Status        string   `json:"status"`
 }
 
-// プロジェクト解析を管理する構造体
+// ProjectAnalyzer - 廃止予定: AI分析機能を使用してください
+// Deprecated: Use AI-powered code analysis from internal/ai package instead
 type ProjectAnalyzer struct {
-	fileOps     *FileOperations       // ファイル操作
-	gitOps      *GitOperations        // Git操作
-	constraints *security.Constraints // セキュリティ制約
-	projectDir  string                // プロジェクトディレクトリ
+	fileOps     *UnifiedFileOperations // ファイル操作（統一版）
+	gitOps      *GitOperations         // Git操作
+	constraints *security.Constraints  // セキュリティ制約
+	projectDir  string                 // プロジェクトディレクトリ
 }
 
 // プロジェクト解析ハンドラーを作成するコンストラクタ
+// Deprecated: Use AI-powered code analysis from internal/ai package instead
 func NewProjectAnalyzer(constraints *security.Constraints, projectDir string) *ProjectAnalyzer {
 	return &ProjectAnalyzer{
-		fileOps:     NewFileOperations(int64(constraints.MaxTimeout)*1024*1024, projectDir), // 設定値を利用
+		fileOps:     NewUnifiedFileOperations(int64(constraints.MaxTimeout)*1024*1024, projectDir), // 統一版を利用
 		gitOps:      NewGitOperations(constraints, projectDir),
 		constraints: constraints,
 		projectDir:  projectDir,

@@ -10,6 +10,59 @@ import (
 	"github.com/glkt/vyb-code/internal/security"
 )
 
+// UnifiedFileOperations - ファイル操作の統一インターフェース
+type UnifiedFileOperations struct {
+	editTool  *EditTool
+	readTool  *ReadTool
+	writeTool *WriteTool
+	workDir   string
+	WorkDir   string // 後方互換性のためのパブリックフィールド
+}
+
+// NewUnifiedFileOperations - FileOperationsの代替として使用
+func NewUnifiedFileOperations(maxFileSize int64, workDir string) *UnifiedFileOperations {
+	constraints := security.NewDefaultConstraints(workDir)
+
+	return &UnifiedFileOperations{
+		editTool:  NewEditTool(constraints, workDir, maxFileSize),
+		readTool:  NewReadTool(constraints, workDir, maxFileSize),
+		writeTool: NewWriteTool(constraints, workDir, maxFileSize),
+		workDir:   workDir,
+		WorkDir:   workDir, // 後方互換性
+	}
+}
+
+// ReadFile - FileOperationsのReadFileメソッドの代替
+func (u *UnifiedFileOperations) ReadFile(filePath string) (string, error) {
+	req := ReadRequest{
+		FilePath: filePath,
+		Offset:   1,
+		Limit:    0, // 全て読み込み
+	}
+
+	result, err := u.readTool.Read(req)
+	if err != nil || result.IsError {
+		return "", fmt.Errorf("failed to read file: %v", err)
+	}
+
+	return result.Content, nil
+}
+
+// WriteFile - FileOperationsのWriteFileメソッドの代替
+func (u *UnifiedFileOperations) WriteFile(filePath, content string) error {
+	req := WriteRequest{
+		FilePath: filePath,
+		Content:  content,
+	}
+
+	result, err := u.writeTool.Write(req)
+	if err != nil || result.IsError {
+		return fmt.Errorf("failed to write file: %v", err)
+	}
+
+	return nil
+}
+
 // EditTool - 構造化コード編集ツール（Claude Code相当）
 type EditTool struct {
 	constraints *security.Constraints

@@ -111,6 +111,50 @@ func (h *ChatHandler) ProcessSingleQuery(query string, noTUI bool) error {
 	return fmt.Errorf("単発クエリ機能は開発中です")
 }
 
+// StartVibeCodingMode はバイブコーディングモードを開始
+func (h *ChatHandler) StartVibeCodingMode() error {
+	h.log.Info("Vibe Coding Mode開始", nil)
+
+	// 設定を読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// LLMプロバイダーを初期化
+	provider := llm.NewOllamaClient(cfg.BaseURL)
+
+	// バイブモード専用セッションを作成
+	session := chat.NewVibeSession(provider, cfg.ModelName, cfg)
+
+	// バイブ起動メッセージを表示
+	h.printVibeWelcomeMessage(session)
+
+	// Enhanced Terminal Modeを開始
+	return session.StartEnhancedTerminal()
+}
+
+// printVibeWelcomeMessage はバイブモード専用の起動メッセージを表示
+func (h *ChatHandler) printVibeWelcomeMessage(session *chat.Session) {
+	cyan := "\033[36m"
+	green := "\033[32m"
+	yellow := "\033[33m"
+	magenta := "\033[35m"
+	reset := "\033[0m"
+	bold := "\033[1m"
+
+	fmt.Printf("\n")
+	fmt.Printf("%s%s🎵 vyb - Feel the rhythm of perfect code%s%s\n", cyan, bold, reset, reset)
+	fmt.Printf("%s╭─ Mode: %sVibe Coding %s(AI-powered interactive experience)%s\n",
+		green, magenta, green, reset)
+	fmt.Printf("%s├─ Context: %sCompression enabled %s(70-95%% efficiency)%s\n",
+		green, yellow, green, reset)
+	fmt.Printf("%s├─ Features: %sCode suggestions, real-time analysis, smart completion%s\n",
+		green, cyan, reset)
+	fmt.Printf("%s╰─ Type 'exit' to quit, '/help' for commands%s\n", green, reset)
+	fmt.Printf("\n")
+}
+
 // runEnhancedTerminalLoop はEnhanced Terminal Modeのメインループ
 func (h *ChatHandler) runEnhancedTerminalLoop(cfg *config.Config, planMode bool) error {
 	h.log.Info("Enhanced Terminal Mode開始", map[string]interface{}{

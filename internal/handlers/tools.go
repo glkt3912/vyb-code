@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/glkt/vyb-code/internal/config"
@@ -56,77 +57,353 @@ func (h *ToolsHandler) ExecuteCommand(command string) error {
 
 // SearchFiles はファイル検索
 func (h *ToolsHandler) SearchFiles(pattern string, smartMode bool, maxResults int, showContext bool) error {
-	// 簡略化された検索処理
-	h.log.Info("検索機能（簡略版）", map[string]interface{}{
+	h.log.Info("検索機能実行", map[string]interface{}{
 		"pattern":      pattern,
 		"smart_mode":   smartMode,
 		"max_results":  maxResults,
 		"show_context": showContext,
 	})
 
-	// TODO: 実際の検索実装
-	return fmt.Errorf("検索機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// Grepツールを作成して検索実行
+	grepTool := tools.NewGrepTool(cfg.WorkspacePath)
+
+	grepOptions := tools.GrepOptions{
+		Pattern:         pattern,
+		Path:            cfg.WorkspacePath,
+		CaseInsensitive: true,
+		LineNumbers:     true,
+		HeadLimit:       maxResults,
+		OutputMode:      "content",
+	}
+
+	if showContext {
+		grepOptions.ContextBefore = 3
+		grepOptions.ContextAfter = 3
+	}
+
+	result, err := grepTool.Search(grepOptions)
+	if err != nil {
+		return fmt.Errorf("検索エラー: %w", err)
+	}
+
+	// 結果を表示
+	if result.IsError {
+		fmt.Printf("検索エラー: %s\n", result.Content)
+	} else {
+		fmt.Printf("🔍 検索結果:\n%s\n", result.Content)
+	}
+
+	return nil
 }
 
 // FindFiles はファイル名パターンで検索
 func (h *ToolsHandler) FindFiles(pattern string) error {
-	// 簡略化されたファイル検索
-	h.log.Info("ファイル検索機能（簡略版）", map[string]interface{}{
+	h.log.Info("ファイル検索機能実行", map[string]interface{}{
 		"pattern": pattern,
 	})
 
-	// TODO: 実際のファイル検索実装
-	return fmt.Errorf("ファイル検索機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// Globツールを使用してファイル検索
+	globTool := tools.NewGlobTool(cfg.WorkspacePath)
+	result, err := globTool.Find(pattern, cfg.WorkspacePath)
+	if err != nil {
+		return fmt.Errorf("ファイル検索エラー: %w", err)
+	}
+
+	// 結果を表示
+	if result.IsError {
+		fmt.Printf("ファイル検索エラー: %s\n", result.Content)
+	} else {
+		fmt.Printf("📁 見つかったファイル:\n%s\n", result.Content)
+	}
+
+	return nil
 }
 
 // GrepFiles はgrep検索
 func (h *ToolsHandler) GrepFiles(pattern string, filePattern string) error {
-	// 簡略化されたgrep検索
-	h.log.Info("grep検索機能（簡略版）", map[string]interface{}{
+	h.log.Info("grep検索機能実行", map[string]interface{}{
 		"pattern":      pattern,
 		"file_pattern": filePattern,
 	})
 
-	// TODO: 実際のgrep検索実装
-	return fmt.Errorf("grep検索機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// Grepツールを作成してgrep検索実行
+	grepTool := tools.NewGrepTool(cfg.WorkspacePath)
+
+	grepOptions := tools.GrepOptions{
+		Pattern:         pattern,
+		Path:            cfg.WorkspacePath,
+		Glob:            filePattern,
+		CaseInsensitive: true,
+		LineNumbers:     true,
+		HeadLimit:       100,
+		OutputMode:      "content",
+		ContextBefore:   2,
+		ContextAfter:    2,
+	}
+
+	result, err := grepTool.Search(grepOptions)
+	if err != nil {
+		return fmt.Errorf("grep検索エラー: %w", err)
+	}
+
+	// 結果を表示
+	if result.IsError {
+		fmt.Printf("grep検索エラー: %s\n", result.Content)
+	} else {
+		fmt.Printf("🔍 grep検索結果:\n%s\n", result.Content)
+	}
+
+	return nil
 }
 
 // AnalyzeProject はプロジェクト分析
 func (h *ToolsHandler) AnalyzeProject(path string) error {
-	// 簡略化されたプロジェクト分析
-	h.log.Info("プロジェクト分析機能（簡略版）", map[string]interface{}{
+	h.log.Info("プロジェクト分析機能実行", map[string]interface{}{
 		"path": path,
 	})
 
-	// TODO: 実際のプロジェクト分析実装
-	return fmt.Errorf("プロジェクト分析機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// 分析対象パスの決定
+	analyzePath := cfg.WorkspacePath
+	if path != "" {
+		if filepath.IsAbs(path) {
+			analyzePath = path
+		} else {
+			analyzePath = filepath.Join(cfg.WorkspacePath, path)
+		}
+	}
+
+	// セキュリティ制約設定
+	constraints := &security.Constraints{
+		AllowedCommands: []string{"git", "ls", "find"},
+		MaxTimeout:      cfg.CommandTimeout,
+	}
+
+	// プロジェクト分析器を作成
+	analyzer := tools.NewProjectAnalyzer(constraints, analyzePath)
+
+	// プロジェクト分析実行
+	analysis, err := analyzer.AnalyzeProject()
+	if err != nil {
+		return fmt.Errorf("プロジェクト分析エラー: %w", err)
+	}
+
+	// 結果を表示
+	fmt.Printf("📊 プロジェクト分析結果:\n")
+	fmt.Printf("  総ファイル数: %d\n", analysis.TotalFiles)
+	fmt.Printf("  言語別ファイル数:\n")
+	for lang, count := range analysis.FilesByLanguage {
+		fmt.Printf("    %s: %d\n", lang, count)
+	}
+
+	if analysis.GitInfo != nil {
+		fmt.Printf("  Git情報:\n")
+		fmt.Printf("    現在のブランチ: %s\n", analysis.GitInfo.CurrentBranch)
+		fmt.Printf("    ブランチ数: %d\n", len(analysis.GitInfo.Branches))
+		fmt.Printf("    ステータス: %s\n", analysis.GitInfo.Status)
+	}
+
+	fmt.Printf("  依存関係: %d個\n", len(analysis.Dependencies))
+
+	return nil
 }
 
 // QuickGitStatus はGitステータスの簡易表示
 func (h *ToolsHandler) QuickGitStatus() error {
-	// 簡略化されたGitステータス
-	h.log.Info("Gitステータス機能（簡略版）", nil)
+	h.log.Info("Gitステータス機能実行", nil)
 
-	// TODO: 実際のGitステータス実装
-	return fmt.Errorf("Gitステータス機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// セキュリティ制約設定
+	constraints := &security.Constraints{
+		AllowedCommands: []string{"git"},
+		MaxTimeout:      cfg.CommandTimeout,
+	}
+
+	// Git操作器を作成
+	gitOps := tools.NewGitOperations(constraints, cfg.WorkspacePath)
+
+	// Gitステータス取得
+	status, err := gitOps.GetStatus()
+	if err != nil {
+		return fmt.Errorf("gitステータス取得エラー: %w", err)
+	}
+
+	// ブランチ情報取得
+	branchesResult, err := gitOps.GetBranches()
+	if err != nil {
+		h.log.Warn("ブランチ情報取得に失敗", map[string]interface{}{"error": err.Error()})
+	}
+
+	// 現在のブランチ取得
+	currentBranch, err := gitOps.GetCurrentBranch()
+	if err != nil {
+		h.log.Warn("現在のブランチ取得に失敗", map[string]interface{}{"error": err.Error()})
+	}
+
+	// 結果を表示
+	fmt.Printf("🌿 Git ステータス:\n")
+	if status.Stdout != "" {
+		fmt.Printf("%s\n", status.Stdout)
+	} else {
+		fmt.Printf("  作業ディレクトリはクリーンです\n")
+	}
+
+	if currentBranch != "" {
+		fmt.Printf("📍 現在のブランチ: %s\n", currentBranch)
+	}
+
+	if branchesResult != nil && branchesResult.Stdout != "" {
+		fmt.Printf("\n📝 ブランチ一覧:\n")
+		branches := strings.Split(strings.TrimSpace(branchesResult.Stdout), "\n")
+		for _, branch := range branches {
+			branch = strings.TrimSpace(branch)
+			if branch != "" {
+				fmt.Printf("  %s\n", branch)
+			}
+		}
+	}
+
+	return nil
 }
 
 // AutoBuild は自動ビルド実行
 func (h *ToolsHandler) AutoBuild() error {
-	// 簡略化された自動ビルド
-	h.log.Info("自動ビルド機能（簡略版）", nil)
+	h.log.Info("自動ビルド機能実行", nil)
 
-	// TODO: 実際の自動ビルド実装
-	return fmt.Errorf("自動ビルド機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// セキュリティ制約設定
+	constraints := &security.Constraints{
+		AllowedCommands: []string{"make", "go", "npm", "yarn", "cargo", "mvn", "gradle", "python", "pip"},
+		MaxTimeout:      cfg.CommandTimeout * 3, // ビルドは長時間かかる可能性があるので3倍に設定
+	}
+
+	// ビルドマネージャーを作成
+	buildManager := tools.NewBuildManager(constraints, cfg.WorkspacePath)
+
+	// 自動ビルド実行
+	result, err := buildManager.AutoBuild()
+	if err != nil {
+		return fmt.Errorf("自動ビルドエラー: %w", err)
+	}
+
+	// 結果を表示
+	fmt.Printf("🔨 ビルド結果:\n")
+	fmt.Printf("  ビルドシステム: %s\n", result.BuildSystem)
+	fmt.Printf("  コマンド: %s\n", result.Command)
+	fmt.Printf("  実行時間: %v\n", result.Duration)
+
+	if result.Success {
+		fmt.Printf("  ✅ ビルド成功\n")
+		if result.Output != "" {
+			fmt.Printf("出力:\n%s\n", result.Output)
+		}
+	} else {
+		fmt.Printf("  ❌ ビルド失敗 (終了コード: %d)\n", result.ExitCode)
+		if result.ErrorOutput != "" {
+			fmt.Printf("エラー:\n%s\n", result.ErrorOutput)
+		}
+	}
+
+	return nil
 }
 
 // AutoTest は自動テスト実行
 func (h *ToolsHandler) AutoTest() error {
-	// 簡略化された自動テスト
-	h.log.Info("自動テスト機能（簡略版）", nil)
+	h.log.Info("自動テスト機能実行", nil)
 
-	// TODO: 実際の自動テスト実装
-	return fmt.Errorf("自動テスト機能は現在開発中です")
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	// セキュリティ制約設定
+	constraints := &security.Constraints{
+		AllowedCommands: []string{"make", "go", "npm", "yarn", "cargo", "mvn", "gradle", "python", "pytest", "jest"},
+		MaxTimeout:      cfg.CommandTimeout * 5, // テストはさらに長時間かかる可能性があるので5倍に設定
+	}
+
+	// コマンド実行器を作成
+	executor := tools.NewCommandExecutor(constraints, cfg.WorkspacePath)
+
+	// テストコマンドを自動検出して実行
+	var testCommand string
+	var buildSystem string
+
+	// Go プロジェクト
+	if _, err := executor.Execute("ls go.mod"); err == nil {
+		testCommand = "go test ./..."
+		buildSystem = "Go"
+	} else if _, err := executor.Execute("ls package.json"); err == nil {
+		// Node.js プロジェクト
+		testCommand = "npm test"
+		buildSystem = "Node.js"
+	} else if _, err := executor.Execute("ls Makefile"); err == nil {
+		// Makefile プロジェクト
+		testCommand = "make test"
+		buildSystem = "Make"
+	} else {
+		return fmt.Errorf("テスト可能なプロジェクトが見つかりません")
+	}
+
+	// テスト実行
+	result, err := executor.Execute(testCommand)
+	if err != nil {
+		return fmt.Errorf("テスト実行エラー: %w", err)
+	}
+
+	// 結果を表示
+	fmt.Printf("🧪 テスト結果:\n")
+	fmt.Printf("  テストシステム: %s\n", buildSystem)
+	fmt.Printf("  コマンド: %s\n", testCommand)
+	fmt.Printf("  実行時間: %v\n", result.Duration)
+
+	if result.ExitCode == 0 {
+		fmt.Printf("  ✅ テスト成功\n")
+		if result.Stdout != "" {
+			fmt.Printf("出力:\n%s\n", result.Stdout)
+		}
+	} else {
+		fmt.Printf("  ❌ テスト失敗 (終了コード: %d)\n", result.ExitCode)
+		if result.Stderr != "" {
+			fmt.Printf("エラー:\n%s\n", result.Stderr)
+		}
+	}
+
+	return nil
 }
 
 // CreateToolCommands はツール関連のcobraコマンドを作成

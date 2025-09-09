@@ -8,13 +8,15 @@ import (
 	"strings"
 )
 
-// vybのファイルシステム操作を処理する構造体
+// FileOperations - 廃止予定: UnifiedFileOperationsを使用してください
+// Deprecated: Use UnifiedFileOperations in edit_tools.go instead
 type FileOperations struct {
 	MaxFileSize int64  // 読み込み可能な最大ファイルサイズ
 	WorkDir     string // 作業ディレクトリ（セキュリティ制約用）
 }
 
-// ファイル操作ハンドラーを作成するコンストラクタ
+// NewFileOperations - 廃止予定: NewUnifiedFileOperationsを使用してください
+// Deprecated: Use NewUnifiedFileOperations in edit_tools.go instead
 func NewFileOperations(maxFileSize int64, workDir string) *FileOperations {
 	return &FileOperations{
 		MaxFileSize: maxFileSize,

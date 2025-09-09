@@ -12,8 +12,10 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/glkt/vyb-code/internal/search"
 	"github.com/glkt/vyb-code/internal/security"
 )
 
@@ -83,7 +85,11 @@ func (b *BashTool) Execute(command string, description string, timeoutMs int) (*
 
 	// 出力を読み取り
 	var stdoutBuf, stderrBuf strings.Builder
+	var wg sync.WaitGroup
+
+	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			stdoutBuf.WriteString(scanner.Text())
@@ -91,6 +97,7 @@ func (b *BashTool) Execute(command string, description string, timeoutMs int) (*
 		}
 	}()
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			stderrBuf.WriteString(scanner.Text())
@@ -99,7 +106,11 @@ func (b *BashTool) Execute(command string, description string, timeoutMs int) (*
 	}()
 
 	err = cmd.Wait()
+	wg.Wait() // goroutineの完了を待つ
 	duration := time.Since(start)
+
+	// タイムアウト検出
+	timedOut := err != nil && ctx.Err() == context.DeadlineExceeded
 
 	exitCode := 0
 	if err != nil {
@@ -121,10 +132,11 @@ func (b *BashTool) Execute(command string, description string, timeoutMs int) (*
 
 	return &ToolExecutionResult{
 		Content:  output,
-		IsError:  exitCode != 0,
+		IsError:  exitCode != 0 || timedOut,
 		Tool:     "bash",
 		ExitCode: exitCode,
 		Duration: duration.String(),
+		TimedOut: timedOut,
 		Metadata: map[string]interface{}{
 			"command":     command,
 			"description": description,
@@ -223,11 +235,16 @@ func (g *GlobTool) globRecursive(dir, pattern string) ([]string, error) {
 
 // GrepTool - 高度な検索機能
 type GrepTool struct {
-	workDir string
+	workDir      string
+	searchEngine *search.Engine // 統一検索エンジンを使用
 }
 
 func NewGrepTool(workDir string) *GrepTool {
-	return &GrepTool{workDir: workDir}
+	engine := search.NewEngine(workDir) // 統一検索エンジンを使用
+	return &GrepTool{
+		workDir:      workDir,
+		searchEngine: engine,
+	}
 }
 
 type GrepOptions struct {
@@ -245,6 +262,46 @@ type GrepOptions struct {
 }
 
 func (g *GrepTool) Search(options GrepOptions) (*ToolExecutionResult, error) {
+	// search.Engineを使用した統一検索
+	if g.searchEngine != nil {
+		searchOptions := search.SearchOptions{
+			Pattern:       options.Pattern,
+			CaseSensitive: !options.CaseInsensitive,
+			Regex:         true, // デフォルトで正規表現サポート
+			MaxResults:    options.HeadLimit,
+			ContextLines:  options.ContextBefore, // ContextAfterも考慮されるが簡略化
+		}
+
+		// パスフィルターの設定
+		if options.Glob != "" {
+			searchOptions.IncludePatterns = []string{options.Glob}
+		}
+
+		results, err := g.searchEngine.SearchInFiles(searchOptions)
+		if err != nil {
+			return g.legacySearch(options) // エラー時は従来実装にフォールバック
+		}
+
+		// 結果フォーマット
+		content := g.formatUnifiedResults(results, options)
+		return &ToolExecutionResult{
+			Content: content,
+			IsError: false,
+			Tool:    "grep",
+			Metadata: map[string]interface{}{
+				"pattern":       options.Pattern,
+				"matches_count": len(results),
+				"search_method": "unified_engine",
+			},
+		}, nil
+	}
+
+	// フォールバック：従来の実装
+	return g.legacySearch(options)
+}
+
+// 従来の実装（フォールバック用）
+func (g *GrepTool) legacySearch(options GrepOptions) (*ToolExecutionResult, error) {
 	searchDir := g.workDir
 	if options.Path != "" {
 		if filepath.IsAbs(options.Path) {
@@ -623,4 +680,53 @@ func (w *WebFetchTool) htmlToMarkdown(html string) string {
 
 	// 実際の実装では、より高度なHTML→Markdown変換ライブラリを使用
 	return strings.TrimSpace(content)
+}
+
+// formatUnifiedResults - 統一検索エンジン結果のフォーマット
+func (g *GrepTool) formatUnifiedResults(results []search.SearchResult, options GrepOptions) string {
+	if len(results) == 0 {
+		return "マッチなし"
+	}
+
+	switch options.OutputMode {
+	case "files_with_matches":
+		seen := make(map[string]bool)
+		var files []string
+		for _, result := range results {
+			if !seen[result.File.RelativePath] {
+				files = append(files, result.File.RelativePath)
+				seen[result.File.RelativePath] = true
+			}
+		}
+		return strings.Join(files, "\n")
+
+	case "count":
+		counts := make(map[string]int)
+		for _, result := range results {
+			counts[result.File.RelativePath]++
+		}
+		var output []string
+		for file, count := range counts {
+			output = append(output, fmt.Sprintf("%s:%d", file, count))
+		}
+		return strings.Join(output, "\n")
+
+	default: // "content"
+		var output []string
+		for _, result := range results {
+			if options.LineNumbers {
+				output = append(output, fmt.Sprintf("%s:%d:%s", result.File.RelativePath, result.LineNumber, result.Line))
+			} else {
+				output = append(output, fmt.Sprintf("%s:%s", result.File.RelativePath, result.Line))
+			}
+
+			// コンテキスト行の追加
+			if options.ContextBefore > 0 || options.ContextAfter > 0 {
+				for _, contextLine := range result.Context {
+					output = append(output, fmt.Sprintf("%s-  %s", result.File.RelativePath, contextLine))
+				}
+			}
+		}
+		return strings.Join(output, "\n")
+	}
 }

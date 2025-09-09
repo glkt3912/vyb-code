@@ -22,74 +22,51 @@ type ExecutionResult struct {
 	TimedOut bool   `json:"timed_out"` // タイムアウトフラグ
 }
 
-// コマンド実行を管理する構造体
+// CommandExecutor - 廃止予定: BashToolベースの統一実装
+// Deprecated: Use BashTool from claude_tools.go instead
 type CommandExecutor struct {
 	constraints *security.Constraints // セキュリティ制約
 	workDir     string                // 作業ディレクトリ
+	bashTool    *BashTool             // 内部でBashToolを使用
 }
 
 // コマンド実行ハンドラーを作成するコンストラクタ
+// Deprecated: Use NewBashTool from claude_tools.go instead
 func NewCommandExecutor(constraints *security.Constraints, workDir string) *CommandExecutor {
 	return &CommandExecutor{
 		constraints: constraints,
 		workDir:     workDir,
+		bashTool:    NewBashTool(constraints, workDir), // 内部でBashToolを使用
 	}
 }
 
-// セキュアなコマンド実行
+// セキュアなコマンド実行 - BashToolベースの統一実装
+// Deprecated: Use BashTool.Execute from claude_tools.go instead
 func (e *CommandExecutor) Execute(command string) (*ExecutionResult, error) {
 	startTime := time.Now()
 
-	// セキュリティチェック
-	if err := e.constraints.IsCommandAllowed(command); err != nil {
-		return nil, err
-	}
+	// BashToolを使用してコマンド実行
+	toolResult, err := e.bashTool.Execute(command, "", int(e.constraints.MaxTimeout*1000)) // ミリ秒に変換
 
-	// コマンドをシェルで実行するための準備
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.constraints.MaxTimeout)*time.Second)
-	defer cancel()
-
-	// コマンドを分割してcmdとargsに分ける
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return nil, fmt.Errorf("empty command")
-	}
-
-	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
-	cmd.Dir = e.workDir
-
-	// 環境変数をフィルタリングして設定
-	cmd.Env = e.constraints.FilterEnvironment()
-
-	// 出力をキャプチャするためのバッファ
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// コマンド実行
-	err := cmd.Run()
 	duration := time.Since(startTime)
 
+	// ToolExecutionResultをExecutionResultに変換
 	result := &ExecutionResult{
 		Command:  command,
-		Stdout:   stdout.String(),
-		Stderr:   stderr.String(),
+		ExitCode: toolResult.ExitCode,
+		Stdout:   toolResult.Content,
+		Stderr:   "", // BashToolではstderrはContentに統合される
 		Duration: duration.String(),
-		TimedOut: ctx.Err() == context.DeadlineExceeded,
+		TimedOut: toolResult.TimedOut, // BashToolのTimedOutフラグを使用
 	}
 
-	// 終了コードを取得
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			result.ExitCode = exitError.ExitCode()
-		} else {
-			result.ExitCode = -1
-		}
-	} else {
-		result.ExitCode = 0
+	// エラーがある場合はstderrに設定
+	if toolResult.IsError {
+		result.Stderr = toolResult.Content
+		result.Stdout = ""
 	}
 
-	return result, nil
+	return result, err
 }
 
 // 作業ディレクトリを変更

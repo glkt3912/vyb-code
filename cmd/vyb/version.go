@@ -2,49 +2,25 @@ package main
 
 import (
 	"fmt"
-	"runtime"
+
+	"github.com/glkt/vyb-code/internal/version"
 )
 
-// ビルド時に設定される変数（-ldflagsで注入）
-var (
-	Version   = "dev"     // バージョン情報
-	BuildTime = "unknown" // ビルド時刻
-	GitCommit = "unknown" // Gitコミットハッシュ
-	GitBranch = "unknown" // Gitブランチ名
-)
-
-// バージョン情報を表示する構造体
-type VersionInfo struct {
-	Version   string `json:"version"`
-	BuildTime string `json:"build_time"`
-	GitCommit string `json:"git_commit"`
-	GitBranch string `json:"git_branch"`
-	GoVersion string `json:"go_version"`
-	Platform  string `json:"platform"`
+// GetVersionInfo はバージョン情報を取得
+func GetVersionInfo() *version.Info {
+	return version.Get()
 }
 
-// バージョン情報を取得
-func GetVersionInfo() VersionInfo {
-	return VersionInfo{
-		Version:   Version,
-		BuildTime: BuildTime,
-		GitCommit: GitCommit,
-		GitBranch: GitBranch,
-		GoVersion: runtime.Version(),
-		Platform:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-	}
-}
-
-// バージョン情報を文字列として返す
+// GetVersionString はバージョン情報を文字列として返す
 func GetVersionString() string {
-	info := GetVersionInfo()
+	info := version.Get()
 	return fmt.Sprintf("vyb-code %s (%s %s, built %s)",
 		info.Version, info.GoVersion, info.Platform, info.BuildTime)
 }
 
-// 詳細なバージョン情報を返す
+// GetDetailedVersionString は詳細なバージョン情報を返す
 func GetDetailedVersionString() string {
-	info := GetVersionInfo()
+	info := version.Get()
 	return fmt.Sprintf(`vyb-code %s
 
 Build Information:

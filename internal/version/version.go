@@ -9,7 +9,7 @@ import (
 // ビルド時に注入される変数（ldflags経由）
 var (
 	// Version はアプリケーションのバージョン
-	Version = "dev"
+	Version = "2.0.0"
 
 	// BuildTime はビルド時刻
 	BuildTime = "unknown"

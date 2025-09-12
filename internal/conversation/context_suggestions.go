@@ -327,7 +327,9 @@ func (cse *ContextSuggestionEngine) FormatSuggestions(suggestions []ContextSugge
 
 	// デバッグ/開発用：この機能を一時的に無効化
 	// TODO: 将来的により有用な動的コンテキスト分析を実装する予定
-	return "" // 現在は表示を抑制
+	if true {
+		return "" // 現在は表示を抑制
+	}
 
 	// 表示頻度を制限（実際に役立つ時だけ表示）
 	relevantSuggestions := make([]ContextSuggestion, 0)

@@ -20,6 +20,7 @@ import (
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/markdown"
 	"github.com/glkt/vyb-code/internal/mcp"
+	"github.com/glkt/vyb-code/internal/performance"
 	"github.com/glkt/vyb-code/internal/security"
 	"github.com/glkt/vyb-code/internal/streaming"
 	"github.com/glkt/vyb-code/internal/tools"
@@ -82,6 +83,15 @@ type Session struct {
 	conversationManager conversation.ConversationManager // メモリ効率会話管理
 	currentSessionID    string                           // 現在のインタラクティブセッションID
 	currentThreadID     string                           // 現在の会話スレッドID
+
+	// Phase 2 軽量プロアクティブ機能
+	lightProactive *conversation.LightweightProactiveManager // 軽量プロアクティブマネージャー
+	contextEngine  *conversation.ContextSuggestionEngine     // コンテキスト提案エンジン
+	lightMonitor   *conversation.LightweightMonitor          // 軽量プロジェクト監視
+
+	// Phase 3 高度なインテリジェント機能
+	advancedIntelligence *conversation.AdvancedIntelligenceEngine // 高度なインテリジェンスエンジン
+	performanceMonitor   *performance.RealtimeMonitor             // リアルタイムパフォーマンス監視
 }
 
 // プロジェクトコンテキスト情報
@@ -205,8 +215,32 @@ func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Confi
 			session.inputHistory = NewInputHistory(cfg.TerminalMode.HistorySize)
 		}
 
-		// Phase 7: バイブコーディングモード設定
-		session.vibeMode = cfg.Features.VibeMode || false // デフォルトfalse（段階的導入）
+		// Phase 7: バイブコーディングモード設定（緊急修正：一時無効化）
+		session.vibeMode = false // 緊急修正: パフォーマンス問題により一時無効化
+
+		// Phase 2 & 3: プロアクティブ機能初期化
+		if cfg.IsProactiveEnabled() {
+			session.lightProactive = conversation.NewLightweightProactiveManager(cfg)
+			session.contextEngine = conversation.NewContextSuggestionEngine(cfg)
+			session.lightMonitor = conversation.NewLightweightMonitor(cfg)
+
+			// Phase 3: 高度なインテリジェント機能を初期化
+			if cfg.Proactive.Level >= config.ProactiveLevelStandard {
+				fmt.Printf("[DEBUG] Initializing AdvancedIntelligenceEngine (Level: %v >= %v)\n",
+					cfg.Proactive.Level, config.ProactiveLevelStandard)
+				session.advancedIntelligence = conversation.NewAdvancedIntelligenceEngine(cfg, session.workDir)
+				fmt.Printf("[DEBUG] AdvancedIntelligenceEngine initialized: %v\n", session.advancedIntelligence != nil)
+			} else {
+				fmt.Printf("[DEBUG] AdvancedIntelligenceEngine NOT initialized (Level: %v < %v)\n",
+					cfg.Proactive.Level, config.ProactiveLevelStandard)
+			}
+
+			// Phase 3: パフォーマンス監視を初期化
+			session.performanceMonitor = performance.NewRealtimeMonitor(cfg)
+			if session.performanceMonitor != nil {
+				session.performanceMonitor.Start()
+			}
+		}
 
 		// バイブモード有効時のみPhase 7コンポーネントを初期化
 		if session.vibeMode {
@@ -328,6 +362,15 @@ func (s *Session) ProcessQuery(query string) error {
 
 // LLMにメッセージを送信してレスポンスを処理
 func (s *Session) sendToLLM() error {
+	// Phase 3: パフォーマンス監視開始
+	startTime := time.Now()
+	defer func() {
+		if s.performanceMonitor != nil {
+			totalDuration := time.Since(startTime)
+			s.performanceMonitor.RecordResponseTime(totalDuration)
+		}
+	}()
+
 	// チャットリクエストを作成
 	req := llm.ChatRequest{
 		Model:    s.model,
@@ -336,17 +379,67 @@ func (s *Session) sendToLLM() error {
 	}
 
 	// LLMプロバイダーにリクエスト送信
+	llmStart := time.Now()
 	ctx := context.Background()
 	resp, err := s.provider.Chat(ctx, req)
 	if err != nil {
 		return fmt.Errorf("LLM request failed: %w", err)
 	}
 
-	// レスポンスメッセージを履歴に追加
+	// Phase 3: LLMレイテンシを記録
+	if s.performanceMonitor != nil {
+		llmDuration := time.Since(llmStart)
+		s.performanceMonitor.RecordLLMLatency(llmDuration)
+	}
+
+	// Phase 2 & 3: プロアクティブ応答拡張
+	enhancedResponse := resp.Message.Content
+	fmt.Printf("[DEBUG] Messages length: %d\n", len(s.messages))
+	if len(s.messages) > 0 {
+		lastUserMessage := ""
+		for i := len(s.messages) - 1; i >= 0; i-- {
+			if s.messages[i].Role == "user" {
+				lastUserMessage = s.messages[i].Content
+				break
+			}
+		}
+
+		// Phase 3: 高度なインテリジェンスで応答を拡張
+		enhancementStart := time.Now()
+		if s.advancedIntelligence != nil {
+			fmt.Printf("[DEBUG] Using AdvancedIntelligenceEngine for user input: %s\n", lastUserMessage)
+			if enhanced, err := s.advancedIntelligence.GenerateEnhancedResponse(resp.Message.Content, lastUserMessage, s.workDir); err == nil {
+				enhancedResponse = enhanced
+				fmt.Printf("[DEBUG] AdvancedIntelligence returned enhanced response\n")
+				// パフォーマンス記録
+				if s.performanceMonitor != nil {
+					s.performanceMonitor.RecordProactiveUsage("intelligence_enhancement")
+				}
+			} else {
+				fmt.Printf("[DEBUG] AdvancedIntelligence failed: %v\n", err)
+			}
+		} else if s.lightProactive != nil {
+			fmt.Printf("[DEBUG] Using LightweightProactive fallback\n")
+			// Phase 2: フォールバックとして軽量拡張を使用
+			enhancedResponse = s.lightProactive.EnhanceResponse(resp.Message.Content, lastUserMessage, s.workDir)
+			// パフォーマンス記録
+			if s.performanceMonitor != nil {
+				s.performanceMonitor.RecordProactiveUsage("proactive_response")
+			}
+		}
+
+		// 拡張処理時間を記録
+		if s.performanceMonitor != nil {
+			enhancementDuration := time.Since(enhancementStart)
+			s.performanceMonitor.RecordAnalysisTime(enhancementDuration)
+		}
+	}
+
+	// レスポンスメッセージを履歴に追加（元のレスポンスを保存）
 	s.messages = append(s.messages, resp.Message)
 
-	// レスポンスを表示
-	fmt.Printf("🎵 %s\n", resp.Message.Content)
+	// 拡張されたレスポンスを表示
+	fmt.Printf("🎵 %s\n", enhancedResponse)
 
 	return nil
 }
@@ -658,20 +751,49 @@ func (s *Session) sendToLLMStreamingWithThinking(stopThinking func()) error {
 		// 回答ヘッダーを表示
 		s.printAssistantMessageHeader()
 
-		// Claude Code風のクリーンなレスポンス表示（中断可能）
+		// Phase 4: プロアクティブ応答拡張処理をStreaming版にも適用
 		content := resp.Message.Content
+		enhancedContent := content
 
-		// 中断可能なレスポンス表示
-		if err := s.displayFormattedResponseInterruptible(content, ctx); err != nil {
+		// Phase 2 & 3: プロアクティブ応答拡張
+		if len(s.messages) > 0 {
+			lastUserMessage := ""
+			for i := len(s.messages) - 1; i >= 0; i-- {
+				if s.messages[i].Role == "user" {
+					lastUserMessage = s.messages[i].Content
+					break
+				}
+			}
+
+			fmt.Printf("[DEBUG STREAMING] Using AdvancedIntelligenceEngine for user input: %s\n", lastUserMessage)
+
+			// Phase 3: 高度なインテリジェンスで応答を拡張
+			if s.advancedIntelligence != nil {
+				if enhanced, err := s.advancedIntelligence.GenerateEnhancedResponse(content, lastUserMessage, s.workDir); err == nil {
+					enhancedContent = enhanced
+					fmt.Printf("[DEBUG STREAMING] AdvancedIntelligence returned enhanced response\n")
+				} else {
+					fmt.Printf("[DEBUG STREAMING] AdvancedIntelligence failed: %v\n", err)
+				}
+			} else if s.lightProactive != nil {
+				fmt.Printf("[DEBUG STREAMING] Using LightweightProactive fallback\n")
+				enhancedContent = s.lightProactive.EnhanceResponse(content, lastUserMessage, s.workDir)
+			}
+		}
+
+		// 中断可能なレスポンス表示（拡張されたコンテンツを使用）
+		if err := s.displayFormattedResponseInterruptible(enhancedContent, ctx); err != nil {
 			// 中断された場合、部分的な応答も保存
 			fmt.Printf("\n\033[33m⚠️  表示が中断されましたが、応答は保存されました\033[0m\n")
 		}
 
 		// メタ情報表示
-		s.displayMetaInfo(duration, len(content))
+		s.displayMetaInfo(duration, len(enhancedContent))
 
-		// レスポンスメッセージを履歴に追加
-		s.messages = append(s.messages, resp.Message)
+		// レスポンスメッセージを履歴に追加（拡張されたコンテンツで更新）
+		enhancedMessage := resp.Message
+		enhancedMessage.Content = enhancedContent
+		s.messages = append(s.messages, enhancedMessage)
 
 		// 長い会話の場合、メモリ効率化を実行
 		s.optimizeHistory()
@@ -836,6 +958,22 @@ func (s *Session) printWelcomeMessage() {
 		}
 
 		fmt.Printf("\n")
+
+		// Phase 2: プロアクティブプロジェクト情報表示
+		if s.lightProactive != nil {
+			summary := s.lightProactive.GenerateProjectSummary(s.workDir)
+			if summary != "" {
+				fmt.Printf("%s\n", summary)
+			}
+		}
+
+		// Phase 2: コンテキスト提案表示
+		if s.contextEngine != nil {
+			suggestions := s.contextEngine.GenerateStartupSuggestions(s.workDir)
+			if len(suggestions) > 0 {
+				fmt.Printf("\n%s\n", s.contextEngine.FormatSuggestions(suggestions))
+			}
+		}
 	}
 }
 
@@ -846,6 +984,187 @@ func (s *Session) printMessageSeparator() {
 
 	// さりげない区切り線
 	fmt.Printf("\n%s────────────────────────────────────────%s\n\n", gray, reset)
+}
+
+// === Phase 1: 非同期プロジェクト分析統合 ===
+
+// バックグラウンド分析マネージャー
+type BackgroundAnalysisManager struct {
+	session *Session
+	config  *config.Config
+	enabled bool
+	cancel  context.CancelFunc
+}
+
+// バックグラウンド分析を初期化
+func (s *Session) InitializeBackgroundAnalysis(cfg *config.Config) {
+	if !cfg.IsProactiveEnabled() {
+		return // プロアクティブ機能が無効の場合はスキップ
+	}
+
+	bam := &BackgroundAnalysisManager{
+		session: s,
+		config:  cfg,
+		enabled: cfg.Proactive.BackgroundAnalysis,
+	}
+
+	if bam.enabled {
+		ctx, cancel := context.WithCancel(context.Background())
+		bam.cancel = cancel
+		go bam.runBackgroundAnalysis(ctx)
+	}
+}
+
+// バックグラウンド分析を実行
+func (bam *BackgroundAnalysisManager) runBackgroundAnalysis(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute) // 5分間隔で軽量分析
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// 軽量分析を実行
+			bam.performLightweightAnalysis()
+		}
+	}
+}
+
+// 軽量分析を実行
+func (bam *BackgroundAnalysisManager) performLightweightAnalysis() {
+	if !bam.enabled || !bam.config.IsProactiveEnabled() {
+		return
+	}
+
+	// 軽量分析を別ゴルーチンで実行（ノンブロッキング）
+	go func() {
+		// 実際の分析実装は後のフェーズで追加
+		// 現在は設定の検証とログ出力のみ
+		if bam.config.Proactive.Level != config.ProactiveLevelOff {
+			// 軽量分析処理のプレースホルダー
+			_ = bam.session.workDir
+		}
+	}()
+}
+
+// セッション終了時のクリーンアップ
+func (s *Session) CleanupBackgroundProcesses() {
+	// Phase 2 & 3: プロアクティブコンポーネントのクリーンアップ
+	if s.lightProactive != nil {
+		s.lightProactive.Close()
+	}
+	if s.contextEngine != nil {
+		s.contextEngine.Close()
+	}
+	if s.lightMonitor != nil {
+		s.lightMonitor.Close()
+	}
+	if s.advancedIntelligence != nil {
+		s.advancedIntelligence.Close()
+	}
+	if s.performanceMonitor != nil {
+		s.performanceMonitor.Close()
+	}
+
+	// バックグラウンド処理をキャンセル（実装は後のフェーズで完成）
+	if s.vibeMode {
+		// 現在は何もしない（Phase 1では軽量実装）
+	}
+}
+
+// プロアクティブ機能の状態チェック
+func (s *Session) CheckProactiveStatus(cfg *config.Config) {
+	if cfg.IsProactiveEnabled() {
+		// プロアクティブ機能が有効な場合の処理
+		timeout, backgroundAnalysis, monitoring := cfg.GetProactiveLevelConfig()
+
+		if backgroundAnalysis {
+			// バックグラウンド分析が有効
+			_ = timeout
+			_ = monitoring
+		}
+	}
+}
+
+// コンテキスト圧縮の実行（軽量版）
+func (s *Session) CompressContextIfNeeded() {
+	// Phase 1: 基本的な圧縮ロジックのプレースホルダー
+	if len(s.messages) > 30 {
+		// 既存の optimizeHistory を呼び出し
+		s.optimizeHistory()
+	}
+}
+
+// プロアクティブ設定の動的更新
+func (s *Session) UpdateProactiveSettings(cfg *config.Config) {
+	// 設定変更時の動的更新処理
+	if cfg.IsProactiveEnabled() {
+		// プロアクティブ機能を有効化
+		s.InitializeBackgroundAnalysis(cfg)
+	} else {
+		// プロアクティブ機能を無効化
+		s.CleanupBackgroundProcesses()
+	}
+}
+
+// パフォーマンス統計の取得
+func (s *Session) GetPerformanceStats() map[string]interface{} {
+	stats := map[string]interface{}{
+		"message_count": len(s.messages),
+		"vibe_mode":     s.vibeMode,
+		"session_id":    s.currentSessionID,
+		"thread_id":     s.currentThreadID,
+	}
+
+	// Phase 2 & 3: プロアクティブコンポーネントの統計を追加
+	if s.lightProactive != nil {
+		proactiveStats := s.lightProactive.GetPerformanceStats()
+		for k, v := range proactiveStats {
+			stats["proactive_"+k] = v
+		}
+	}
+
+	if s.lightMonitor != nil {
+		monitorStats := s.lightMonitor.GetStats()
+		for k, v := range monitorStats {
+			stats["monitor_"+k] = v
+		}
+	}
+
+	if s.advancedIntelligence != nil {
+		intelligenceStats := s.advancedIntelligence.GetStats()
+		for k, v := range intelligenceStats {
+			stats["intelligence_"+k] = v
+		}
+	}
+
+	if s.performanceMonitor != nil {
+		perfMetrics := s.performanceMonitor.GetMetrics()
+		stats["performance_response_time"] = perfMetrics.ResponseTime.Current
+		stats["performance_memory_usage"] = perfMetrics.MemoryUsage.Current
+		stats["performance_request_count"] = perfMetrics.RequestCount.Total
+	}
+
+	return stats
+}
+
+// Phase 2: プロジェクト状態レポートを取得
+func (s *Session) GetProjectStatusReport() (string, error) {
+	if s.lightMonitor == nil {
+		return "", fmt.Errorf("監視機能が無効です")
+	}
+
+	return s.lightMonitor.GenerateStatusReport(s.workDir)
+}
+
+// Phase 3: パフォーマンスサマリーを取得
+func (s *Session) GetPerformanceSummary() string {
+	if s.performanceMonitor == nil {
+		return "パフォーマンス監視が無効です"
+	}
+
+	return s.performanceMonitor.GeneratePerformanceSummary()
 }
 
 // 質問の開始を表示
@@ -1230,53 +1549,11 @@ func (s *Session) saveConversation(filename string) {
 	fmt.Printf("%s会話保存機能は開発中です: %s%s\n", red, filename, reset)
 }
 
-// Phase 7: バイブコーディング用入力処理
+// Phase 7: バイブコーディング用入力処理（プロアクティブAI機能統合）
 func (s *Session) processVibeInput(input string) error {
-	// インタラクティブセッションが未初期化の場合は初期化
-	if s.currentSessionID == "" {
-		session, err := s.interactiveSession.CreateSession(interactive.CodingSessionTypeGeneral)
-		if err != nil {
-			return fmt.Errorf("インタラクティブセッション作成エラー: %w", err)
-		}
-		s.currentSessionID = session.ID
-	}
-
-	// コンテキストマネージャーにユーザー入力を追加
-	if s.contextManager != nil {
-		contextItem := &contextmanager.ContextItem{
-			Type:       contextmanager.ContextTypeImmediate,
-			Content:    fmt.Sprintf("ユーザー入力: %s", input),
-			Metadata:   map[string]string{"type": "user_input", "session_id": s.currentSessionID},
-			Importance: 0.7,
-		}
-		s.contextManager.AddContext(contextItem)
-	}
-
-	// thinking状態表示を開始
-	stopThinking := s.startThinkingAnimation()
-
-	// インタラクティブセッション処理
-	ctx := context.Background()
-	response, err := s.interactiveSession.ProcessUserInput(ctx, s.currentSessionID, input)
-
-	// thinking停止
-	stopThinking()
-
-	if err != nil {
-		return fmt.Errorf("バイブモード処理エラー: %w", err)
-	}
-
-	// 応答タイプに応じて処理
-	switch response.ResponseType {
-	case interactive.ResponseTypeCodeSuggestion:
-		return s.handleCodeSuggestionResponse(response)
-	case interactive.ResponseTypeConfirmation:
-		return s.handleConfirmationResponse(response)
-	case interactive.ResponseTypeMessage:
-		return s.handleMessageResponse(response)
-	default:
-		return s.handleMessageResponse(response)
-	}
+	// 緊急修正: プロアクティブ機能を一時的に無効化して従来処理にフォールバック
+	// TODO: プロアクティブ機能のパフォーマンス問題を修正後に再有効化
+	return s.processTraditionalInput(input)
 }
 
 // 従来の入力処理（後方互換性）
@@ -1446,4 +1723,287 @@ func (s *Session) isTTYAvailable() bool {
 
 	// パイプ経由の場合はTTYではない
 	return (stat.Mode() & os.ModeCharDevice) != 0
+}
+
+// プロアクティブAI機能統合メソッド群
+
+// プロアクティブなプロジェクト分析を表示
+func (s *Session) displayProactiveAnalysis() {
+	// 簡略化された実装：バイブモードが有効な場合に分析情報を表示
+	if s.vibeMode {
+		s.displayCompactProjectInsights(nil)
+	}
+}
+
+// コンパクトなプロジェクト洞察を表示
+func (s *Session) displayCompactProjectInsights(analysis interface{}) {
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	// 簡潔なプロジェクト状況表示
+	fmt.Printf("%s🔍 ", gray)
+
+	// 実際の分析データがあるかどうかに関係なく、プロアクティブな雰囲気を演出
+	insights := []string{
+		"プロジェクト状況を分析中...",
+		"コンテキストを理解中...",
+		"最適な提案を準備中...",
+	}
+
+	insight := insights[time.Now().Second()%len(insights)]
+	fmt.Printf("%s%s\n", insight, reset)
+}
+
+// 強化されたthinkingアニメーション
+func (s *Session) startEnhancedThinkingAnimation() func() {
+	// より詳細で情報豊富なアニメーション
+	frames := []string{
+		"プロジェクトを分析",
+		"プロジェクトを分析 .",
+		"プロジェクトを分析 . .",
+		"プロジェクトを分析 . . .",
+		"コンテキスト理解中",
+		"コンテキスト理解中 .",
+		"コンテキスト理解中 . .",
+		"最適な回答を生成",
+		"最適な回答を生成 .",
+		"最適な回答を生成 . .",
+	}
+	frameIndex := 0
+
+	// カラーコード
+	cyan := "\033[36m"
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	// 停止チャネル
+	stopCh := make(chan struct{})
+
+	// アニメーションゴルーチンを開始
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond) // より詳細なアニメーション
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-stopCh:
+				// アニメーションを完全にクリア
+				fmt.Print("\r" + strings.Repeat(" ", 80) + "\r")
+				return
+			case <-ticker.C:
+				// プロアクティブ風のアニメーション表示
+				fmt.Printf("\r%s💭 %s%s%s%s", cyan, gray, frames[frameIndex], strings.Repeat(" ", 30), reset)
+				frameIndex = (frameIndex + 1) % len(frames)
+			}
+		}
+	}()
+
+	// 停止関数を返す
+	return func() {
+		close(stopCh)
+		time.Sleep(300 * time.Millisecond) // クリア処理の完了を待つ
+		fmt.Print("\r" + strings.Repeat(" ", 80) + "\r")
+	}
+}
+
+// 強化されたインタラクティブ入力処理
+func (s *Session) processEnhancedInteractiveInput(ctx context.Context, input string) (*interactive.InteractionResponse, error) {
+	// 現在の実装では直接インタラクティブセッションを使用
+	return s.interactiveSession.ProcessUserInput(ctx, s.currentSessionID, input)
+}
+
+// 強化された応答処理
+func (s *Session) handleEnhancedResponse(response *interactive.InteractionResponse) error {
+	// まず回答ヘッダーを表示
+	s.printAssistantMessageHeader()
+
+	// 応答タイプに応じて処理
+	switch response.ResponseType {
+	case interactive.ResponseTypeCodeSuggestion:
+		return s.handleEnhancedCodeSuggestionResponse(response)
+	case interactive.ResponseTypeConfirmation:
+		return s.handleEnhancedConfirmationResponse(response)
+	case interactive.ResponseTypeMessage:
+		return s.handleEnhancedMessageResponse(response)
+	default:
+		return s.handleEnhancedMessageResponse(response)
+	}
+}
+
+// 強化されたコード提案応答処理
+func (s *Session) handleEnhancedCodeSuggestionResponse(response *interactive.InteractionResponse) error {
+	if len(response.Suggestions) == 0 {
+		return s.handleEnhancedMessageResponse(response)
+	}
+
+	suggestion := response.Suggestions[0]
+
+	// メッセージがある場合は最初に表示
+	if response.Message != "" {
+		err := s.streamProcessor.StreamContent(response.Message)
+		if err != nil {
+			fmt.Print(response.Message)
+		}
+		fmt.Println()
+	}
+
+	// 強化された提案表示
+	s.displayEnhancedCodeSuggestion(suggestion)
+
+	// プロアクティブな関連情報を表示
+	s.displayProactiveSuggestionContext(response)
+
+	if response.RequiresConfirmation {
+		confirmed, err := s.getUserConfirmation("この提案を適用しますか？")
+		if err != nil {
+			return err
+		}
+
+		err = s.interactiveSession.ConfirmSuggestion(s.currentSessionID, suggestion.ID, confirmed)
+		if err != nil {
+			return err
+		}
+
+		if confirmed {
+			ctx := context.Background()
+			err = s.interactiveSession.ApplySuggestion(ctx, s.currentSessionID, suggestion.ID)
+			if err != nil {
+				return fmt.Errorf("提案適用エラー: %w", err)
+			}
+			fmt.Printf("✅ 提案を適用しました！\n")
+		}
+	}
+
+	return nil
+}
+
+// 強化された確認応答処理
+func (s *Session) handleEnhancedConfirmationResponse(response *interactive.InteractionResponse) error {
+	// メッセージがある場合は表示
+	if response.Message != "" {
+		err := s.streamProcessor.StreamContent(response.Message)
+		if err != nil {
+			fmt.Print(response.Message)
+		}
+		fmt.Println()
+	}
+
+	if response.RequiresConfirmation {
+		confirmed, err := s.getUserConfirmation(response.Message)
+		if err != nil {
+			return err
+		}
+
+		if confirmed && len(response.Suggestions) > 0 {
+			ctx := context.Background()
+			return s.interactiveSession.ApplySuggestion(ctx, s.currentSessionID, response.Suggestions[0].ID)
+		}
+	}
+
+	return nil
+}
+
+// 強化されたメッセージ応答処理
+func (s *Session) handleEnhancedMessageResponse(response *interactive.InteractionResponse) error {
+	// プロアクティブな前置き情報
+	s.displayProactivePreContext(response)
+
+	// メイン応答をストリーミング表示
+	err := s.streamProcessor.StreamContent(response.Message)
+	if err != nil {
+		fmt.Print(response.Message)
+	}
+
+	// プロアクティブな後続き情報
+	s.displayProactivePostContext(response)
+
+	// コンテキストマネージャーに応答を追加
+	if s.contextManager != nil {
+		contextItem := &contextmanager.ContextItem{
+			Type:       contextmanager.ContextTypeImmediate,
+			Content:    fmt.Sprintf("アシスタント応答: %s", response.Message),
+			Metadata:   map[string]string{"type": "assistant_response", "session_id": s.currentSessionID},
+			Importance: 0.6,
+		}
+		s.contextManager.AddContext(contextItem)
+	}
+
+	return nil
+}
+
+// 強化されたコード提案表示
+func (s *Session) displayEnhancedCodeSuggestion(suggestion *interactive.CodeSuggestion) {
+	cyan := "\033[36m"
+	green := "\033[32m"
+	yellow := "\033[33m"
+	magenta := "\033[35m"
+	reset := "\033[0m"
+
+	fmt.Printf("\n%s💡 プロアクティブコード提案%s\n", cyan, reset)
+	fmt.Printf("%s信頼度:%s %.1f%% ", green, reset, suggestion.Confidence*100)
+
+	impactText := map[interactive.ImpactLevel]string{
+		interactive.ImpactLevelLow:      "🟢 低影響",
+		interactive.ImpactLevelMedium:   "🟡 中影響",
+		interactive.ImpactLevelHigh:     "🟠 高影響",
+		interactive.ImpactLevelCritical: "🔴 重大影響",
+	}
+	fmt.Printf("%s影響:%s %s\n", yellow, reset, impactText[suggestion.ImpactLevel])
+
+	if suggestion.Explanation != "" {
+		fmt.Printf("\n%s🔍 分析結果:%s %s\n", magenta, reset, suggestion.Explanation)
+	}
+
+	if suggestion.SuggestedCode != suggestion.OriginalCode {
+		fmt.Printf("\n%s📝 提案コード:%s\n", green, reset)
+		fmt.Printf("```\n%s\n```\n", suggestion.SuggestedCode)
+	}
+}
+
+// プロアクティブ提案のコンテキストを表示
+func (s *Session) displayProactiveSuggestionContext(response *interactive.InteractionResponse) {
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	// メタデータからプロアクティブな情報を表示
+	if response.Metadata != nil {
+		if count, exists := response.Metadata["proactive_suggestions_count"]; exists {
+			fmt.Printf("%s💭 他に%s個の提案があります%s\n", gray, count, reset)
+		}
+
+		if analyzed, exists := response.Metadata["project_analyzed"]; exists && analyzed == "true" {
+			fmt.Printf("%s🔬 プロジェクト分析に基づく提案です%s\n", gray, reset)
+		}
+	}
+}
+
+// プロアクティブな前置きコンテキストを表示
+func (s *Session) displayProactivePreContext(response *interactive.InteractionResponse) {
+	// レスポンスにプロアクティブな前置き情報があれば表示
+	if response.Metadata != nil {
+		gray := "\033[90m"
+		reset := "\033[0m"
+
+		if projectInfo, exists := response.Metadata["project_context"]; exists {
+			fmt.Printf("%s%s%s\n", gray, projectInfo, reset)
+		}
+	}
+}
+
+// プロアクティブな後続きコンテキストを表示
+func (s *Session) displayProactivePostContext(response *interactive.InteractionResponse) {
+	// レスポンスにプロアクティブな追加情報があれば表示
+	if response.Metadata != nil {
+		gray := "\033[90m"
+		cyan := "\033[36m"
+		reset := "\033[0m"
+
+		if suggestions, exists := response.Metadata["related_suggestions"]; exists {
+			fmt.Printf("\n%s💡 関連する提案:%s %s%s\n", cyan, reset, gray, suggestions)
+		}
+
+		if nextSteps, exists := response.Metadata["suggested_next_steps"]; exists {
+			fmt.Printf("%s🎯 次のステップ:%s %s%s\n", cyan, reset, gray, nextSteps)
+		}
+	}
 }

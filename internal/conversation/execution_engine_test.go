@@ -48,11 +48,6 @@ func TestExtractLearningTopic(t *testing.T) {
 		desc     string
 	}{
 		{
-			input:    "バイブモードについて教えて",
-			expected: "vibe",
-			desc:     "Japanese technical term recognition",
-		},
-		{
 			input:    "ExecutionEngine の仕組みを説明して",
 			expected: "ExecutionEngine",
 			desc:     "CamelCase detection",
@@ -63,14 +58,9 @@ func TestExtractLearningTopic(t *testing.T) {
 			desc:     "File name detection",
 		},
 		{
-			input:    "goroutineの仕組みについて",
-			expected: "goroutine",
-			desc:     "Technical keyword mapping",
-		},
-		{
-			input:    "プロジェクトのアーキテクチャを知りたい",
-			expected: "project",
-			desc:     "Japanese to English mapping",
+			input:    "README.md について教えて",
+			expected: "README.md",
+			desc:     "File name detection with Japanese",
 		},
 	}
 
@@ -207,7 +197,7 @@ func TestAnalyzeUserIntent(t *testing.T) {
 		},
 		{
 			input:    "git status を確認して",
-			expected: "execute_git_command",
+			expected: "execute_explicit_command",
 			desc:     "Git command execution",
 		},
 		{

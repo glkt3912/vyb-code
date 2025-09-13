@@ -489,14 +489,70 @@ func (ee *ExecutionEngine) learningAssistanceWorkflow(inputLower, originalInput 
 	// 学習対象を特定
 	topic := ee.extractLearningTopic(originalInput)
 
-	if topic != "" {
-		// Step 1: 関連ファイル検索
-		step1 := ee.executeToolStep("find", fmt.Sprintf("find . -name '*.go' -exec grep -l %s {} \\;", topic))
+	if topic == "" {
+		topic = "general"
+	}
+
+	// 学習タイプの判定
+	learningType := ee.determineLearningType(inputLower, topic)
+
+	// 動的ツール選択による学習支援
+	switch learningType {
+	case "file_specific":
+		// 特定ファイルについての説明
+		if strings.HasSuffix(topic, ".md") || strings.HasSuffix(topic, ".go") {
+			step1 := ee.executeToolStep("cat", fmt.Sprintf("cat %s", topic))
+			result.Steps = append(result.Steps, step1)
+		}
+
+	case "concept_explanation":
+		// 概念説明：関連ファイル検索 + 定義検索
+		step1 := ee.executeToolStep("grep", ee.buildSafeGrepCommand(topic, "definition"))
 		result.Steps = append(result.Steps, step1)
 
-		// Step 2: ドキュメント検索
-		step2 := ee.executeToolStep("find", "find . -name '*.md' | head -5")
+		step2 := ee.executeToolStep("find", fmt.Sprintf("find . -name '*.go' -type f | head -10"))
 		result.Steps = append(result.Steps, step2)
+
+		step3 := ee.executeToolStep("grep", ee.buildSafeGrepCommand(topic, "usage"))
+		result.Steps = append(result.Steps, step3)
+
+	case "code_analysis":
+		// コード分析：構造体/関数/型の検索
+		step1 := ee.executeToolStep("grep", ee.buildSafeGrepCommand(topic, "struct_func"))
+		result.Steps = append(result.Steps, step1)
+
+		step2 := ee.executeToolStep("grep", ee.buildSafeGrepCommand(topic, "type_def"))
+		result.Steps = append(result.Steps, step2)
+
+		step3 := ee.executeToolStep("find", "find . -name '*.go' -exec grep -l 'func.*' {} \\; | head -5")
+		result.Steps = append(result.Steps, step3)
+
+	case "architecture_understanding":
+		// アーキテクチャ理解：プロジェクト構造分析
+		step1 := ee.executeToolStep("find", "find . -type d -name 'internal' -o -name 'cmd' -o -name 'pkg'")
+		result.Steps = append(result.Steps, step1)
+
+		step2 := ee.executeToolStep("cat", "cat go.mod")
+		result.Steps = append(result.Steps, step2)
+
+		step3 := ee.executeToolStep("find", "find . -name '*.go' | head -10")
+		result.Steps = append(result.Steps, step3)
+
+		step4 := ee.executeToolStep("cat", "cat CLAUDE.md")
+		result.Steps = append(result.Steps, step4)
+
+	default:
+		// 汎用学習支援
+		step1 := ee.executeToolStep("find", "find . -name 'README.md' -o -name 'CLAUDE.md'")
+		result.Steps = append(result.Steps, step1)
+
+		if topic != "general" {
+			step2 := ee.executeToolStep("grep", ee.buildSafeGrepCommand(topic, "general"))
+			result.Steps = append(result.Steps, step2)
+		}
+
+		step3 := ee.executeToolStep("ls", "ls -la")
+		result.Steps = append(result.Steps, step3)
 	}
 
 	result.Duration = time.Since(start)
@@ -570,13 +626,102 @@ func (ee *ExecutionEngine) extractSearchTarget(input string) string {
 }
 
 func (ee *ExecutionEngine) extractLearningTopic(input string) string {
-	// 学習対象の抽出ロジック
+	inputLower := strings.ToLower(input)
+
+	// 技術キーワード辞書
+	technicalTerms := map[string]string{
+		"execution":    "ExecutionEngine",
+		"エンジン":         "Engine",
+		"エンジンの":        "Engine",
+		"実行":           "execution",
+		"バイブ":          "vibe",
+		"vibe":         "vibe",
+		"バイブモード":       "vibe_mode",
+		"コンテキスト":       "context",
+		"context":      "context",
+		"プロアクティブ":      "proactive",
+		"proactive":    "proactive",
+		"マネージャー":       "Manager",
+		"manager":      "Manager",
+		"ワークフロー":       "workflow",
+		"workflow":     "workflow",
+		"セッション":        "session",
+		"session":      "session",
+		"goroutine":    "goroutine",
+		"go":           "go",
+		"golang":       "go",
+		"docker":       "docker",
+		"コンテナ":         "docker",
+		"git":          "git",
+		"github":       "github",
+		"api":          "api",
+		"rest":         "rest",
+		"json":         "json",
+		"yaml":         "yaml",
+		"config":       "config",
+		"設定":           "config",
+		"構成":           "config",
+		"ファイル":         "file",
+		"file":         "file",
+		"directory":    "directory",
+		"ディレクトリ":       "directory",
+		"プロジェクト":       "project",
+		"project":      "project",
+		"アーキテクチャ":      "architecture",
+		"architecture": "architecture",
+		"設計":           "design",
+		"design":       "design",
+	}
+
+	// 特定のファイルや関数への言及
+	if strings.Contains(inputLower, "claude.md") {
+		return "CLAUDE.md"
+	}
+	if strings.Contains(inputLower, "readme") {
+		return "README.md"
+	}
+	if strings.Contains(inputLower, "makefile") {
+		return "Makefile"
+	}
+
+	// 複合語の検出（例：「バイブモードについて」）
+	for japanese, english := range technicalTerms {
+		if strings.Contains(inputLower, japanese) {
+			return english
+		}
+	}
+
+	// Goの構造体/型/関数の検出
 	words := strings.Fields(input)
 	for _, word := range words {
-		if len(word) > 3 && !strings.Contains(word, "について") {
+		// 大文字で始まる単語（Go の公開型/関数）
+		if len(word) > 2 && word[0] >= 'A' && word[0] <= 'Z' {
+			return word
+		}
+
+		// キャメルケースの検出
+		if len(word) > 4 && strings.ContainsAny(word, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
 			return word
 		}
 	}
+
+	// 意味のある単語の抽出（フィルタリング強化）
+	stopWords := map[string]bool{
+		"について": true, "って": true, "とは": true, "です": true, "ます": true,
+		"する": true, "した": true, "される": true, "されている": true,
+		"what": true, "how": true, "why": true, "when": true, "where": true,
+		"explain": true, "teach": true, "help": true, "understand": true,
+		"わからない": true, "教えて": true, "説明して": true, "理解": true,
+		"that": true, "this": true, "the": true, "and": true, "or": true,
+	}
+
+	for _, word := range words {
+		cleanWord := strings.Trim(word, ",.?!()[]{}\"'")
+		if len(cleanWord) > 3 && !stopWords[strings.ToLower(cleanWord)] {
+			return cleanWord
+		}
+	}
+
 	return ""
 }
 
@@ -593,7 +738,103 @@ func (ee *ExecutionEngine) generateProblemAnalysis(steps []ToolStep) string {
 }
 
 func (ee *ExecutionEngine) generateLearningGuidance(steps []ToolStep, topic string) string {
-	return fmt.Sprintf("%s に関する学習支援情報を収集しました。", topic)
+	if len(steps) == 0 {
+		return "学習支援の実行中にエラーが発生しました。"
+	}
+
+	successfulSteps := 0
+	var findings []string
+
+	for _, step := range steps {
+		if step.Success && step.Output != "" {
+			successfulSteps++
+
+			// 出力の要約生成
+			if len(step.Output) > 100 {
+				findings = append(findings, fmt.Sprintf("- %s コマンドで有用な情報を発見", step.Tool))
+			}
+		}
+	}
+
+	if successfulSteps == 0 {
+		return fmt.Sprintf("%s についての詳細情報は見つかりませんでした。プロジェクト内で関連するファイルや実装を探してみることをお勧めします。", topic)
+	}
+
+	summary := fmt.Sprintf("🎓 %s について %d個のツールで情報を収集しました。", topic, successfulSteps)
+
+	if len(findings) > 0 {
+		summary += "\n\n発見した情報:\n" + strings.Join(findings, "\n")
+	}
+
+	// トピック固有のガイダンス追加
+	switch strings.ToLower(topic) {
+	case "vibe", "vibe_mode":
+		summary += "\n\n💡 バイブモードは vyb-code の対話型コーディング機能です。"
+	case "executionengine", "execution":
+		summary += "\n\n⚡ ExecutionEngine はコマンド実行とマルチツール連携を担当するコンポーネントです。"
+	case "workflow":
+		summary += "\n\n🔄 ワークフローは複数のツールを組み合わせた自動実行システムです。"
+	}
+
+	return summary
+}
+
+// 学習タイプの判定
+func (ee *ExecutionEngine) determineLearningType(inputLower, topic string) string {
+	// ファイル固有の質問
+	if strings.HasSuffix(topic, ".md") || strings.HasSuffix(topic, ".go") ||
+		strings.HasSuffix(topic, ".json") || strings.HasSuffix(topic, ".yml") {
+		return "file_specific"
+	}
+
+	// アーキテクチャ理解
+	if strings.Contains(inputLower, "アーキテクチャ") || strings.Contains(inputLower, "architecture") ||
+		strings.Contains(inputLower, "構造") || strings.Contains(inputLower, "structure") ||
+		strings.Contains(inputLower, "設計") || strings.Contains(inputLower, "design") ||
+		strings.Contains(inputLower, "プロジェクト") || strings.Contains(inputLower, "project") {
+		return "architecture_understanding"
+	}
+
+	// コード分析
+	if strings.Contains(inputLower, "関数") || strings.Contains(inputLower, "function") ||
+		strings.Contains(inputLower, "func") || strings.Contains(inputLower, "method") ||
+		strings.Contains(inputLower, "struct") || strings.Contains(inputLower, "type") ||
+		strings.Contains(inputLower, "実装") || strings.Contains(inputLower, "implement") ||
+		strings.ContainsAny(topic, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		return "code_analysis"
+	}
+
+	// 概念説明
+	if strings.Contains(inputLower, "とは") || strings.Contains(inputLower, "what is") ||
+		strings.Contains(inputLower, "説明") || strings.Contains(inputLower, "explain") ||
+		strings.Contains(inputLower, "について") || strings.Contains(inputLower, "理解") {
+		return "concept_explanation"
+	}
+
+	return "general"
+}
+
+// 安全なgrepコマンドの構築
+func (ee *ExecutionEngine) buildSafeGrepCommand(topic, searchType string) string {
+	// 特殊文字のエスケープ
+	escapedTopic := strings.ReplaceAll(topic, "'", "\\'")
+	escapedTopic = strings.ReplaceAll(escapedTopic, "\"", "\\\"")
+	escapedTopic = strings.ReplaceAll(escapedTopic, "`", "\\`")
+
+	switch searchType {
+	case "definition":
+		return fmt.Sprintf("grep -r \"type %s\" . --include='*.go' | head -5", escapedTopic)
+	case "usage":
+		return fmt.Sprintf("grep -r \"%s\" . --include='*.go' | head -10", escapedTopic)
+	case "struct_func":
+		return fmt.Sprintf("grep -r \"func.*%s\\|struct.*%s\" . --include='*.go' | head -8", escapedTopic, escapedTopic)
+	case "type_def":
+		return fmt.Sprintf("grep -r \"type.*%s\" . --include='*.go' | head -5", escapedTopic)
+	case "general":
+		return fmt.Sprintf("grep -ri \"%s\" . --exclude-dir=.git --exclude-dir=vendor | head -10", escapedTopic)
+	default:
+		return fmt.Sprintf("grep -r \"%s\" . --include='*.go' | head -5", escapedTopic)
+	}
 }
 
 // ファイル読み取りコマンド推論
@@ -727,6 +968,9 @@ func (ee *ExecutionEngine) containsGitIntent(input string) bool {
 		// Git固有の日本語パターン
 		"変更を確認", "コミット履歴", "git状態", "変更ファイル",
 		"追跡状況", "リポジトリ状態", "コミット状況",
+		// ブランチ比較パターン
+		"ブランチ", "main", "比較", "変更を行った", "どういう変更",
+		"mainと比較", "ブランチ間", "差分", "違い",
 		// Git固有の自然言語パターン
 		"何が変更された", "変更されたファイル", "uncommitted",
 		"staged", "unstaged", "tracking", "untracked",
@@ -805,6 +1049,14 @@ func (ee *ExecutionEngine) containsAnalysisIntent(input string) bool {
 
 // Git コマンドを推測
 func (ee *ExecutionEngine) inferGitCommand(input string) string {
+	// ブランチ比較パターンの処理
+	if (strings.Contains(input, "main") && strings.Contains(input, "比較")) ||
+		strings.Contains(input, "mainと比較") ||
+		(strings.Contains(input, "ブランチ") && strings.Contains(input, "変更")) ||
+		strings.Contains(input, "どういう変更") {
+		return "git diff main --name-status"
+	}
+
 	// 未ステージングファイルの言及がある場合は必ずgit status
 	if strings.Contains(input, "未ステージング") || strings.Contains(input, "unstaged") {
 		return "git status"
@@ -1195,10 +1447,10 @@ func (ee *ExecutionEngine) FormatExecutionResult(result *ExecutionResult, analys
 func (ee *ExecutionEngine) interpretGitOutput(output, command string) string {
 	var builder strings.Builder
 
-	if strings.Contains(command, "status") {
-		return ee.interpretGitStatus(output)
-	} else if strings.Contains(command, "diff") {
+	if strings.Contains(command, "diff") {
 		return ee.interpretGitDiff(output)
+	} else if strings.Contains(command, "status") {
+		return ee.interpretGitStatus(output)
 	} else {
 		builder.WriteString(fmt.Sprintf("```\n%s\n```\n", output))
 	}
@@ -1429,13 +1681,89 @@ func (ee *ExecutionEngine) analyzeNewFile(filePath string) *FileAnalysis {
 	return analysis
 }
 
-// Git diff の解釈（将来実装用）
+// Git diff の解釈
 func (ee *ExecutionEngine) interpretGitDiff(output string) string {
 	var builder strings.Builder
-	builder.WriteString("📝 **Git差分分析**:\n")
-	builder.WriteString("```diff\n")
-	builder.WriteString(output)
-	builder.WriteString("\n```\n")
+	builder.WriteString("📝 **ブランチ間差分分析**:\n\n")
+
+	if strings.TrimSpace(output) == "" {
+		builder.WriteString("✅ **結果**: mainブランチとの差分はありません（同期済み）\n")
+		return builder.String()
+	}
+
+	lines := strings.Split(output, "\n")
+	var addedFiles []string
+	var modifiedFiles []string
+	var deletedFiles []string
+
+	// --name-status フォーマットを解析
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			status := parts[0]
+			filename := parts[1]
+
+			switch status {
+			case "A":
+				addedFiles = append(addedFiles, filename)
+			case "M":
+				modifiedFiles = append(modifiedFiles, filename)
+			case "D":
+				deletedFiles = append(deletedFiles, filename)
+			}
+		}
+	}
+
+	// サマリーを表示
+	totalChanges := len(addedFiles) + len(modifiedFiles) + len(deletedFiles)
+	builder.WriteString(fmt.Sprintf("🔢 **変更サマリー**: 全 %d ファイル (", totalChanges))
+
+	summary := []string{}
+	if len(addedFiles) > 0 {
+		summary = append(summary, fmt.Sprintf("新規 %d", len(addedFiles)))
+	}
+	if len(modifiedFiles) > 0 {
+		summary = append(summary, fmt.Sprintf("変更 %d", len(modifiedFiles)))
+	}
+	if len(deletedFiles) > 0 {
+		summary = append(summary, fmt.Sprintf("削除 %d", len(deletedFiles)))
+	}
+	builder.WriteString(strings.Join(summary, "、"))
+	builder.WriteString(")\n\n")
+
+	// 詳細リストを表示
+	if len(addedFiles) > 0 {
+		builder.WriteString("🆕 **新規追加ファイル**:\n")
+		for _, file := range addedFiles {
+			builder.WriteString(fmt.Sprintf("• %s\n", file))
+		}
+		builder.WriteString("\n")
+	}
+
+	if len(modifiedFiles) > 0 {
+		builder.WriteString("📝 **変更ファイル**:\n")
+		for _, file := range modifiedFiles {
+			builder.WriteString(fmt.Sprintf("• %s\n", file))
+		}
+		builder.WriteString("\n")
+	}
+
+	if len(deletedFiles) > 0 {
+		builder.WriteString("🗑️ **削除ファイル**:\n")
+		for _, file := range deletedFiles {
+			builder.WriteString(fmt.Sprintf("• %s\n", file))
+		}
+		builder.WriteString("\n")
+	}
+
+	// コミット履歴も表示
+	builder.WriteString("💡 **推奨アクション**:\n")
+	builder.WriteString("• `git log main..HEAD --oneline` でコミット履歴を確認\n")
+	builder.WriteString("• `git diff main <file>` で具体的な変更内容を確認\n")
+
 	return builder.String()
 }
 

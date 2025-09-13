@@ -210,6 +210,25 @@ func (v *LLMResponseValidator) containsDangerousFunctions(code string) bool {
 		"exec", "system", "eval", "os.remove", "os.rmdir", "shutil.rmtree",
 		"subprocess.call", "subprocess.run", "os.system", "shell_exec",
 		"passthru", "__import__", "compile", "exec(", "eval(",
+		// Go関連の危険な関数
+		"os.Exec", "exec.Command", "exec.CommandContext", "syscall.Exec",
+		"os.Remove", "os.RemoveAll", "os.Rename", "os.Chmod",
+		"ioutil.WriteFile", "os.WriteFile", "os.Create", "os.OpenFile",
+		// JavaScript関連
+		"fs.unlink", "fs.rmdir", "fs.writeFile", "child_process.exec",
+		"child_process.spawn", "require('child_process')",
+		// Python関連拡張
+		"pickle.loads", "marshal.loads", "shelve.open", "tempfile.mktemp",
+		"getattr", "setattr", "delattr", "globals()", "locals()",
+		// C/C++関連
+		"system(", "popen(", "execve(", "execl(", "execlp(",
+		"fork()", "vfork()", "clone(", "ptrace(",
+		// Java関連
+		"Runtime.getRuntime", "ProcessBuilder", "System.exit",
+		"Class.forName", "Method.invoke", "reflection",
+		// PowerShell関連
+		"Invoke-Expression", "Start-Process", "Remove-Item",
+		"Set-ExecutionPolicy", "Invoke-Command",
 	}
 
 	codeLower := strings.ToLower(code)
@@ -228,6 +247,15 @@ func (v *LLMResponseValidator) containsSystemCommands(code string) bool {
 		"rm -", "sudo ", "chmod ", "chown ", "dd if=", "mkfs",
 		"mount ", "umount ", "kill ", "killall ", "pkill ",
 		"nc -l", "netcat ", "/bin/sh", "/bin/bash", "sh -c",
+		"iptables ", "ufw ", "firewall-cmd", "semanage",
+		"systemctl ", "service ", "chkconfig", "update-rc.d",
+		"crontab ", "at now", "batch", "nohup", "screen -d",
+		"tmux new", "setsid", "disown", "bg", "fg",
+		"passwd ", "useradd ", "usermod ", "userdel",
+		"groupadd ", "groupmod ", "groupdel",
+		"lsof ", "netstat ", "ss ", "ps aux", "top",
+		"fdisk ", "parted ", "lsblk", "blkid",
+		"modprobe ", "insmod ", "rmmod", "lsmod",
 	}
 
 	codeLower := strings.ToLower(code)
@@ -246,6 +274,13 @@ func (v *LLMResponseValidator) containsNetworkCalls(code string) bool {
 		"http.get", "http.post", "requests.", "urllib", "fetch(",
 		"axios.", "curl ", "wget ", "socket.", "connect(",
 		"bind(", "listen(", "accept(", "send(", "recv(",
+		"telnet ", "ssh ", "scp ", "rsync ", "ftp ",
+		"nc ", "ncat ", "socat", "openssl s_client",
+		"ping ", "traceroute", "nslookup", "dig ",
+		"arp ", "route ", "ip route", "ifconfig",
+		"tcpdump", "wireshark", "tshark", "nmap",
+		"smtp.", "imap.", "pop3.", "ldap.",
+		"websocket", "grpc", "mqtt", "amqp",
 	}
 
 	codeLower := strings.ToLower(code)
@@ -274,21 +309,53 @@ func compileMaliciousPatterns() []*regexp.Regexp {
 		`bash\s+-i\s+>&`,
 		`python.*socket.*connect`,
 		`perl.*socket.*connect`,
+		`/bin/sh\s+-i`,
+		`sh\s+-i\s*<&\d+\s*>&\d+`,
 
 		// データ破壊
 		`dd\s+if=.*of=/dev`,
 		`mkfs\.\w+\s+/dev`,
 		`formatc\:`,
+		`shred\s+-[fvz]`,
+		`wipefs\s+/dev`,
 
 		// 権限昇格
 		`sudo\s+su\s*-`,
 		`chmod\s+\+s\s+`,
 		`setuid\s*\(\s*0\s*\)`,
+		`su\s+-\s+root`,
+		`sudo\s+-u\s+root`,
+
+		// システム乗っ取り
+		`crontab\s+-[re]`,
+		`at\s+now\s*\+`,
+		`systemctl\s+(start|enable).*backdoor`,
+		`service\s+.*start`,
+
+		// ネットワーク攻撃
+		`nmap\s+-[sS]`,
+		`hydra\s+-l`,
+		`john\s+--wordlist`,
+		`aircrack-ng`,
+		`metasploit`,
+
+		// データ窃取
+		`scp\s+.*@.*:`,
+		`rsync\s+.*@.*:`,
+		`tar\s+.*\|\s*nc`,
+		`find.*-name.*\|\s*xargs.*tar`,
+
+		// プロセス操作
+		`kill\s+-9\s+\d+`,
+		`killall\s+-9`,
+		`pkill\s+-9`,
+		`pgrep.*\|\s*xargs.*kill`,
 
 		// 基本的な危険コマンド
 		`rm\s+-rf`,
 		`format\s+c:`,
 		`del\s+/[sf]`,
+		`:(){ :|:& };:`, // fork bomb
 	}
 
 	var compiledPatterns []*regexp.Regexp

@@ -30,6 +30,7 @@ type interactiveSessionManager struct {
 	activeSessions    map[string]time.Time // セッション活性状況追跡
 	sessionMetrics    map[string]*SessionMetrics
 	conversationFlows map[string]*ConversationFlow
+	proactiveExt      *ProactiveExtension // プロアクティブ拡張
 }
 
 // NewInteractiveSessionManager は新しいインタラクティブセッション管理を作成
@@ -57,7 +58,7 @@ func NewInteractiveSessionManager(
 		".",                                 // 現在のディレクトリ
 	)
 
-	return &interactiveSessionManager{
+	manager := &interactiveSessionManager{
 		sessions:          make(map[string]*InteractiveSession),
 		contextManager:    contextManager,
 		llmProvider:       llmProvider,
@@ -70,6 +71,11 @@ func NewInteractiveSessionManager(
 		sessionMetrics:    make(map[string]*SessionMetrics),
 		conversationFlows: make(map[string]*ConversationFlow),
 	}
+
+	// プロアクティブ拡張を初期化
+	manager.proactiveExt = NewProactiveExtension(manager)
+
+	return manager
 }
 
 // DefaultVibeConfig はデフォルトのバイブ設定を作成
@@ -609,6 +615,21 @@ func (ism *interactiveSessionManager) ProcessUserInput(
 	sessionID string,
 	input string,
 ) (*InteractionResponse, error) {
+	// プロアクティブ拡張が利用可能な場合は拡張版を呼び出し
+	if ism.proactiveExt != nil {
+		return ism.proactiveExt.EnhanceProcessUserInput(ctx, sessionID, input)
+	}
+
+	// 従来の処理をフォールバックとして実行
+	return ism.processUserInputLegacy(ctx, sessionID, input)
+}
+
+// processUserInputLegacy は従来のユーザー入力処理（フォールバック用）
+func (ism *interactiveSessionManager) processUserInputLegacy(
+	ctx context.Context,
+	sessionID string,
+	input string,
+) (*InteractionResponse, error) {
 	session, err := ism.GetSession(sessionID)
 	if err != nil {
 		return nil, err
@@ -781,7 +802,8 @@ func (ism *interactiveSessionManager) buildInteractivePrompt(session *Interactiv
 	// セッション履歴を取得して文脈を構築
 	contextHistory := ism.buildSessionContext(session)
 
-	prompt := fmt.Sprintf(`あなたは vyb AIコーディングアシスタントです。Claude Code のような連続的なコーディング体験を提供してください。
+	// ベースプロンプトを構築
+	basePrompt := fmt.Sprintf(`あなたは vyb AIコーディングアシスタントです。Claude Code のような連続的なコーディング体験を提供してください。
 
 ## 💡 CRITICAL: Claude Code風の動作指針
 - 単発のコマンド実行で終わらず、**連続的な作業フロー**を提案する
@@ -822,7 +844,13 @@ func (ism *interactiveSessionManager) buildInteractivePrompt(session *Interactiv
 		contextHistory,
 		input,
 	)
-	return prompt
+
+	// プロアクティブ拡張が利用可能な場合、プロンプトを拡張
+	if ism.proactiveExt != nil {
+		return ism.proactiveExt.EnhancePrompt(basePrompt, input)
+	}
+
+	return basePrompt
 }
 
 // buildSessionContext はセッション履歴から文脈を構築
@@ -3056,4 +3084,9 @@ func (ism *interactiveSessionManager) extractCommandFromSuggestion(suggestedCode
 	}
 
 	return ""
+}
+
+// GetProactiveExtension はプロアクティブ拡張を取得
+func (ism *interactiveSessionManager) GetProactiveExtension() *ProactiveExtension {
+	return ism.proactiveExt
 }

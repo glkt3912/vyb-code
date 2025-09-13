@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // MCPサーバー設定
@@ -78,6 +79,7 @@ type Config struct {
 	TerminalMode TerminalModeConfig         `json:"terminal_mode"` // ターミナルモード設定
 	Markdown     MarkdownConfig             `json:"markdown"`      // Markdown設定
 	Features     *Features                  `json:"features"`      // 機能設定
+	Proactive    ProactiveConfig            `json:"proactive"`     // プロアクティブ設定
 }
 
 // Markdown設定
@@ -88,7 +90,71 @@ type MarkdownConfig struct {
 
 // 機能設定
 type Features struct {
-	VibeMode bool `json:"vibe_mode"` // バイブコーディングモード
+	VibeMode      bool `json:"vibe_mode"`      // バイブコーディングモード
+	ProactiveMode bool `json:"proactive_mode"` // プロアクティブモード
+}
+
+// プロアクティブ設定
+type ProactiveConfig struct {
+	Enabled            bool           `json:"enabled"`             // プロアクティブ機能有効/無効
+	Level              ProactiveLevel `json:"level"`               // プロアクティブレベル
+	AnalysisTimeout    int            `json:"analysis_timeout"`    // 分析タイムアウト（秒）
+	BackgroundAnalysis bool           `json:"background_analysis"` // バックグラウンド分析
+	ContextCompression bool           `json:"context_compression"` // コンテキスト圧縮
+	SmartSuggestions   bool           `json:"smart_suggestions"`   // スマート提案
+	ProjectMonitoring  bool           `json:"project_monitoring"`  // プロジェクト監視
+}
+
+// プロアクティブレベル
+type ProactiveLevel int
+
+const (
+	ProactiveLevelOff      ProactiveLevel = iota // 無効
+	ProactiveLevelMinimal                        // 最小限（8-12秒）
+	ProactiveLevelBasic                          // 基本（15-25秒）
+	ProactiveLevelStandard                       // 標準（30-45秒）
+	ProactiveLevelAdvanced                       // 高度（60-90秒）
+	ProactiveLevelFull                           // 完全（120秒+）
+)
+
+// プロアクティブレベルの文字列表現
+func (level ProactiveLevel) String() string {
+	switch level {
+	case ProactiveLevelOff:
+		return "off"
+	case ProactiveLevelMinimal:
+		return "minimal"
+	case ProactiveLevelBasic:
+		return "basic"
+	case ProactiveLevelStandard:
+		return "standard"
+	case ProactiveLevelAdvanced:
+		return "advanced"
+	case ProactiveLevelFull:
+		return "full"
+	default:
+		return "off"
+	}
+}
+
+// 文字列からプロアクティブレベルを解析
+func ParseProactiveLevel(s string) ProactiveLevel {
+	switch strings.ToLower(s) {
+	case "off", "disabled":
+		return ProactiveLevelOff
+	case "minimal", "min":
+		return ProactiveLevelMinimal
+	case "basic":
+		return ProactiveLevelBasic
+	case "standard", "std":
+		return ProactiveLevelStandard
+	case "advanced", "adv":
+		return ProactiveLevelAdvanced
+	case "full", "max":
+		return ProactiveLevelFull
+	default:
+		return ProactiveLevelMinimal
+	}
 }
 
 // デフォルト設定を返すコンストラクタ関数
@@ -99,7 +165,7 @@ func DefaultConfig() *Config {
 		Model:       "qwen2.5-coder:14b",
 		ModelName:   "qwen2.5-coder:14b",
 		BaseURL:     "http://localhost:11434",
-		Timeout:     30,
+		Timeout:     120, // 2分に延長
 		Temperature: 0.7,
 		MaxTokens:   4096,
 		Stream:      true,
@@ -109,7 +175,7 @@ func DefaultConfig() *Config {
 		FileMaxSizeMB:  10,
 		WorkspaceMode:  "project_only",
 		WorkspacePath:  ".",
-		CommandTimeout: 30,
+		CommandTimeout: 60, // 1分に延長
 		MaxHistory:     100,
 
 		// サブ設定
@@ -156,7 +222,17 @@ func DefaultConfig() *Config {
 			SyntaxHighlight: true,
 		},
 		Features: &Features{
-			VibeMode: true, // バイブコーディングモード有効
+			VibeMode:      true, // バイブコーディングモード有効
+			ProactiveMode: true, // Phase 2: プロアクティブモード有効化
+		},
+		Proactive: ProactiveConfig{
+			Enabled:            true,                   // Phase 2: 軽量プロアクティブ機能有効化
+			Level:              ProactiveLevelStandard, // Phase 4: 実行エンジン有効化のためStandardレベル
+			AnalysisTimeout:    60,                     // 1分タイムアウト（十分な時間を確保）
+			BackgroundAnalysis: true,
+			ContextCompression: true,
+			SmartSuggestions:   true,
+			ProjectMonitoring:  false, // 重い処理は引き続き無効
 		},
 	}
 }
@@ -208,7 +284,21 @@ func Load() (*Config, error) {
 	// 後方互換性のためのフィールド初期化
 	if config.Features == nil {
 		config.Features = &Features{
-			VibeMode: true, // バイブコーディングモード有効
+			VibeMode:      true, // バイブコーディングモード有効
+			ProactiveMode: true, // Phase 2: プロアクティブモード有効化
+		}
+	}
+
+	// プロアクティブ設定の初期化
+	if config.Proactive.Level == 0 && !config.Proactive.Enabled {
+		config.Proactive = ProactiveConfig{
+			Enabled:            true, // Phase 2: 有効化
+			Level:              ProactiveLevelMinimal,
+			AnalysisTimeout:    8, // 短縮
+			BackgroundAnalysis: true,
+			ContextCompression: true,
+			SmartSuggestions:   true,
+			ProjectMonitoring:  false,
 		}
 	}
 
@@ -344,4 +434,90 @@ func (c *Config) SetTUITheme(theme string) error {
 func (c *Config) SetTUIAnimation(enabled bool) error {
 	c.TUI.Animation = enabled
 	return c.Save()
+}
+
+// プロアクティブモードを設定して保存する
+func (c *Config) SetProactiveEnabled(enabled bool) error {
+	c.Proactive.Enabled = enabled
+	c.Features.ProactiveMode = enabled
+	return c.Save()
+}
+
+// プロアクティブレベルを設定して保存する
+func (c *Config) SetProactiveLevel(level ProactiveLevel) error {
+	c.Proactive.Level = level
+	return c.Save()
+}
+
+// プロアクティブレベルを文字列で設定して保存する
+func (c *Config) SetProactiveLevelString(levelStr string) error {
+	level := ParseProactiveLevel(levelStr)
+	return c.SetProactiveLevel(level)
+}
+
+// プロアクティブ分析タイムアウトを設定して保存する
+func (c *Config) SetProactiveTimeout(timeoutSeconds int) error {
+	c.Proactive.AnalysisTimeout = timeoutSeconds
+	return c.Save()
+}
+
+// バックグラウンド分析を設定して保存する
+func (c *Config) SetBackgroundAnalysis(enabled bool) error {
+	c.Proactive.BackgroundAnalysis = enabled
+	return c.Save()
+}
+
+// コンテキスト圧縮を設定して保存する
+func (c *Config) SetContextCompression(enabled bool) error {
+	c.Proactive.ContextCompression = enabled
+	return c.Save()
+}
+
+// スマート提案を設定して保存する
+func (c *Config) SetSmartSuggestions(enabled bool) error {
+	c.Proactive.SmartSuggestions = enabled
+	return c.Save()
+}
+
+// プロジェクト監視を設定して保存する
+func (c *Config) SetProjectMonitoring(enabled bool) error {
+	c.Proactive.ProjectMonitoring = enabled
+	return c.Save()
+}
+
+// プロアクティブ設定を一括更新して保存する
+func (c *Config) UpdateProactiveConfig(config ProactiveConfig) error {
+	c.Proactive = config
+	c.Features.ProactiveMode = config.Enabled
+	return c.Save()
+}
+
+// 現在のプロアクティブ設定を取得する
+func (c *Config) GetProactiveConfig() ProactiveConfig {
+	return c.Proactive
+}
+
+// プロアクティブ機能が有効かどうか確認
+func (c *Config) IsProactiveEnabled() bool {
+	return c.Proactive.Enabled && c.Features.ProactiveMode
+}
+
+// プロアクティブレベルに応じた設定を取得
+func (c *Config) GetProactiveLevelConfig() (timeout int, backgroundAnalysis bool, monitoring bool) {
+	switch c.Proactive.Level {
+	case ProactiveLevelOff:
+		return 0, false, false
+	case ProactiveLevelMinimal:
+		return 30, true, false // 30秒に延長
+	case ProactiveLevelBasic:
+		return 60, true, false // 1分に延長
+	case ProactiveLevelStandard:
+		return 90, true, false // 1.5分に延長
+	case ProactiveLevelAdvanced:
+		return 120, true, true // 2分に延長
+	case ProactiveLevelFull:
+		return 180, true, true // 3分に延長
+	default:
+		return c.Proactive.AnalysisTimeout, c.Proactive.BackgroundAnalysis, c.Proactive.ProjectMonitoring
+	}
 }

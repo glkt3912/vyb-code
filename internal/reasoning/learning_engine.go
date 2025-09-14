@@ -51,59 +51,59 @@ type LearningState struct {
 
 // InteractionPatternLearner はユーザー相互作用パターンを学習
 type InteractionPatternLearner struct {
-	patterns          []*InteractionPattern `json:"patterns"`
-	patternRecognizer *PatternRecognizer    `json:"pattern_recognizer"`
-	contextAnalyzer   *ContextAnalyzer      `json:"context_analyzer"`
-	behaviorPredictor *BehaviorPredictor    `json:"behavior_predictor"`
-	preferenceLearner *PreferenceLearner    `json:"preference_learner"`
+	patterns          []*InteractionPattern
+	patternRecognizer *PatternRecognizer
+	contextAnalyzer   *ContextAnalyzer
+	behaviorPredictor *BehaviorPredictor
+	preferenceLearner *PreferenceLearner
 
 	// パターン学習状態
-	discoveredPatterns []*DiscoveredPattern `json:"discovered_patterns"`
-	patternConfidence  map[string]float64   `json:"pattern_confidence"`
-	patternUsage       map[string]int       `json:"pattern_usage"`
-	evolutionHistory   []*PatternEvolution  `json:"evolution_history"`
+	discoveredPatterns []*DiscoveredPattern
+	patternConfidence  map[string]float64
+	patternUsage       map[string]int
+	evolutionHistory   []*PatternEvolution
 }
 
 // SkillAcquisitionEngine は新しいスキルと知識の獲得エンジン
 type SkillAcquisitionEngine struct {
-	skillDomains          []*SkillDomain         `json:"skill_domains"`
-	acquisitionStrategies []*AcquisitionStrategy `json:"acquisition_strategies"`
-	competencyFramework   *CompetencyFramework   `json:"competency_framework"`
-	progressTracker       *ProgressTracker       `json:"progress_tracker"`
+	skillDomains          []*SkillDomain
+	acquisitionStrategies []*AcquisitionStrategy
+	competencyFramework   *CompetencyFramework
+	progressTracker       *ProgressTracker
 
 	// スキル獲得状態
-	activeSkills   map[string]*SkillState `json:"active_skills"`
-	masteryLevels  map[string]float64     `json:"mastery_levels"`
-	learningPath   *PersonalizedPath      `json:"learning_path"`
-	nextMilestones []*LearningMilestone   `json:"next_milestones"`
+	activeSkills   map[string]*SkillState
+	masteryLevels  map[string]float64
+	learningPath   *PersonalizedPath
+	nextMilestones []*LearningMilestone
 }
 
 // UserAdaptationEngine はユーザーに合わせた適応エンジン
 type UserAdaptationEngine struct {
-	userProfiles          map[string]*UserProfile `json:"user_profiles"`
-	adaptationRules       []*AdaptationRule       `json:"adaptation_rules"`
-	personalizationEngine *PersonalizationEngine  `json:"personalization_engine"`
-	contextualAdapter     *ContextualAdapter      `json:"contextual_adapter"`
+	userProfiles          map[string]*UserProfile
+	adaptationRules       []*AdaptationRule
+	personalizationEngine *PersonalizationEngine
+	contextualAdapter     *ContextualAdapter
 
 	// 適応状態
-	adaptationLevel      float64             `json:"adaptation_level"`
-	adaptationHistory    []*AdaptationEvent  `json:"adaptation_history"`
-	effectivenessMetrics *AdaptationMetrics  `json:"effectiveness_metrics"`
-	feedbackLoop         *AdaptationFeedback `json:"feedback_loop"`
+	adaptationLevel      float64
+	adaptationHistory    []*AdaptationEvent
+	effectivenessMetrics *AdaptationMetrics
+	feedbackLoop         *AdaptationFeedback
 }
 
 // SelfReflectionEngine はメタ認知と自己反省エンジン
 type SelfReflectionEngine struct {
-	reflectionFramework *ReflectionFramework `json:"reflection_framework"`
-	performanceAnalyzer *PerformanceAnalyzer `json:"performance_analyzer"`
-	biasDetector        *BiasDetector        `json:"bias_detector"`
-	improvementPlanner  *ImprovementPlanner  `json:"improvement_planner"`
+	reflectionFramework *ReflectionFramework
+	performanceAnalyzer *PerformanceAnalyzer
+	biasDetector        *BiasDetector
+	improvementPlanner  *ImprovementPlanner
 
 	// 自己反省状態
-	reflectionCycles      []*ReflectionCycle      `json:"reflection_cycles"`
-	identifiedBiases      []*IdentifiedBias       `json:"identified_biases"`
-	improvementPlans      []*ImprovementPlan      `json:"improvement_plans"`
-	metacognitiveInsights []*MetacognitiveInsight `json:"metacognitive_insights"`
+	reflectionCycles      []*ReflectionCycle
+	identifiedBiases      []*IdentifiedBias
+	improvementPlans      []*ImprovementPlan
+	metacognitiveInsights []*MetacognitiveInsight
 }
 
 // LearningEvent は学習イベント
@@ -189,17 +189,17 @@ func NewAdaptiveLearner(cfg *config.Config) *AdaptiveLearner {
 		lastUpdate:        time.Now(),
 	}
 
-	// サブコンポーネント初期化
-	learner.interactionLearner = NewInteractionPatternLearner()
-	learner.skillBuilder = NewSkillAcquisitionEngine()
-	learner.personalizer = NewUserAdaptationEngine()
-	learner.reflector = NewSelfReflectionEngine()
-	learner.learningState = NewLearningState()
-	learner.knowledgeBase = NewDynamicKnowledgeBase()
-	learner.experienceMemory = NewExperienceMemory()
-	learner.metacognitionEngine = NewMetacognitionEngine()
-	learner.learningMetrics = NewLearningMetrics()
-	learner.performanceEvolution = NewPerformanceEvolution()
+	// サブコンポーネント初期化（簡易実装）
+	learner.interactionLearner = &InteractionPatternLearner{}
+	learner.skillBuilder = &SkillAcquisitionEngine{}
+	learner.personalizer = &UserAdaptationEngine{}
+	learner.reflector = &SelfReflectionEngine{}
+	learner.learningState = &LearningState{}
+	learner.knowledgeBase = &DynamicKnowledgeBase{}
+	learner.experienceMemory = &ExperienceMemory{}
+	learner.metacognitionEngine = &MetacognitionEngine{}
+	learner.learningMetrics = &LearningMetrics{}
+	learner.performanceEvolution = &PerformanceEvolution{}
 
 	return learner
 }
@@ -210,6 +210,10 @@ func (al *AdaptiveLearner) LearnFromInteraction(
 	outcome *InteractionOutcome,
 	context *ReasoningContext,
 ) (*AdaptiveLearningOutcome, error) {
+	// nilチェック
+	if al == nil {
+		return nil, fmt.Errorf("AdaptiveLearner が初期化されていません")
+	}
 
 	// 学習イベントの作成
 	event := &LearningEvent{
@@ -450,20 +454,24 @@ func (al *AdaptiveLearner) determineLearningEventType(interaction *ConversationT
 
 func (al *AdaptiveLearner) extractLearningContext(interaction *ConversationTurn, context *ReasoningContext) map[string]interface{} {
 	var intentType string
-	if interaction.Intent != nil {
+	if interaction != nil && interaction.Intent != nil {
 		intentType = interaction.Intent.PrimaryGoal
 	} else {
 		intentType = "unknown"
 	}
 
 	var userExpertise string
-	if context.UserModel != nil {
+	if context != nil && context.UserModel != nil {
 		userExpertise = context.UserModel.ExpertiseLevel
+	} else {
+		userExpertise = "unknown"
 	}
 
 	var projectLanguage string
-	if context.ProjectState != nil {
+	if context != nil && context.ProjectState != nil {
 		projectLanguage = context.ProjectState.Language
+	} else {
+		projectLanguage = "unknown"
 	}
 
 	return map[string]interface{}{

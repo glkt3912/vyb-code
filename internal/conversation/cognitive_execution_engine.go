@@ -881,7 +881,11 @@ func (cee *CognitiveExecutionEngine) integrateCognitiveResults(
 		} else {
 			creativityScore = 0.5 // デフォルト値
 		}
-		processingStrategy = strategy.Approach
+		if strategy != nil {
+			processingStrategy = strategy.Approach
+		} else {
+			processingStrategy = "traditional_fallback"
+		}
 	}
 
 	// 認知洞察を生成
@@ -1376,7 +1380,7 @@ func (cee *CognitiveExecutionEngine) createFallbackCognitiveAnalysis(userInput s
 		OverallQuality:     0.4,
 		TrustScore:         0.5,
 		InsightLevel:       0.3,
-		ProcessingStrategy: "fallback_analysis",
+		ProcessingStrategy: "traditional_fallback",
 
 		AnalysisMetadata: map[string]interface{}{
 			"fallback": true,

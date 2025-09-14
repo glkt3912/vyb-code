@@ -2,6 +2,7 @@ package conversation
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,10 +13,14 @@ import (
 
 // MockLLMClient for cognitive execution testing
 type MockLLMClient struct {
-	responses map[string]string
+	responses   map[string]string
+	shouldError bool
 }
 
 func (m *MockLLMClient) Generate(ctx context.Context, prompt string) (string, error) {
+	if m.shouldError {
+		return "", fmt.Errorf("mock LLM error")
+	}
 	if response, exists := m.responses[prompt]; exists {
 		return response, nil
 	}
@@ -82,6 +87,7 @@ func TestCognitiveFallback(t *testing.T) {
 
 	// Create engine with mock LLM that returns error to trigger fallback
 	mockLLM := &MockLLMClient{
+		shouldError: true, // エラーを強制発生させてフォールバックをトリガー
 		responses: map[string]string{
 			"error": "mock error",
 		},

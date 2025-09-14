@@ -8,13 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v1.0.1] - 2025-09-05
 
 ### Fixed
+
 - **🛠️ Windows Compatibility**: Resolved syscall compatibility issues preventing Windows builds
 - **🔧 Platform Separation**: Split terminal size detection into platform-specific files
 - **✅ Complete Multi-platform Support**: All 5 binaries (Linux/macOS/Windows × amd64/arm64) now build successfully
 
 ### Technical Details
+
 - Added `reader_unix.go` with Unix syscall implementation (`TIOCGWINSZ`)
-- Added `reader_windows.go` with Windows API implementation (`GetConsoleScreenBufferInfo`)  
+- Added `reader_windows.go` with Windows API implementation (`GetConsoleScreenBufferInfo`)
 - Removed platform-specific imports from common `reader.go`
 - Fixed GitHub Actions release workflow Windows build failures
 

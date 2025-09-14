@@ -51,6 +51,7 @@ Thumbs.db
 .vyb/
 config.yaml
 *.log
+vyb-*
 
 # Built binaries (not test files)
 cmd/vyb/vyb

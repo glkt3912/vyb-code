@@ -77,12 +77,13 @@ type Session struct {
 	gitOps          *tools.GitOperations // Git操作
 
 	// Phase 7 統合フィールド
-	vibeMode            bool                             // バイブコーディングモード有効/無効
-	contextManager      contextmanager.ContextManager    // コンテキスト圧縮管理
-	interactiveSession  interactive.SessionManager       // インタラクティブセッション管理
-	conversationManager conversation.ConversationManager // メモリ効率会話管理
-	currentSessionID    string                           // 現在のインタラクティブセッションID
-	currentThreadID     string                           // 現在の会話スレッドID
+	vibeMode            bool                                   // バイブコーディングモード有効/無効
+	contextManager      contextmanager.ContextManager          // コンテキスト圧縮管理
+	interactiveSession  interactive.SessionManager             // インタラクティブセッション管理
+	conversationManager conversation.ConversationManager       // メモリ効率会話管理
+	currentSessionID    string                                 // 現在のインタラクティブセッションID
+	cognitiveEngine     *conversation.CognitiveExecutionEngine // 認知推論エンジン
+	currentThreadID     string                                 // 現在の会話スレッドID
 
 	// Phase 2 軽量プロアクティブ機能
 	lightProactive *conversation.LightweightProactiveManager // 軽量プロアクティブマネージャー
@@ -216,7 +217,8 @@ func NewSessionWithConfig(provider llm.Provider, model string, cfg *config.Confi
 		}
 
 		// Phase 7: バイブコーディングモード設定（緊急修正：一時無効化）
-		session.vibeMode = false // 緊急修正: パフォーマンス問題により一時無効化
+		// バイブモード設定（認知推論エンジン統合済み）
+		session.vibeMode = cfg.Features != nil && cfg.Features.VibeMode
 
 		// Phase 2 & 3: プロアクティブ機能初期化
 		if cfg.IsProactiveEnabled() {
@@ -274,6 +276,10 @@ func (s *Session) initializeVibeModeComponents(provider llm.Provider) error {
 		editTool,
 		vibeConfig,
 	)
+
+	// 認知推論エンジンを初期化
+	cfg, _ := config.Load()
+	s.cognitiveEngine = conversation.NewCognitiveExecutionEngine(cfg, workspaceDir, llmClient)
 
 	// TODO: 会話管理の初期化（実装待ち）
 	// s.conversationManager = conversation.NewConversationManager(...)
@@ -1551,9 +1557,160 @@ func (s *Session) saveConversation(filename string) {
 
 // Phase 7: バイブコーディング用入力処理（プロアクティブAI機能統合）
 func (s *Session) processVibeInput(input string) error {
-	// 緊急修正: プロアクティブ機能を一時的に無効化して従来処理にフォールバック
-	// TODO: プロアクティブ機能のパフォーマンス問題を修正後に再有効化
-	return s.processTraditionalInput(input)
+	// 認知推論エンジンを使用した高度処理
+	return s.processCognitiveInput(input)
+}
+
+// 認知推論エンジンを使用した高度入力処理
+func (s *Session) processCognitiveInput(input string) error {
+	if s.cognitiveEngine == nil {
+		fmt.Printf("⚠️ 認知推論エンジンが初期化されていません。従来処理にフォールバック\n")
+		return s.processTraditionalInput(input)
+	}
+
+	// thinking状態表示を開始
+	stopThinking := s.startThinkingAnimation()
+	defer func() {
+		if stopThinking != nil {
+			stopThinking()
+		}
+	}()
+
+	// 認知推論処理を実行
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	result, err := s.cognitiveEngine.ProcessUserInputCognitively(ctx, input)
+	if err != nil {
+		fmt.Printf("❌ 認知処理エラー: %v\n", err)
+		// エラー時は従来処理にフォールバック
+		return s.processTraditionalInput(input)
+	}
+
+	// 認知処理結果を表示
+	s.displayCognitiveResult(result)
+
+	// 認知処理結果をLLMプロンプトに統合して最終応答を生成
+	return s.generateEnhancedResponse(input, result)
+}
+
+// 認知処理結果を視覚的に表示
+func (s *Session) displayCognitiveResult(result *conversation.CognitiveExecutionResult) {
+	if result == nil {
+		return
+	}
+
+	cyan := "\033[36m"
+	green := "\033[32m"
+	yellow := "\033[33m"
+	reset := "\033[0m"
+	bold := "\033[1m"
+
+	// 認知処理メタデータを表示
+	fmt.Printf("%s%s🧠 認知処理完了%s%s\n", cyan, bold, reset, reset)
+	fmt.Printf("   戦略: %s%s%s\n", yellow, result.ProcessingStrategy, reset)
+	fmt.Printf("   信頼度: %s%.2f%s\n", green, result.ConfidenceLevel, reset)
+	fmt.Printf("   創造性: %s%.2f%s\n", green, result.CreativityScore, reset)
+	fmt.Printf("   推論深度: %s%d%s\n", green, result.ReasoningDepth, reset)
+	fmt.Printf("   処理時間: %s%v%s\n", cyan, result.TotalProcessingTime, reset)
+
+	// 学習成果がある場合表示
+	if len(result.LearningOutcomes) > 0 {
+		fmt.Printf("   学習成果: %s%d件獲得%s\n", yellow, len(result.LearningOutcomes), reset)
+	}
+
+	// 認知洞察がある場合表示
+	if len(result.CognitiveInsights) > 0 {
+		fmt.Printf("   認知洞察: %s%d件生成%s\n", green, len(result.CognitiveInsights), reset)
+	}
+}
+
+// 認知処理結果をLLMプロンプトに統合して拡張応答を生成
+func (s *Session) generateEnhancedResponse(input string, result *conversation.CognitiveExecutionResult) error {
+	// 認知処理結果をプロンプトに統合
+	enhancedPrompt := s.buildCognitiveEnhancedPrompt(input, result)
+
+	// 拡張プロンプトでメッセージ履歴を更新
+	s.messages = append(s.messages, llm.ChatMessage{
+		Role:    "user",
+		Content: enhancedPrompt,
+	})
+
+	// 認知分析情報を含むシステムメッセージを追加
+	systemPrompt := s.buildCognitiveSystemPrompt(result)
+	s.messages = append(s.messages, llm.ChatMessage{
+		Role:    "system",
+		Content: systemPrompt,
+	})
+
+	// ストリーミング応答で送信
+	stopThinking := s.startThinkingAnimation()
+	return s.sendToLLMStreamingWithThinking(stopThinking)
+}
+
+// 認知処理結果を統合したプロンプトを構築
+func (s *Session) buildCognitiveEnhancedPrompt(input string, result *conversation.CognitiveExecutionResult) string {
+	var prompt strings.Builder
+
+	// プロジェクトコンテキスト
+	prompt.WriteString(s.buildContextualPrompt(input))
+	prompt.WriteString("\n\n---\n\n")
+
+	// 認知分析結果を追加
+	prompt.WriteString("🧠 **認知分析結果:**\n")
+	prompt.WriteString(fmt.Sprintf("- 処理戦略: %s\n", result.ProcessingStrategy))
+	prompt.WriteString(fmt.Sprintf("- 信頼度: %.2f\n", result.ConfidenceLevel))
+	prompt.WriteString(fmt.Sprintf("- 創造性: %.2f\n", result.CreativityScore))
+	prompt.WriteString(fmt.Sprintf("- 推論深度: %d\n", result.ReasoningDepth))
+
+	// 認知洞察を追加
+	if len(result.CognitiveInsights) > 0 {
+		prompt.WriteString("\n**認知洞察:**\n")
+		for i, insight := range result.CognitiveInsights {
+			prompt.WriteString(fmt.Sprintf("%d. %s (信頼度: %.2f)\n",
+				i+1, insight.Description, insight.Confidence))
+		}
+	}
+
+	// 推奨アクションを追加
+	if len(result.NextStepSuggestions) > 0 {
+		prompt.WriteString("\n**推奨アクション:**\n")
+		for i, suggestion := range result.NextStepSuggestions {
+			prompt.WriteString(fmt.Sprintf("%d. %s (優先度: %s)\n",
+				i+1, suggestion.Description, suggestion.Priority))
+		}
+	}
+
+	return prompt.String()
+}
+
+// 認知処理結果に基づくシステムプロンプトを構築
+func (s *Session) buildCognitiveSystemPrompt(result *conversation.CognitiveExecutionResult) string {
+	var prompt strings.Builder
+
+	prompt.WriteString("あなたは高度な認知推論システムと統合されたAIアシスタントです。")
+	prompt.WriteString("上記の認知分析結果を活用し、以下の点を重視して応答してください：\n\n")
+
+	if result.ConfidenceLevel >= 0.8 {
+		prompt.WriteString("- 高い信頼度（%.2f）の分析結果に基づき、確信を持った推論を提供\n")
+	} else if result.ConfidenceLevel >= 0.6 {
+		prompt.WriteString("- 中程度の信頼度（%.2f）を考慮し、複数の可能性を検討\n")
+	} else {
+		prompt.WriteString("- 低い信頼度（%.2f）のため、慎重で探究的なアプローチを採用\n")
+	}
+
+	if result.CreativityScore >= 0.7 {
+		prompt.WriteString("- 高い創造性（%.2f）を活用し、革新的な解決策を提示\n")
+	}
+
+	if result.ReasoningDepth >= 3 {
+		prompt.WriteString("- 深い推論（レベル%d）に基づき、多面的な分析を提供\n")
+	}
+
+	prompt.WriteString("- 認知洞察と推奨アクションを具体的で実行可能な形で展開\n")
+	prompt.WriteString("- 単なる情報提示ではなく、真の理解と分析的思考を示す\n")
+
+	return fmt.Sprintf(prompt.String(), result.ConfidenceLevel, result.CreativityScore, result.ReasoningDepth)
 }
 
 // 従来の入力処理（後方互換性）

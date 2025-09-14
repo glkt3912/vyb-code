@@ -1,34 +1,74 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/glkt/vyb-code/internal/adapters"
 	"github.com/glkt/vyb-code/internal/chat"
 	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/llm"
 	"github.com/glkt/vyb-code/internal/logger"
+	"github.com/glkt/vyb-code/internal/migration"
 	"github.com/glkt/vyb-code/internal/session"
 	"github.com/glkt/vyb-code/internal/ui"
 )
 
-// ChatHandler はチャット機能のハンドラー
+// ChatHandler はチャット機能のハンドラー（段階的移行対応）
 type ChatHandler struct {
 	log            logger.Logger
 	sessionManager *session.Manager
+
+	// 段階的移行システム
+	sessionAdapter   *adapters.SessionAdapter
+	streamingAdapter *adapters.StreamingAdapter
+	toolsAdapter     *adapters.ToolsAdapter
+	analysisAdapter  *adapters.AnalysisAdapter
+
+	// 移行監視・検証
+	monitor   *migration.MigrationMonitor
+	validator *migration.Validator
 }
 
 // NewChatHandler はチャットハンドラーの新しいインスタンスを作成
 func NewChatHandler(log logger.Logger) *ChatHandler {
+	return NewChatHandlerWithMigration(log, nil)
+}
+
+// NewChatHandlerWithMigration は段階的移行対応のチャットハンドラーを作成
+func NewChatHandlerWithMigration(log logger.Logger, migrationConfig *config.GradualMigrationConfig) *ChatHandler {
+	// レガシーセッションマネージャー初期化
 	sessionMgr := session.NewManager()
 	if err := sessionMgr.Initialize(); err != nil {
 		log.Error("セッションマネージャー初期化失敗", map[string]interface{}{"error": err})
 	}
 
-	return &ChatHandler{
+	handler := &ChatHandler{
 		log:            log,
 		sessionManager: sessionMgr,
 	}
+
+	// 段階的移行システムの初期化
+	if migrationConfig != nil && migrationConfig.MigrationMode != "legacy" {
+		handler.initializeMigrationSystem(migrationConfig)
+	}
+
+	return handler
+}
+
+// initializeMigrationSystem は段階的移行システムを初期化（暫定版）
+func (h *ChatHandler) initializeMigrationSystem(cfg *config.GradualMigrationConfig) {
+	// 暫定的に基本ログのみでアダプター初期化を無効化
+	h.log.Info("段階的移行システム初期化（暫定版）", map[string]interface{}{
+		"migration_mode": cfg.MigrationMode,
+		"validation":     cfg.EnableValidation,
+		"monitoring":     cfg.EnableMetrics,
+		"note":           "アダプター実装は段階的に有効化予定",
+	})
+
+	// アダプター初期化は後で実装
+	// TODO: 各アダプターの初期化を段階的に有効化
 }
 
 // StartInteractiveModeWithOptions は拡張オプションで対話モードを開始
@@ -201,21 +241,25 @@ func (h *ChatHandler) handleSessionContinuation(resumeID string, noTUI bool, ter
 
 	if resumeID != "" {
 		// 特定のセッションIDで復元
-		sessionToResume, err = h.sessionManager.GetSession(resumeID)
+		sessionToResume, err = h.getSessionWithAdapter(resumeID)
 		if err != nil {
 			return fmt.Errorf("セッション '%s' の取得に失敗: %w", resumeID, err)
 		}
 		h.log.Info("セッション復元", map[string]interface{}{"session_id": resumeID})
 	} else {
 		// 最新のセッションを継続
-		sessionToResume, err = h.sessionManager.GetCurrentSession()
+		sessionToResume, err = h.getCurrentSessionWithAdapter()
 		if err != nil {
 			// 現在のセッションがない場合は、最新のセッションを取得
-			sessions := h.sessionManager.ListSessions()
-			if len(sessions) == 0 {
+			sessions, listErr := h.listSessionsWithAdapter()
+			if listErr != nil || len(sessions) == 0 {
 				return fmt.Errorf("継続可能なセッションがありません")
 			}
-			sessionToResume = sessions[0] // 最新のセッション
+			// 最初のセッションIDを使って取得
+			sessionToResume, err = h.getSessionWithAdapter(sessions[0])
+			if err != nil {
+				return fmt.Errorf("セッション取得失敗: %w", err)
+			}
 		}
 		h.log.Info("最新セッション継続", map[string]interface{}{"session_id": sessionToResume.ID})
 	}
@@ -349,4 +393,153 @@ func (h *ChatHandler) printSessionContinuationMessage(sess *session.Session) {
 	fmt.Printf("%s├─ モデル: %s%s (%s)%s\n", green, yellow, sess.Model, sess.Provider, reset)
 	fmt.Printf("%s╰─ 最終更新: %s%s%s\n", green, yellow, sess.UpdatedAt.Format("2006-01-02 15:04:05"), reset)
 	fmt.Printf("\n")
+}
+
+// 段階的移行対応ヘルパーメソッド
+
+// getSessionWithAdapter はアダプターを使用してセッションを取得
+func (h *ChatHandler) getSessionWithAdapter(sessionID string) (*session.Session, error) {
+	ctx := context.Background()
+
+	if h.sessionAdapter != nil {
+		// アダプター経由でセッション取得
+		sessionData, err := h.sessionAdapter.GetSession(ctx, sessionID)
+		if err != nil {
+			h.log.Error("アダプター経由セッション取得失敗", map[string]interface{}{
+				"session_id": sessionID,
+				"error":      err,
+			})
+			// フォールバック: レガシー方式
+			return h.sessionManager.GetSession(sessionID)
+		}
+
+		// sessionDataを*session.Sessionに変換
+		if sess, ok := sessionData.(*session.Session); ok {
+			return sess, nil
+		}
+
+		h.log.Warn("セッションデータ型変換失敗", map[string]interface{}{
+			"session_id": sessionID,
+			"type":       fmt.Sprintf("%T", sessionData),
+		})
+		// フォールバック
+		return h.sessionManager.GetSession(sessionID)
+	}
+
+	// レガシー方式
+	return h.sessionManager.GetSession(sessionID)
+}
+
+// getCurrentSessionWithAdapter はアダプターを使用して現在のセッションを取得
+func (h *ChatHandler) getCurrentSessionWithAdapter() (*session.Session, error) {
+	// レガシー方式（現在のセッション概念は主にレガシー側にある）
+	return h.sessionManager.GetCurrentSession()
+}
+
+// listSessionsWithAdapter はアダプターを使用してセッション一覧を取得
+func (h *ChatHandler) listSessionsWithAdapter() ([]string, error) {
+	ctx := context.Background()
+
+	if h.sessionAdapter != nil {
+		// アダプター経由でセッション一覧取得
+		sessions, err := h.sessionAdapter.ListSessions(ctx)
+		if err != nil {
+			h.log.Error("アダプター経由セッション一覧取得失敗", map[string]interface{}{
+				"error": err,
+			})
+			// フォールバック: レガシー方式
+			legacySessions := h.sessionManager.ListSessions()
+			sessionIDs := make([]string, len(legacySessions))
+			for i, sess := range legacySessions {
+				sessionIDs[i] = sess.ID
+			}
+			return sessionIDs, nil
+		}
+		return sessions, nil
+	}
+
+	// レガシー方式
+	legacySessions := h.sessionManager.ListSessions()
+	sessionIDs := make([]string, len(legacySessions))
+	for i, sess := range legacySessions {
+		sessionIDs[i] = sess.ID
+	}
+	return sessionIDs, nil
+}
+
+// createSessionWithAdapter はアダプターを使用してセッションを作成
+func (h *ChatHandler) createSessionWithAdapter(sessionType string) (string, error) {
+	ctx := context.Background()
+
+	if h.sessionAdapter != nil {
+		// アダプター経由でセッション作成
+		sessionID, err := h.sessionAdapter.CreateSession(ctx, sessionType)
+		if err != nil {
+			h.log.Error("アダプター経由セッション作成失敗", map[string]interface{}{
+				"type":  sessionType,
+				"error": err,
+			})
+			// フォールバック: レガシー方式
+			return h.createLegacySession()
+		}
+		return sessionID, nil
+	}
+
+	// レガシー方式
+	return h.createLegacySession()
+}
+
+// createLegacySession はレガシー方式でセッションを作成
+func (h *ChatHandler) createLegacySession() (string, error) {
+	sess, err := h.sessionManager.CreateSession("vibe", "Default Session", "interactive")
+	if err != nil {
+		return "", err
+	}
+	return sess.ID, nil
+}
+
+// updateSessionWithAdapter はアダプターを使用してセッションを更新
+func (h *ChatHandler) updateSessionWithAdapter(sessionID string, data interface{}) error {
+	ctx := context.Background()
+
+	if h.sessionAdapter != nil {
+		// アダプター経由でセッション更新
+		err := h.sessionAdapter.UpdateSession(ctx, sessionID, data)
+		if err != nil {
+			h.log.Error("アダプター経由セッション更新失敗", map[string]interface{}{
+				"session_id": sessionID,
+				"error":      err,
+			})
+			// フォールバック処理は省略（更新は必須ではない）
+		}
+		return err
+	}
+
+	// レガシー方式では基本的な更新のみ
+	return nil
+}
+
+// GetMigrationStatus は移行ステータスを取得
+func (h *ChatHandler) GetMigrationStatus() map[string]interface{} {
+	status := map[string]interface{}{
+		"migration_enabled": h.sessionAdapter != nil,
+		"adapters": map[string]interface{}{
+			"session":   h.sessionAdapter != nil,
+			"streaming": h.streamingAdapter != nil,
+			"tools":     h.toolsAdapter != nil,
+			"analysis":  h.analysisAdapter != nil,
+		},
+		"monitoring": h.monitor != nil,
+		"validation": h.validator != nil,
+	}
+
+	if h.monitor != nil {
+		status["monitoring_status"] = h.monitor.GetMonitoringStatus()
+	}
+
+	if h.validator != nil {
+		status["validation_stats"] = h.validator.GetValidationStats()
+	}
+
+	return status
 }

@@ -303,7 +303,9 @@ func (scm *smartContextManager) CalculateRelevance(item *ContextItem, query stri
 // calculateRelevance は内部的な関連度計算
 func (scm *smartContextManager) calculateRelevance(item *ContextItem, query string) float64 {
 	if query == "" {
-		return 0.5 // デフォルト関連度
+		// クエリが空の場合、コンテンツの複雑さと重要度で動的に計算
+		contentComplexity := scm.calculateContentComplexity(item.Content)
+		return 0.3 + (contentComplexity * 0.4) + (item.Importance * 0.3)
 	}
 
 	queryWords := strings.Fields(strings.ToLower(query))
@@ -343,34 +345,150 @@ func (scm *smartContextManager) calculateRelevance(item *ContextItem, query stri
 func (scm *smartContextManager) calculateImportance(item *ContextItem) float64 {
 	content := strings.ToLower(item.Content)
 
-	// 重要キーワードによるスコアリング
-	importance := 0.3 // ベーススコア
+	// コンテンツ分析に基づく動的ベーススコア計算
+	contentComplexity := scm.calculateContentComplexity(content)
+	semanticDensity := scm.calculateSemanticDensity(content)
+	importance := 0.1 + (contentComplexity * 0.3) + (semanticDensity * 0.2) // 動的ベーススコア
 
-	importantKeywords := []string{
-		"error", "エラー", "bug", "バグ", "fix", "修正",
-		"security", "セキュリティ", "vulnerability", "脆弱性",
-		"performance", "パフォーマンス", "optimization", "最適化",
-		"todo", "やること", "important", "重要",
-		"function", "関数", "class", "クラス", "interface", "インターフェース",
+	// キーワードの種類と出現頻度に基づく動的重み付け
+	keywordWeights := map[string]float64{
+		// 高優先度キーワード
+		"error": 0.15, "エラー": 0.15, "bug": 0.15, "バグ": 0.15,
+		"security": 0.15, "セキュリティ": 0.15, "vulnerability": 0.15, "脆弱性": 0.15,
+		// 中優先度キーワード
+		"performance": 0.12, "パフォーマンス": 0.12, "optimization": 0.12, "最適化": 0.12,
+		"fix": 0.10, "修正": 0.10, "todo": 0.10, "やること": 0.10, "important": 0.10, "重要": 0.10,
+		// 低優先度キーワード
+		"function": 0.05, "関数": 0.05, "class": 0.05, "クラス": 0.05, "interface": 0.05, "インターフェース": 0.05,
 	}
 
-	for _, keyword := range importantKeywords {
+	for keyword, weight := range keywordWeights {
 		if strings.Contains(content, keyword) {
-			importance += 0.1
+			// キーワードの出現頻度を考慮
+			occurrences := strings.Count(content, keyword)
+			importance += weight * math.Min(2.0, float64(occurrences)) // 最大2倍まで
 		}
 	}
 
-	// ファイル種別による重み
+	// ファイル種別とコンテンツの複雑さに基づく動的重み
 	if fileType, exists := item.Metadata["file_type"]; exists {
+		fileComplexity := scm.calculateFileTypeComplexity(content, fileType)
 		switch fileType {
 		case "go", "py", "js", "ts":
-			importance += 0.2 // ソースコードファイル
+			// ソースコードファイル: 複雑さに応じて 0.1-0.3
+			importance += 0.1 + (fileComplexity * 0.2)
 		case "md", "txt":
-			importance += 0.1 // ドキュメントファイル
+			// ドキュメントファイル: 情報密度に応じて 0.05-0.15
+			importance += 0.05 + (fileComplexity * 0.1)
+		case "json", "yaml", "toml":
+			// 設定ファイル: 中程度の重要度
+			importance += 0.08 + (fileComplexity * 0.12)
 		}
 	}
 
 	return math.Min(1.0, importance)
+}
+
+// calculateContentComplexity はコンテンツの複雑さを動的に計算
+func (scm *smartContextManager) calculateContentComplexity(content string) float64 {
+	if content == "" {
+		return 0.0
+	}
+
+	// 複数の指標で複雑さを測定
+	lineCount := float64(strings.Count(content, "\n") + 1)
+	wordCount := float64(len(strings.Fields(content)))
+	charCount := float64(len(content))
+
+	// 正規化された複雑さスコア (0.0-1.0)
+	lineComplexity := math.Min(1.0, lineCount/100.0)  // 100行で最大値
+	wordComplexity := math.Min(1.0, wordCount/500.0)  // 500語で最大値
+	charComplexity := math.Min(1.0, charCount/2000.0) // 2000文字で最大値
+
+	// 重み付き平均
+	return (lineComplexity * 0.3) + (wordComplexity * 0.4) + (charComplexity * 0.3)
+}
+
+// calculateSemanticDensity は意味的密度を動的に計算
+func (scm *smartContextManager) calculateSemanticDensity(content string) float64 {
+	if content == "" {
+		return 0.0
+	}
+
+	// 専門用語、句読点、構造的要素の密度を測定
+	words := strings.Fields(strings.ToLower(content))
+	if len(words) == 0 {
+		return 0.0
+	}
+
+	// 技術的概念の検出
+	technicalTerms := []string{
+		"function", "class", "interface", "struct", "method", "variable",
+		"algorithm", "database", "api", "server", "client", "framework",
+		"library", "module", "package", "dependency", "version", "config",
+	}
+
+	technicalCount := 0
+	for _, word := range words {
+		for _, term := range technicalTerms {
+			if strings.Contains(word, term) {
+				technicalCount++
+				break
+			}
+		}
+	}
+
+	// 構造的要素（括弧、記号等）の密度
+	structuralChars := strings.Count(content, "{") + strings.Count(content, "}") +
+		strings.Count(content, "(") + strings.Count(content, ")") +
+		strings.Count(content, "[") + strings.Count(content, "]")
+
+	technicalDensity := float64(technicalCount) / float64(len(words))
+	structuralDensity := float64(structuralChars) / float64(len(content))
+
+	// 正規化された密度スコア (0.0-1.0)
+	return math.Min(1.0, (technicalDensity*0.7)+(structuralDensity*10.0*0.3))
+}
+
+// calculateFileTypeComplexity はファイルタイプに応じた複雑さを計算
+func (scm *smartContextManager) calculateFileTypeComplexity(content, fileType string) float64 {
+	baseComplexity := scm.calculateContentComplexity(content)
+
+	switch fileType {
+	case "go":
+		// Go言語: 関数、型定義、インターフェースの数
+		funcCount := strings.Count(content, "func ")
+		typeCount := strings.Count(content, "type ")
+		interfaceCount := strings.Count(content, "interface{")
+		complexity := float64(funcCount+typeCount+interfaceCount) / 20.0
+		return math.Min(1.0, baseComplexity+complexity)
+
+	case "py":
+		// Python: クラス、関数、デコレータの数
+		classCount := strings.Count(content, "class ")
+		funcCount := strings.Count(content, "def ")
+		decoratorCount := strings.Count(content, "@")
+		complexity := float64(classCount+funcCount+decoratorCount) / 15.0
+		return math.Min(1.0, baseComplexity+complexity)
+
+	case "js", "ts":
+		// JavaScript/TypeScript: 関数、クラス、import/export
+		funcCount := strings.Count(content, "function ") + strings.Count(content, "=> ")
+		classCount := strings.Count(content, "class ")
+		importCount := strings.Count(content, "import ") + strings.Count(content, "export ")
+		complexity := float64(funcCount+classCount+importCount) / 25.0
+		return math.Min(1.0, baseComplexity+complexity)
+
+	case "json", "yaml", "toml":
+		// 設定ファイル: ネストレベルと設定項目数
+		nestLevel := strings.Count(content, "{") + strings.Count(content, "[")
+		lines := strings.Count(content, "\n") + 1
+		complexity := float64(nestLevel+lines) / 50.0
+		return math.Min(1.0, baseComplexity+complexity)
+
+	default:
+		return baseComplexity
+	}
 }
 
 // GetMemoryUsage はメモリ使用量を取得する

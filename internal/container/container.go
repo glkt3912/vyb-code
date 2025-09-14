@@ -71,8 +71,23 @@ func (c *Container) initializeHandlers() error {
 	configHandler := handlers.NewConfigHandler(c.logger)
 	c.services["config_handler"] = configHandler
 
-	// チャットハンドラー
-	chatHandler := handlers.NewChatHandler(c.logger)
+	// チャットハンドラー（段階的移行対応）
+	var chatHandler *handlers.ChatHandler
+	if c.config.Migration.MigrationMode != "legacy" && c.isMigrationSystemEnabled() {
+		// 段階的移行システムを使用
+		c.logger.Info("段階的移行システム対応チャットハンドラーを初期化", map[string]interface{}{
+			"migration_mode":    c.config.Migration.MigrationMode,
+			"unified_streaming": c.config.Migration.UseUnifiedStreaming,
+			"unified_session":   c.config.Migration.UseUnifiedSession,
+			"unified_tools":     c.config.Migration.UseUnifiedTools,
+			"unified_analysis":  c.config.Migration.UseUnifiedAnalysis,
+		})
+		chatHandler = handlers.NewChatHandlerWithMigration(c.logger, &c.config.Migration)
+	} else {
+		// レガシーチャットハンドラー
+		c.logger.Info("レガシーチャットハンドラーを初期化", nil)
+		chatHandler = handlers.NewChatHandler(c.logger)
+	}
 	c.services["chat_handler"] = chatHandler
 
 	// ツールハンドラー
@@ -84,6 +99,19 @@ func (c *Container) initializeHandlers() error {
 	c.services["git_handler"] = gitHandler
 
 	return nil
+}
+
+// isMigrationSystemEnabled は段階的移行システムが有効かを判定
+func (c *Container) isMigrationSystemEnabled() bool {
+	migration := &c.config.Migration
+
+	// 何かしら統合システムが有効になっているか確認
+	return migration.UseUnifiedStreaming ||
+		migration.UseUnifiedSession ||
+		migration.UseUnifiedTools ||
+		migration.UseUnifiedAnalysis ||
+		migration.EnableValidation ||
+		migration.EnableMetrics
 }
 
 // GetService は指定されたサービスを取得

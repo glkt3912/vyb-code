@@ -80,6 +80,7 @@ type Config struct {
 	Markdown     MarkdownConfig             `json:"markdown"`      // Markdown設定
 	Features     *Features                  `json:"features"`      // 機能設定
 	Proactive    ProactiveConfig            `json:"proactive"`     // プロアクティブ設定
+	Migration    GradualMigrationConfig     `json:"migration"`     // 段階的移行設定
 }
 
 // Markdown設定
@@ -92,6 +93,28 @@ type MarkdownConfig struct {
 type Features struct {
 	VibeMode      bool `json:"vibe_mode"`      // バイブコーディングモード
 	ProactiveMode bool `json:"proactive_mode"` // プロアクティブモード
+}
+
+// 段階的移行設定
+type GradualMigrationConfig struct {
+	// システム選択
+	UseUnifiedStreaming bool `json:"use_unified_streaming"` // 統合ストリーミングを使用
+	UseUnifiedSession   bool `json:"use_unified_session"`   // 統合セッション管理を使用
+	UseUnifiedTools     bool `json:"use_unified_tools"`     // 統合ツールシステムを使用
+	UseUnifiedAnalysis  bool `json:"use_unified_analysis"`  // 統合分析システムを使用
+
+	// 移行モード
+	MigrationMode string `json:"migration_mode"` // gradual, legacy, unified
+
+	// 検証・監視設定
+	EnableValidation  bool `json:"enable_validation"`  // 新旧システム比較検証を有効化
+	ValidationTimeout int  `json:"validation_timeout"` // 検証タイムアウト（秒）
+	EnableFallback    bool `json:"enable_fallback"`    // エラー時にレガシーシステムにフォールバック
+
+	// モニタリング設定
+	EnableMetrics    bool `json:"enable_metrics"`     // メトリクス収集を有効化
+	MetricsInterval  int  `json:"metrics_interval"`   // メトリクス収集間隔（秒）
+	LogMigrationInfo bool `json:"log_migration_info"` // 移行情報をログに記録
 }
 
 // プロアクティブ設定
@@ -233,6 +256,25 @@ func DefaultConfig() *Config {
 			ContextCompression: true,
 			SmartSuggestions:   true,
 			ProjectMonitoring:  false, // 重い処理は引き続き無効
+		},
+		Migration: GradualMigrationConfig{
+			// デフォルトは段階的移行モード（安全な設定）
+			UseUnifiedStreaming: false, // 段階的に有効化
+			UseUnifiedSession:   false, // 段階的に有効化
+			UseUnifiedTools:     false, // 段階的に有効化
+			UseUnifiedAnalysis:  false, // 段階的に有効化
+
+			MigrationMode: "gradual", // gradual, legacy, unified
+
+			// 検証・監視はデフォルトで有効
+			EnableValidation:  true,
+			ValidationTimeout: 30, // 30秒
+			EnableFallback:    true,
+
+			// モニタリングは有効
+			EnableMetrics:    true,
+			MetricsInterval:  60, // 1分間隔
+			LogMigrationInfo: true,
 		},
 	}
 }

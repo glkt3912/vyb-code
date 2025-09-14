@@ -98,6 +98,17 @@ func (h *ConfigHandler) ListConfig() error {
 	fmt.Printf("  File Max Size (MB): %d\n", cfg.FileMaxSizeMB)
 	fmt.Printf("  Command Timeout: %d\n", cfg.CommandTimeout)
 
+	// 段階的移行設定
+	fmt.Println("  Migration Settings:")
+	fmt.Printf("    Migration Mode: %s\n", cfg.Migration.MigrationMode)
+	fmt.Printf("    Unified Streaming: %t\n", cfg.Migration.UseUnifiedStreaming)
+	fmt.Printf("    Unified Session: %t\n", cfg.Migration.UseUnifiedSession)
+	fmt.Printf("    Unified Tools: %t\n", cfg.Migration.UseUnifiedTools)
+	fmt.Printf("    Unified Analysis: %t\n", cfg.Migration.UseUnifiedAnalysis)
+	fmt.Printf("    Validation Enabled: %t\n", cfg.Migration.EnableValidation)
+	fmt.Printf("    Fallback Enabled: %t\n", cfg.Migration.EnableFallback)
+	fmt.Printf("    Metrics Enabled: %t\n", cfg.Migration.EnableMetrics)
+
 	return nil
 }
 
@@ -219,6 +230,160 @@ func (h *ConfigHandler) SetTUITheme(theme string) error {
 	return nil
 }
 
+// 段階的移行設定のメソッド
+
+// SetMigrationMode は移行モードを設定
+func (h *ConfigHandler) SetMigrationMode(mode string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	validModes := []string{"gradual", "legacy", "unified"}
+	isValid := false
+	for _, valid := range validModes {
+		if mode == valid {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		return fmt.Errorf("無効な移行モードです。有効な値: %v", validModes)
+	}
+
+	cfg.Migration.MigrationMode = mode
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("移行モードを更新しました", map[string]interface{}{
+		"mode": mode,
+	})
+	return nil
+}
+
+// EnableUnifiedStreaming は統合ストリーミングシステムを有効化
+func (h *ConfigHandler) EnableUnifiedStreaming(enable bool) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	cfg.Migration.UseUnifiedStreaming = enable
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	status := "無効化"
+	if enable {
+		status = "有効化"
+	}
+
+	h.log.Info("統合ストリーミングシステムを"+status+"しました", map[string]interface{}{
+		"enabled": enable,
+	})
+	return nil
+}
+
+// EnableUnifiedSession は統合セッション管理を有効化
+func (h *ConfigHandler) EnableUnifiedSession(enable bool) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	cfg.Migration.UseUnifiedSession = enable
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	status := "無効化"
+	if enable {
+		status = "有効化"
+	}
+
+	h.log.Info("統合セッション管理を"+status+"しました", map[string]interface{}{
+		"enabled": enable,
+	})
+	return nil
+}
+
+// EnableUnifiedTools は統合ツールシステムを有効化
+func (h *ConfigHandler) EnableUnifiedTools(enable bool) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	cfg.Migration.UseUnifiedTools = enable
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	status := "無効化"
+	if enable {
+		status = "有効化"
+	}
+
+	h.log.Info("統合ツールシステムを"+status+"しました", map[string]interface{}{
+		"enabled": enable,
+	})
+	return nil
+}
+
+// EnableUnifiedAnalysis は統合分析システムを有効化
+func (h *ConfigHandler) EnableUnifiedAnalysis(enable bool) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	cfg.Migration.UseUnifiedAnalysis = enable
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	status := "無効化"
+	if enable {
+		status = "有効化"
+	}
+
+	h.log.Info("統合分析システムを"+status+"しました", map[string]interface{}{
+		"enabled": enable,
+	})
+	return nil
+}
+
+// EnableValidation は検証機能を有効化
+func (h *ConfigHandler) EnableValidation(enable bool) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	cfg.Migration.EnableValidation = enable
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	status := "無効化"
+	if enable {
+		status = "有効化"
+	}
+
+	h.log.Info("検証機能を"+status+"しました", map[string]interface{}{
+		"enabled": enable,
+	})
+	return nil
+}
+
 // CreateConfigCommands は設定関連のcobraコマンドを作成
 func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 	configCmd := &cobra.Command{
@@ -299,10 +464,91 @@ func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 		},
 	}
 
+	// 段階的移行設定コマンド
+	setMigrationModeCmd := &cobra.Command{
+		Use:   "set-migration-mode [mode]",
+		Short: "Set the gradual migration mode (gradual, legacy, unified)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return h.SetMigrationMode(args[0])
+		},
+	}
+
+	enableUnifiedStreamingCmd := &cobra.Command{
+		Use:   "enable-unified-streaming [true|false]",
+		Short: "Enable or disable unified streaming system",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enable, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return fmt.Errorf("無効な値です。true または false を指定してください")
+			}
+			return h.EnableUnifiedStreaming(enable)
+		},
+	}
+
+	enableUnifiedSessionCmd := &cobra.Command{
+		Use:   "enable-unified-session [true|false]",
+		Short: "Enable or disable unified session management",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enable, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return fmt.Errorf("無効な値です。true または false を指定してください")
+			}
+			return h.EnableUnifiedSession(enable)
+		},
+	}
+
+	enableUnifiedToolsCmd := &cobra.Command{
+		Use:   "enable-unified-tools [true|false]",
+		Short: "Enable or disable unified tools system",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enable, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return fmt.Errorf("無効な値です。true または false を指定してください")
+			}
+			return h.EnableUnifiedTools(enable)
+		},
+	}
+
+	enableUnifiedAnalysisCmd := &cobra.Command{
+		Use:   "enable-unified-analysis [true|false]",
+		Short: "Enable or disable unified analysis system",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enable, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return fmt.Errorf("無効な値です。true または false を指定してください")
+			}
+			return h.EnableUnifiedAnalysis(enable)
+		},
+	}
+
+	enableValidationCmd := &cobra.Command{
+		Use:   "enable-validation [true|false]",
+		Short: "Enable or disable migration validation",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enable, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return fmt.Errorf("無効な値です。true または false を指定してください")
+			}
+			return h.EnableValidation(enable)
+		},
+	}
+
 	// サブコマンドを追加
 	configCmd.AddCommand(setModelCmd, setProviderCmd, listCmd)
 	configCmd.AddCommand(setLogLevelCmd, setLogFormatCmd)
 	configCmd.AddCommand(setTUICmd, setTUIThemeCmd)
+
+	// 段階的移行コマンドを追加
+	configCmd.AddCommand(setMigrationModeCmd)
+	configCmd.AddCommand(enableUnifiedStreamingCmd, enableUnifiedSessionCmd)
+	configCmd.AddCommand(enableUnifiedToolsCmd, enableUnifiedAnalysisCmd)
+	configCmd.AddCommand(enableValidationCmd)
 
 	return configCmd
 }

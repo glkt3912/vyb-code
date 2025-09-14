@@ -3,7 +3,7 @@
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
-  
+
   // Go言語固有の設定
   "go.formatTool": "gofmt",
   "go.useCodeSnippetsOnFunctionSuggest": true,
@@ -15,21 +15,21 @@
   "go.buildTags": "",
   "go.testFlags": ["-v"],
   "go.testTimeout": "30s",
-  
+
   // Go 1.20.5を使用（ツール管理設定）
   "go.toolsManagement.go": "/usr/local/go/bin/go",
   "go.alternateTools": {
     "go": "/usr/local/go/bin/go"
   },
   "go.goroot": "/usr/local/go",
-  
+
   // エディタ設定
   "editor.tabSize": 4,
   "editor.insertSpaces": false,
   "editor.detectIndentation": false,
   "editor.rulers": [120],
   "editor.wordWrap": "off",
-  
+
   // 保存時のアクション
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit"
@@ -40,7 +40,7 @@
       "source.organizeImports": "explicit"
     }
   },
-  
+
   // ファイルウォッチャー
   "files.watcherExclude": {
     "**/node_modules/**": true,
@@ -48,11 +48,19 @@
     "**/coverage.out": true,
     "**/vyb": true
   },
-  
+
   // ターミナル設定
-  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.linux": "zsh",
   "terminal.integrated.defaultProfile.osx": "zsh",
-  
+  "terminal.integrated.profiles.linux": {
+    "zsh": {
+      "path": "/usr/bin/zsh"
+    },
+    "bash": {
+      "path": "/bin/bash"
+    }
+  },
+
   // Git設定
   "git.enableSmartCommit": true,
   "git.autofetch": true,

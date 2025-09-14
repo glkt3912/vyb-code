@@ -27,10 +27,10 @@ func (a *LegacyStreamAdapter) ProcessLLMStream(ctx context.Context, reader io.Re
 		ShowThinking:    false,
 		Metadata: map[string]interface{}{
 			"legacy_migration": true,
-			"source":          "internal/stream/processor.go",
+			"source":           "internal/stream/processor.go",
 		},
 	}
-	
+
 	return a.manager.Process(ctx, reader, output, options)
 }
 
@@ -42,10 +42,10 @@ func (a *LegacyStreamAdapter) StreamContent(content string) error {
 		EnableInterrupt: false,
 		Metadata: map[string]interface{}{
 			"legacy_migration": true,
-			"source":          "internal/streaming/processor.go",
+			"source":           "internal/streaming/processor.go",
 		},
 	}
-	
+
 	ctx := context.Background()
 	return a.manager.ProcessString(ctx, content, NewConsoleWriter(), options)
 }
@@ -54,29 +54,29 @@ func (a *LegacyStreamAdapter) StreamContent(content string) error {
 func (a *LegacyStreamAdapter) StreamContentInterruptible(content string, interrupt <-chan struct{}) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	// 中断チャネルを監視
 	go func() {
 		<-interrupt
 		cancel()
 	}()
-	
+
 	options := &StreamOptions{
 		Type:            StreamTypeInterrupted,
 		EnableInterrupt: true,
 		Metadata: map[string]interface{}{
 			"legacy_migration": true,
-			"interruptible":   true,
+			"interruptible":    true,
 		},
 	}
-	
+
 	return a.manager.ProcessString(ctx, content, NewConsoleWriter(), options)
 }
 
 // SetSpeedPreset - 既存の速度プリセット設定をラップ
 func (a *LegacyStreamAdapter) SetSpeedPreset(preset string) {
 	config := a.manager.config
-	
+
 	switch preset {
 	case "instant":
 		config.TokenDelay = 0
@@ -99,7 +99,7 @@ func (a *LegacyStreamAdapter) SetSpeedPreset(preset string) {
 		config.SentenceDelay = 500 * time.Millisecond
 		config.ParagraphDelay = 1000 * time.Millisecond
 	}
-	
+
 	a.manager.UpdateConfig(config)
 }
 
@@ -113,7 +113,7 @@ func (a *LegacyStreamAdapter) SetStreamingEnabled(enabled bool) {
 // UpdateConfig - 設定更新（既存のStreamConfigから変換）
 func (a *LegacyStreamAdapter) UpdateLegacyConfig(legacyConfig map[string]interface{}) {
 	config := a.manager.config
-	
+
 	if tokenDelay, ok := legacyConfig["token_delay"].(time.Duration); ok {
 		config.TokenDelay = tokenDelay
 	}
@@ -129,14 +129,14 @@ func (a *LegacyStreamAdapter) UpdateLegacyConfig(legacyConfig map[string]interfa
 	if maxLineLength, ok := legacyConfig["max_line_length"].(int); ok {
 		config.MaxLineLength = maxLineLength
 	}
-	
+
 	a.manager.UpdateConfig(config)
 }
 
 // GetState - 現在の状態を取得（互換性用）
 func (a *LegacyStreamAdapter) GetState() map[string]interface{} {
 	metrics := a.manager.GetGlobalMetrics()
-	
+
 	return map[string]interface{}{
 		"active_streams":    metrics.ActiveRequests,
 		"total_requests":    metrics.TotalRequests,

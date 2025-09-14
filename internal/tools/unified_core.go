@@ -14,14 +14,14 @@ type UnifiedToolInterface interface {
 	GetName() string
 	GetDescription() string
 	GetSchema() ToolSchema
-	
+
 	// 実行
 	Execute(ctx context.Context, request *ToolRequest) (*ToolResponse, error)
-	
+
 	// 設定
 	Configure(config map[string]interface{}) error
 	ValidateRequest(request *ToolRequest) error
-	
+
 	// メタデータ
 	GetCapabilities() []ToolCapability
 	GetVersion() string
@@ -30,12 +30,12 @@ type UnifiedToolInterface interface {
 
 // ToolSchema - ツールスキーマ統一定義
 type ToolSchema struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Version     string                 `json:"version"`
-	Parameters  map[string]Parameter   `json:"parameters"`
-	Required    []string               `json:"required"`
-	Examples    []ToolExample          `json:"examples,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description"`
+	Version     string               `json:"version"`
+	Parameters  map[string]Parameter `json:"parameters"`
+	Required    []string             `json:"required"`
+	Examples    []ToolExample        `json:"examples,omitempty"`
 }
 
 // Parameter - パラメータ定義
@@ -61,23 +61,23 @@ type ToolExample struct {
 
 // ToolRequest - 統一ツールリクエスト
 type ToolRequest struct {
-	ID          string                 `json:"id"`
-	ToolName    string                 `json:"tool_name"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Context     *RequestContext        `json:"context,omitempty"`
-	Options     *RequestOptions        `json:"options,omitempty"`
+	ID         string                 `json:"id"`
+	ToolName   string                 `json:"tool_name"`
+	Parameters map[string]interface{} `json:"parameters"`
+	Context    *RequestContext        `json:"context,omitempty"`
+	Options    *RequestOptions        `json:"options,omitempty"`
 }
 
 // ToolResponse - 統一ツールレスポンス
 type ToolResponse struct {
-	ID          string                 `json:"id"`
-	ToolName    string                 `json:"tool_name"`
-	Success     bool                   `json:"success"`
-	Content     string                 `json:"content,omitempty"`
-	Data        interface{}            `json:"data,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	Metadata    *ResponseMetadata      `json:"metadata,omitempty"`
-	Duration    time.Duration          `json:"duration"`
+	ID       string            `json:"id"`
+	ToolName string            `json:"tool_name"`
+	Success  bool              `json:"success"`
+	Content  string            `json:"content,omitempty"`
+	Data     interface{}       `json:"data,omitempty"`
+	Error    string            `json:"error,omitempty"`
+	Metadata *ResponseMetadata `json:"metadata,omitempty"`
+	Duration time.Duration     `json:"duration"`
 }
 
 // RequestContext - リクエストコンテキスト
@@ -90,11 +90,11 @@ type RequestContext struct {
 
 // RequestOptions - リクエストオプション
 type RequestOptions struct {
-	Timeout    time.Duration `json:"timeout,omitempty"`
-	Async      bool          `json:"async,omitempty"`
-	Streaming  bool          `json:"streaming,omitempty"`
-	Debug      bool          `json:"debug,omitempty"`
-	DryRun     bool          `json:"dry_run,omitempty"`
+	Timeout   time.Duration `json:"timeout,omitempty"`
+	Async     bool          `json:"async,omitempty"`
+	Streaming bool          `json:"streaming,omitempty"`
+	Debug     bool          `json:"debug,omitempty"`
+	DryRun    bool          `json:"dry_run,omitempty"`
 }
 
 // ResponseMetadata - レスポンスメタデータ
@@ -134,13 +134,13 @@ const (
 type ToolCategory string
 
 const (
-	CategoryFile    ToolCategory = "file_operations"
-	CategoryCommand ToolCategory = "command_execution" 
-	CategorySearch  ToolCategory = "search_operations"
-	CategoryWeb     ToolCategory = "web_operations"
-	CategoryGit     ToolCategory = "git_operations"
+	CategoryFile     ToolCategory = "file_operations"
+	CategoryCommand  ToolCategory = "command_execution"
+	CategorySearch   ToolCategory = "search_operations"
+	CategoryWeb      ToolCategory = "web_operations"
+	CategoryGit      ToolCategory = "git_operations"
 	CategoryAnalysis ToolCategory = "code_analysis"
-	CategoryUtility ToolCategory = "utility"
+	CategoryUtility  ToolCategory = "utility"
 )
 
 // BaseTool - 基本ツール実装
@@ -215,18 +215,18 @@ func (bt *BaseTool) ValidateRequest(request *ToolRequest) error {
 	if request == nil {
 		return ErrInvalidRequest
 	}
-	
+
 	if request.ToolName != bt.name {
 		return ErrToolNameMismatch
 	}
-	
+
 	// 必須パラメータチェック
 	for _, required := range bt.schema.Required {
 		if _, exists := request.Parameters[required]; !exists {
 			return NewValidationError("required parameter missing: " + required)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -309,7 +309,7 @@ type ExecutionError struct {
 func NewExecutionError(message string, exitCode int) *ExecutionError {
 	return &ExecutionError{
 		ToolError: &ToolError{
-			Code:    "execution_error", 
+			Code:    "execution_error",
 			Message: message,
 		},
 		ExitCode: exitCode,

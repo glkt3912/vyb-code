@@ -10,13 +10,13 @@ import (
 type StreamingProcessor interface {
 	// Process は入力を受け取り、出力にストリーミング処理して書き込む
 	Process(ctx context.Context, input io.Reader, output io.Writer, options *StreamOptions) error
-	
+
 	// ProcessString は文字列をストリーミング処理して出力に書き込む
 	ProcessString(ctx context.Context, content string, output io.Writer, options *StreamOptions) error
-	
+
 	// SetConfig はストリーミング設定を更新する
 	SetConfig(config *UnifiedStreamConfig)
-	
+
 	// GetMetrics はストリーミングメトリクスを取得する
 	GetMetrics() *StreamMetrics
 }
@@ -32,14 +32,14 @@ const (
 
 // StreamOptions - ストリーミングオプション
 type StreamOptions struct {
-	Type              StreamType        `json:"type"`
-	StreamID          string           `json:"stream_id"`
-	Model             string           `json:"model,omitempty"`
-	EnableInterrupt   bool             `json:"enable_interrupt"`
-	ShowThinking      bool             `json:"show_thinking"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
-	ContextBefore     int              `json:"context_before,omitempty"`
-	ContextAfter      int              `json:"context_after,omitempty"`
+	Type            StreamType             `json:"type"`
+	StreamID        string                 `json:"stream_id"`
+	Model           string                 `json:"model,omitempty"`
+	EnableInterrupt bool                   `json:"enable_interrupt"`
+	ShowThinking    bool                   `json:"show_thinking"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	ContextBefore   int                    `json:"context_before,omitempty"`
+	ContextAfter    int                    `json:"context_after,omitempty"`
 }
 
 // UnifiedStreamConfig - 統一ストリーミング設定
@@ -47,7 +47,7 @@ type UnifiedStreamConfig struct {
 	// 基本設定
 	BufferSize    int           `json:"buffer_size"`
 	FlushInterval time.Duration `json:"flush_interval"`
-	
+
 	// UI表示設定
 	TokenDelay      time.Duration `json:"token_delay"`
 	SentenceDelay   time.Duration `json:"sentence_delay"`
@@ -55,40 +55,40 @@ type UnifiedStreamConfig struct {
 	CodeBlockDelay  time.Duration `json:"code_block_delay"`
 	EnableStreaming bool          `json:"enable_streaming"`
 	MaxLineLength   int           `json:"max_line_length"`
-	
+
 	// パフォーマンス設定
-	MaxWorkers  int `json:"max_workers"`
-	QueueSize   int `json:"queue_size"`
-	Timeout     time.Duration `json:"timeout"`
+	MaxWorkers int           `json:"max_workers"`
+	QueueSize  int           `json:"queue_size"`
+	Timeout    time.Duration `json:"timeout"`
 }
 
 // StreamMetrics - 統合ストリーミングメトリクス
 type StreamMetrics struct {
 	// 基本統計
-	TotalStreams   int64         `json:"total_streams"`
-	ActiveStreams  int64         `json:"active_streams"`
-	TotalTokens    int64         `json:"total_tokens"`
-	TotalChunks    int64         `json:"total_chunks"`
-	ErrorCount     int64         `json:"error_count"`
-	
+	TotalStreams  int64 `json:"total_streams"`
+	ActiveStreams int64 `json:"active_streams"`
+	TotalTokens   int64 `json:"total_tokens"`
+	TotalChunks   int64 `json:"total_chunks"`
+	ErrorCount    int64 `json:"error_count"`
+
 	// パフォーマンス統計
-	AverageLatency    time.Duration `json:"average_latency"`
-	LastStreamTime    time.Time     `json:"last_stream_time"`
-	ProcessingTime    time.Duration `json:"processing_time"`
-	
+	AverageLatency time.Duration `json:"average_latency"`
+	LastStreamTime time.Time     `json:"last_stream_time"`
+	ProcessingTime time.Duration `json:"processing_time"`
+
 	// UI表示統計
-	TotalLines        int64         `json:"total_lines"`
-	DisplayDuration   time.Duration `json:"display_duration"`
-	InterruptCount    int64         `json:"interrupt_count"`
+	TotalLines      int64         `json:"total_lines"`
+	DisplayDuration time.Duration `json:"display_duration"`
+	InterruptCount  int64         `json:"interrupt_count"`
 }
 
 // StreamEvent - ストリーミングイベント
 type StreamEvent struct {
-	Type      EventType            `json:"type"`
-	StreamID  string               `json:"stream_id"`
-	Timestamp time.Time            `json:"timestamp"`
-	Data      interface{}          `json:"data,omitempty"`
-	Error     string               `json:"error,omitempty"`
+	Type      EventType              `json:"type"`
+	StreamID  string                 `json:"stream_id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Data      interface{}            `json:"data,omitempty"`
+	Error     string                 `json:"error,omitempty"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 

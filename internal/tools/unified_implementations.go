@@ -23,7 +23,7 @@ func NewUnifiedReadTool(constraints *security.Constraints) *UnifiedReadTool {
 	base := NewBaseTool("read", "ファイル内容を読み取ります", "1.0.0", CategoryFile)
 	base.AddCapability(CapabilityFileRead)
 	base.SetConstraints(constraints)
-	
+
 	// スキーマ設定
 	schema := ToolSchema{
 		Name:        "read",
@@ -40,7 +40,7 @@ func NewUnifiedReadTool(constraints *security.Constraints) *UnifiedReadTool {
 				Minimum:     floatPtr(0),
 			},
 			"limit": {
-				Type:        "integer", 
+				Type:        "integer",
 				Description: "読み取る行数（省略可）",
 				Minimum:     floatPtr(1),
 			},
@@ -64,14 +64,14 @@ func NewUnifiedReadTool(constraints *security.Constraints) *UnifiedReadTool {
 		},
 	}
 	base.SetSchema(schema)
-	
+
 	return &UnifiedReadTool{BaseTool: base}
 }
 
 // Execute - 読み取り実行
 func (t *UnifiedReadTool) Execute(ctx context.Context, request *ToolRequest) (*ToolResponse, error) {
 	filePath := request.Parameters["file_path"].(string)
-	
+
 	// セキュリティチェック（簡易実装）
 	if t.constraints != nil {
 		// 基本的なパス検証
@@ -79,31 +79,31 @@ func (t *UnifiedReadTool) Execute(ctx context.Context, request *ToolRequest) (*T
 			return nil, NewExecutionError("Invalid file path: "+filePath, -1)
 		}
 	}
-	
+
 	// ファイル読み取り
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, NewExecutionError("Failed to read file: "+err.Error(), -1)
 	}
-	
+
 	lines := strings.Split(string(content), "\n")
-	
+
 	// オフセットと制限の適用
 	offset := 0
 	limit := len(lines)
-	
+
 	if offsetVal, ok := request.Parameters["offset"]; ok {
 		if o, ok := offsetVal.(float64); ok {
 			offset = int(o)
 		}
 	}
-	
+
 	if limitVal, ok := request.Parameters["limit"]; ok {
 		if l, ok := limitVal.(float64); ok {
 			limit = int(l)
 		}
 	}
-	
+
 	// 範囲調整
 	if offset >= len(lines) {
 		lines = []string{}
@@ -114,13 +114,13 @@ func (t *UnifiedReadTool) Execute(ctx context.Context, request *ToolRequest) (*T
 		}
 		lines = lines[offset:end]
 	}
-	
+
 	// 行番号付きで結果作成
 	var result strings.Builder
 	for i, line := range lines {
 		result.WriteString(fmt.Sprintf("%5d→%s\n", offset+i+1, line))
 	}
-	
+
 	return &ToolResponse{
 		ID:       request.ID,
 		ToolName: t.GetName(),
@@ -148,7 +148,7 @@ func NewUnifiedWriteTool(constraints *security.Constraints) *UnifiedWriteTool {
 	base := NewBaseTool("write", "ファイルに内容を書き込みます", "1.0.0", CategoryFile)
 	base.AddCapability(CapabilityFileWrite)
 	base.SetConstraints(constraints)
-	
+
 	schema := ToolSchema{
 		Name:        "write",
 		Description: "指定されたファイルに内容を書き込みます",
@@ -175,7 +175,7 @@ func NewUnifiedWriteTool(constraints *security.Constraints) *UnifiedWriteTool {
 		},
 	}
 	base.SetSchema(schema)
-	
+
 	return &UnifiedWriteTool{BaseTool: base}
 }
 
@@ -183,7 +183,7 @@ func NewUnifiedWriteTool(constraints *security.Constraints) *UnifiedWriteTool {
 func (t *UnifiedWriteTool) Execute(ctx context.Context, request *ToolRequest) (*ToolResponse, error) {
 	filePath := request.Parameters["file_path"].(string)
 	content := request.Parameters["content"].(string)
-	
+
 	// セキュリティチェック（簡易実装）
 	if t.constraints != nil {
 		// 基本的なパス検証
@@ -191,19 +191,19 @@ func (t *UnifiedWriteTool) Execute(ctx context.Context, request *ToolRequest) (*
 			return nil, NewExecutionError("Invalid file path: "+filePath, -1)
 		}
 	}
-	
+
 	// ディレクトリ作成
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, NewExecutionError("Failed to create directory: "+err.Error(), -1)
 	}
-	
+
 	// ファイル書き込み
 	err := ioutil.WriteFile(filePath, []byte(content), 0644)
 	if err != nil {
 		return nil, NewExecutionError("Failed to write file: "+err.Error(), -1)
 	}
-	
+
 	return &ToolResponse{
 		ID:       request.ID,
 		ToolName: t.GetName(),
@@ -230,7 +230,7 @@ func NewUnifiedEditTool(constraints *security.Constraints) *UnifiedEditTool {
 	base.AddCapability(CapabilityFileWrite)
 	base.AddCapability(CapabilityFileEdit)
 	base.SetConstraints(constraints)
-	
+
 	schema := ToolSchema{
 		Name:        "edit",
 		Description: "ファイル内の文字列を検索・置換します",
@@ -277,7 +277,7 @@ func NewUnifiedEditTool(constraints *security.Constraints) *UnifiedEditTool {
 		},
 	}
 	base.SetSchema(schema)
-	
+
 	return &UnifiedEditTool{BaseTool: base}
 }
 
@@ -286,14 +286,14 @@ func (t *UnifiedEditTool) Execute(ctx context.Context, request *ToolRequest) (*T
 	filePath := request.Parameters["file_path"].(string)
 	oldString := request.Parameters["old_string"].(string)
 	newString := request.Parameters["new_string"].(string)
-	
+
 	replaceAll := false
 	if replaceAllVal, ok := request.Parameters["replace_all"]; ok {
 		if ra, ok := replaceAllVal.(bool); ok {
 			replaceAll = ra
 		}
 	}
-	
+
 	// セキュリティチェック（簡易実装）
 	if t.constraints != nil {
 		// 基本的なパス検証
@@ -301,17 +301,17 @@ func (t *UnifiedEditTool) Execute(ctx context.Context, request *ToolRequest) (*T
 			return nil, NewExecutionError("Invalid file path: "+filePath, -1)
 		}
 	}
-	
+
 	// ファイル読み取り
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, NewExecutionError("Failed to read file: "+err.Error(), -1)
 	}
-	
+
 	originalContent := string(content)
 	var newContent string
 	var replacements int
-	
+
 	if replaceAll {
 		newContent = strings.ReplaceAll(originalContent, oldString, newString)
 		replacements = strings.Count(originalContent, oldString)
@@ -325,17 +325,17 @@ func (t *UnifiedEditTool) Execute(ctx context.Context, request *ToolRequest) (*T
 			replacements = 0
 		}
 	}
-	
+
 	if replacements == 0 {
 		return nil, NewExecutionError("Target string not found in file", -1)
 	}
-	
+
 	// ファイル書き込み
 	err = ioutil.WriteFile(filePath, []byte(newContent), 0644)
 	if err != nil {
 		return nil, NewExecutionError("Failed to write file: "+err.Error(), -1)
 	}
-	
+
 	return &ToolResponse{
 		ID:       request.ID,
 		ToolName: t.GetName(),
@@ -366,7 +366,7 @@ func NewUnifiedBashTool(constraints *security.Constraints) *UnifiedBashTool {
 	base := NewBaseTool("bash", "シェルコマンドを安全に実行します", "1.0.0", CategoryCommand)
 	base.AddCapability(CapabilityCommand)
 	base.SetConstraints(constraints)
-	
+
 	schema := ToolSchema{
 		Name:        "bash",
 		Description: "シェルコマンドを実行し、結果を返します",
@@ -408,7 +408,7 @@ func NewUnifiedBashTool(constraints *security.Constraints) *UnifiedBashTool {
 		},
 	}
 	base.SetSchema(schema)
-	
+
 	return &UnifiedBashTool{
 		BaseTool: base,
 		timeout:  30 * time.Second,
@@ -418,37 +418,37 @@ func NewUnifiedBashTool(constraints *security.Constraints) *UnifiedBashTool {
 // Execute - コマンド実行
 func (t *UnifiedBashTool) Execute(ctx context.Context, request *ToolRequest) (*ToolResponse, error) {
 	command := request.Parameters["command"].(string)
-	
+
 	description := ""
 	if desc, ok := request.Parameters["description"].(string); ok {
 		description = desc
 	}
-	
+
 	timeout := t.timeout
 	if timeoutVal, ok := request.Parameters["timeout"]; ok {
 		if timeoutMs, ok := timeoutVal.(float64); ok {
 			timeout = time.Duration(timeoutMs) * time.Millisecond
 		}
 	}
-	
+
 	// セキュリティチェック
 	if t.constraints != nil {
 		if err := t.constraints.ValidateCommand(command); err != nil {
 			return nil, NewExecutionError("Command validation failed: "+err.Error(), -1)
 		}
 	}
-	
+
 	// コンテキストでタイムアウト設定
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	
+
 	// コマンド実行
 	cmd := exec.CommandContext(cmdCtx, "bash", "-c", command)
-	
+
 	startTime := time.Now()
 	output, err := cmd.CombinedOutput()
 	duration := time.Since(startTime)
-	
+
 	exitCode := 0
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
@@ -457,10 +457,10 @@ func (t *UnifiedBashTool) Execute(ctx context.Context, request *ToolRequest) (*T
 			exitCode = -1
 		}
 	}
-	
+
 	// タイムアウト判定
 	timedOut := cmdCtx.Err() == context.DeadlineExceeded
-	
+
 	success := exitCode == 0 && !timedOut
 	errorMsg := ""
 	if err != nil && !timedOut {
@@ -468,7 +468,7 @@ func (t *UnifiedBashTool) Execute(ctx context.Context, request *ToolRequest) (*T
 	} else if timedOut {
 		errorMsg = "Command execution timed out"
 	}
-	
+
 	return &ToolResponse{
 		ID:       request.ID,
 		ToolName: t.GetName(),
@@ -488,43 +488,12 @@ func (t *UnifiedBashTool) Execute(ctx context.Context, request *ToolRequest) (*T
 	}, nil
 }
 
-// 他のツール実装の宣言（実装は省略）
-
-func NewUnifiedGlobTool() *BaseTool {
-	base := NewBaseTool("glob", "ファイルパターンマッチング", "1.0.0", CategorySearch)
-	base.AddCapability(CapabilitySearch)
-	// TODO: 実装
-	return base
-}
-
-func NewUnifiedGrepTool() *BaseTool {
-	base := NewBaseTool("grep", "高度なファイル検索", "1.0.0", CategorySearch)
-	base.AddCapability(CapabilitySearch)
-	// TODO: 実装
-	return base
-}
-
-func NewUnifiedLSTool() *BaseTool {
-	base := NewBaseTool("ls", "ディレクトリリスト表示", "1.0.0", CategoryFile)
-	base.AddCapability(CapabilityFileRead)
-	// TODO: 実装
-	return base
-}
-
-func NewUnifiedWebFetchTool() *BaseTool {
-	base := NewBaseTool("webfetch", "Web内容取得", "1.0.0", CategoryWeb)
-	base.AddCapability(CapabilityNetwork)
-	// TODO: 実装
-	return base
-}
-
-func NewUnifiedWebSearchTool() *BaseTool {
-	base := NewBaseTool("websearch", "Web検索", "1.0.0", CategoryWeb)
-	base.AddCapability(CapabilityNetwork)
-	base.AddCapability(CapabilitySearch)
-	// TODO: 実装
-	return base
-}
+// Note: Additional tool implementations are now in separate files:
+// - unified_glob.go: NewUnifiedGlobTool
+// - unified_grep.go: NewUnifiedGrepTool
+// - unified_ls.go: NewUnifiedLSTool
+// - unified_webfetch.go: NewUnifiedWebFetchTool
+// - unified_websearch.go: NewUnifiedWebSearchTool
 
 // ヘルパー関数
 func floatPtr(f float64) *float64 {

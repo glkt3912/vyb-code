@@ -19,7 +19,7 @@ type UnifiedToolRegistry struct {
 	categories  map[ToolCategory][]string
 	constraints *security.Constraints
 	mcpManager  *mcp.Manager
-	
+
 	// 実行統計
 	execStats   map[string]*ToolExecutionStats
 	globalStats *GlobalToolStats
@@ -27,24 +27,24 @@ type UnifiedToolRegistry struct {
 
 // ToolExecutionStats - ツール実行統計
 type ToolExecutionStats struct {
-	TotalExecutions   int64         `json:"total_executions"`
-	SuccessfulRuns    int64         `json:"successful_runs"`
-	FailedRuns        int64         `json:"failed_runs"`
-	AverageTime       time.Duration `json:"average_time"`
-	TotalTime         time.Duration `json:"total_time"`
-	LastExecuted      time.Time     `json:"last_executed"`
-	ErrorRate         float64       `json:"error_rate"`
+	TotalExecutions int64         `json:"total_executions"`
+	SuccessfulRuns  int64         `json:"successful_runs"`
+	FailedRuns      int64         `json:"failed_runs"`
+	AverageTime     time.Duration `json:"average_time"`
+	TotalTime       time.Duration `json:"total_time"`
+	LastExecuted    time.Time     `json:"last_executed"`
+	ErrorRate       float64       `json:"error_rate"`
 }
 
 // GlobalToolStats - グローバルツール統計
 type GlobalToolStats struct {
-	TotalTools        int                            `json:"total_tools"`
-	ActiveTools       int                            `json:"active_tools"`
-	TotalExecutions   int64                          `json:"total_executions"`
-	ExecutionsByTool  map[string]int64               `json:"executions_by_tool"`
-	ExecutionsByCategory map[ToolCategory]int64      `json:"executions_by_category"`
-	AverageResponseTime time.Duration               `json:"average_response_time"`
-	LastUpdate        time.Time                      `json:"last_update"`
+	TotalTools           int                    `json:"total_tools"`
+	ActiveTools          int                    `json:"active_tools"`
+	TotalExecutions      int64                  `json:"total_executions"`
+	ExecutionsByTool     map[string]int64       `json:"executions_by_tool"`
+	ExecutionsByCategory map[ToolCategory]int64 `json:"executions_by_category"`
+	AverageResponseTime  time.Duration          `json:"average_response_time"`
+	LastUpdate           time.Time              `json:"last_update"`
 }
 
 // NewUnifiedToolRegistry - 新しい統一ツールレジストリを作成
@@ -58,13 +58,13 @@ func NewUnifiedToolRegistry(constraints *security.Constraints, mcpManager *mcp.M
 		globalStats: &GlobalToolStats{
 			ExecutionsByTool:     make(map[string]int64),
 			ExecutionsByCategory: make(map[ToolCategory]int64),
-			LastUpdate:          time.Now(),
+			LastUpdate:           time.Now(),
 		},
 	}
-	
+
 	// デフォルトツールを登録
 	registry.registerDefaultTools()
-	
+
 	return registry
 }
 
@@ -72,28 +72,28 @@ func NewUnifiedToolRegistry(constraints *security.Constraints, mcpManager *mcp.M
 func (r *UnifiedToolRegistry) RegisterTool(tool UnifiedToolInterface) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	name := tool.GetName()
 	if name == "" {
 		return fmt.Errorf("ツール名は必須です")
 	}
-	
+
 	if _, exists := r.tools[name]; exists {
 		return fmt.Errorf("ツール '%s' は既に登録されています", name)
 	}
-	
+
 	r.tools[name] = tool
-	
+
 	// カテゴリ分類（BaseToolの場合）
 	if baseTool, ok := tool.(*BaseTool); ok {
 		r.categories[baseTool.category] = append(r.categories[baseTool.category], name)
 	}
-	
+
 	// 統計初期化
 	r.execStats[name] = &ToolExecutionStats{
 		LastExecuted: time.Now(),
 	}
-	
+
 	r.updateGlobalStats()
 	return nil
 }
@@ -102,14 +102,14 @@ func (r *UnifiedToolRegistry) RegisterTool(tool UnifiedToolInterface) error {
 func (r *UnifiedToolRegistry) UnregisterTool(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	if _, exists := r.tools[name]; !exists {
 		return fmt.Errorf("ツール '%s' が見つかりません", name)
 	}
-	
+
 	delete(r.tools, name)
 	delete(r.execStats, name)
-	
+
 	// カテゴリから削除
 	for category, tools := range r.categories {
 		for i, toolName := range tools {
@@ -119,7 +119,7 @@ func (r *UnifiedToolRegistry) UnregisterTool(name string) error {
 			}
 		}
 	}
-	
+
 	r.updateGlobalStats()
 	return nil
 }
@@ -128,16 +128,16 @@ func (r *UnifiedToolRegistry) UnregisterTool(name string) error {
 func (r *UnifiedToolRegistry) GetTool(name string) (UnifiedToolInterface, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	tool, exists := r.tools[name]
 	if !exists {
 		return nil, fmt.Errorf("ツール '%s' が見つかりません", name)
 	}
-	
+
 	if !tool.IsEnabled() {
 		return nil, ErrToolNotEnabled
 	}
-	
+
 	return tool, nil
 }
 
@@ -145,12 +145,12 @@ func (r *UnifiedToolRegistry) GetTool(name string) (UnifiedToolInterface, error)
 func (r *UnifiedToolRegistry) ListTools() []UnifiedToolInterface {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	tools := make([]UnifiedToolInterface, 0, len(r.tools))
 	for _, tool := range r.tools {
 		tools = append(tools, tool)
 	}
-	
+
 	return tools
 }
 
@@ -158,7 +158,7 @@ func (r *UnifiedToolRegistry) ListTools() []UnifiedToolInterface {
 func (r *UnifiedToolRegistry) ListToolsByCategory(category ToolCategory) []UnifiedToolInterface {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	var tools []UnifiedToolInterface
 	if toolNames, exists := r.categories[category]; exists {
 		for _, name := range toolNames {
@@ -167,7 +167,7 @@ func (r *UnifiedToolRegistry) ListToolsByCategory(category ToolCategory) []Unifi
 			}
 		}
 	}
-	
+
 	return tools
 }
 
@@ -176,37 +176,37 @@ func (r *UnifiedToolRegistry) ExecuteTool(ctx context.Context, request *ToolRequ
 	if request == nil {
 		return nil, ErrInvalidRequest
 	}
-	
+
 	tool, err := r.GetTool(request.ToolName)
 	if err != nil {
 		return r.createErrorResponse(request, err), err
 	}
-	
+
 	// リクエスト検証
 	if err := tool.ValidateRequest(request); err != nil {
 		return r.createErrorResponse(request, err), err
 	}
-	
+
 	// セキュリティ制約チェック
 	if r.constraints != nil {
 		if err := r.validateSecurity(tool, request); err != nil {
 			return r.createErrorResponse(request, err), err
 		}
 	}
-	
+
 	// 実行統計記録開始
 	startTime := time.Now()
-	
+
 	// ツール実行
 	response, err := tool.Execute(ctx, request)
-	
+
 	// 実行統計更新
 	r.updateExecutionStats(request.ToolName, startTime, err == nil)
-	
+
 	if err != nil {
 		return r.createErrorResponse(request, err), err
 	}
-	
+
 	if response == nil {
 		response = &ToolResponse{
 			ID:       request.ID,
@@ -217,7 +217,7 @@ func (r *UnifiedToolRegistry) ExecuteTool(ctx context.Context, request *ToolRequ
 	} else {
 		response.Duration = time.Since(startTime)
 	}
-	
+
 	return response, nil
 }
 
@@ -225,12 +225,12 @@ func (r *UnifiedToolRegistry) ExecuteTool(ctx context.Context, request *ToolRequ
 func (r *UnifiedToolRegistry) GetToolSchemas() map[string]ToolSchema {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	schemas := make(map[string]ToolSchema)
 	for name, tool := range r.tools {
 		schemas[name] = tool.GetSchema()
 	}
-	
+
 	return schemas
 }
 
@@ -238,12 +238,12 @@ func (r *UnifiedToolRegistry) GetToolSchemas() map[string]ToolSchema {
 func (r *UnifiedToolRegistry) GetExecutionStats(toolName string) (*ToolExecutionStats, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	stats, exists := r.execStats[toolName]
 	if !exists {
 		return nil, fmt.Errorf("ツール '%s' の統計が見つかりません", toolName)
 	}
-	
+
 	// コピーを返す
 	statsCopy := *stats
 	return &statsCopy, nil
@@ -253,7 +253,7 @@ func (r *UnifiedToolRegistry) GetExecutionStats(toolName string) (*ToolExecution
 func (r *UnifiedToolRegistry) GetGlobalStats() *GlobalToolStats {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	r.updateGlobalStats()
 	statsCopy := *r.globalStats
 	return &statsCopy
@@ -263,14 +263,14 @@ func (r *UnifiedToolRegistry) GetGlobalStats() *GlobalToolStats {
 func (r *UnifiedToolRegistry) SearchTools(query string, category ToolCategory, capabilities []ToolCapability) []UnifiedToolInterface {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	var results []UnifiedToolInterface
-	
+
 	for _, tool := range r.tools {
 		if !tool.IsEnabled() {
 			continue
 		}
-		
+
 		// カテゴリフィルター
 		if category != "" {
 			if baseTool, ok := tool.(*BaseTool); ok {
@@ -279,7 +279,7 @@ func (r *UnifiedToolRegistry) SearchTools(query string, category ToolCategory, c
 				}
 			}
 		}
-		
+
 		// 機能フィルター
 		if len(capabilities) > 0 {
 			toolCaps := tool.GetCapabilities()
@@ -301,7 +301,7 @@ func (r *UnifiedToolRegistry) SearchTools(query string, category ToolCategory, c
 				continue
 			}
 		}
-		
+
 		// テキスト検索
 		if query != "" {
 			name := tool.GetName()
@@ -310,15 +310,15 @@ func (r *UnifiedToolRegistry) SearchTools(query string, category ToolCategory, c
 				continue
 			}
 		}
-		
+
 		results = append(results, tool)
 	}
-	
+
 	// 結果をソート（名前順）
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].GetName() < results[j].GetName()
 	})
-	
+
 	return results
 }
 
@@ -330,30 +330,30 @@ func (r *UnifiedToolRegistry) registerDefaultTools() {
 	readTool := NewUnifiedReadTool(r.constraints)
 	writeTool := NewUnifiedWriteTool(r.constraints)
 	editTool := NewUnifiedEditTool(r.constraints)
-	
+
 	r.RegisterTool(readTool)
 	r.RegisterTool(writeTool)
 	r.RegisterTool(editTool)
-	
+
 	// コマンドツール
 	bashTool := NewUnifiedBashTool(r.constraints)
 	r.RegisterTool(bashTool)
-	
-	// 検索ツール（TODO: 実装）
-	// globTool := NewUnifiedGlobTool()
-	// grepTool := NewUnifiedGrepTool()
-	// lsTool := NewUnifiedLSTool()
-	
-	// r.RegisterTool(globTool)
-	// r.RegisterTool(grepTool)
-	// r.RegisterTool(lsTool)
-	
-	// Webツール（TODO: 実装）
-	// webFetchTool := NewUnifiedWebFetchTool()
-	// webSearchTool := NewUnifiedWebSearchTool()
-	
-	// r.RegisterTool(webFetchTool)
-	// r.RegisterTool(webSearchTool)
+
+	// 検索ツール
+	globTool := NewUnifiedGlobTool(r.constraints)
+	grepTool := NewUnifiedGrepTool(r.constraints)
+	lsTool := NewUnifiedLSTool(r.constraints)
+
+	r.RegisterTool(globTool)
+	r.RegisterTool(grepTool)
+	r.RegisterTool(lsTool)
+
+	// Webツール
+	webFetchTool := NewUnifiedWebFetchTool(r.constraints)
+	webSearchTool := NewUnifiedWebSearchTool(r.constraints)
+
+	r.RegisterTool(webFetchTool)
+	r.RegisterTool(webSearchTool)
 }
 
 // createErrorResponse - エラーレスポンスを作成
@@ -377,7 +377,7 @@ func (r *UnifiedToolRegistry) validateSecurity(tool UnifiedToolInterface, reques
 			}
 		}
 	}
-	
+
 	// コマンド実行ツールの場合
 	if hasCapability(tool.GetCapabilities(), CapabilityCommand) {
 		if command, ok := request.Parameters["command"].(string); ok {
@@ -386,7 +386,7 @@ func (r *UnifiedToolRegistry) validateSecurity(tool UnifiedToolInterface, reques
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -394,32 +394,32 @@ func (r *UnifiedToolRegistry) validateSecurity(tool UnifiedToolInterface, reques
 func (r *UnifiedToolRegistry) updateExecutionStats(toolName string, startTime time.Time, success bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	stats, exists := r.execStats[toolName]
 	if !exists {
 		stats = &ToolExecutionStats{}
 		r.execStats[toolName] = stats
 	}
-	
+
 	duration := time.Since(startTime)
 	stats.TotalExecutions++
 	stats.TotalTime += duration
 	stats.LastExecuted = time.Now()
-	
+
 	if success {
 		stats.SuccessfulRuns++
 	} else {
 		stats.FailedRuns++
 	}
-	
+
 	// 平均時間を計算
 	stats.AverageTime = stats.TotalTime / time.Duration(stats.TotalExecutions)
-	
+
 	// エラー率を計算
 	if stats.TotalExecutions > 0 {
 		stats.ErrorRate = float64(stats.FailedRuns) / float64(stats.TotalExecutions)
 	}
-	
+
 	// グローバル統計更新
 	r.globalStats.ExecutionsByTool[toolName]++
 	r.globalStats.TotalExecutions++
@@ -429,25 +429,25 @@ func (r *UnifiedToolRegistry) updateExecutionStats(toolName string, startTime ti
 func (r *UnifiedToolRegistry) updateGlobalStats() {
 	r.globalStats.TotalTools = len(r.tools)
 	r.globalStats.ActiveTools = 0
-	
+
 	var totalTime time.Duration
 	var totalExecs int64
-	
+
 	for _, tool := range r.tools {
 		if tool.IsEnabled() {
 			r.globalStats.ActiveTools++
 		}
 	}
-	
+
 	for _, stats := range r.execStats {
 		totalTime += stats.TotalTime
 		totalExecs += stats.TotalExecutions
 	}
-	
+
 	if totalExecs > 0 {
 		r.globalStats.AverageResponseTime = totalTime / time.Duration(totalExecs)
 	}
-	
+
 	r.globalStats.LastUpdate = time.Now()
 }
 
@@ -465,8 +465,7 @@ func hasCapability(capabilities []ToolCapability, target ToolCapability) bool {
 
 // containsIgnoreCase - 大文字小文字を無視した文字列検索
 func containsIgnoreCase(s, substr string) bool {
-	return len(s) >= len(substr) && 
-		   (len(substr) == 0 || 
+	return len(s) >= len(substr) &&
+		(len(substr) == 0 ||
 			strings.Contains(strings.ToLower(s), strings.ToLower(substr)))
 }
-

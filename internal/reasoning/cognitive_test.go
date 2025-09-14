@@ -20,11 +20,11 @@ func (m *MockLLMClient) GenerateResponse(ctx context.Context, request *ai.Genera
 	if len(request.Messages) > 0 {
 		content = request.Messages[len(request.Messages)-1].Content
 	}
-	
+
 	if response, exists := m.responses[content]; exists {
 		return &ai.GenerateResponse{Content: response}, nil
 	}
-	
+
 	// Generate mock response based on content
 	limited := content
 	if len(content) > 50 {

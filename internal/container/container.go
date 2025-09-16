@@ -1,21 +1,24 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"github.com/glkt/vyb-code/internal/config"
+	"github.com/glkt/vyb-code/internal/core"
 	"github.com/glkt/vyb-code/internal/handlers"
 	"github.com/glkt/vyb-code/internal/logger"
 )
 
 // Container は依存性注入コンテナー
 type Container struct {
-	mu       sync.RWMutex
-	services map[string]interface{}
-	config   *config.Config
-	logger   logger.Logger
-	factory  *handlers.HandlerFactory // ハンドラーファクトリー
+	mu            sync.RWMutex
+	services      map[string]interface{}
+	config        *config.Config
+	logger        logger.Logger
+	factory       *handlers.HandlerFactory // ハンドラーファクトリー
+	moduleManager core.ModuleManager       // モジュールマネージャー
 }
 
 // NewContainer は新しいコンテナーを作成
@@ -75,6 +78,11 @@ func (c *Container) Initialize() error {
 	c.factory.RegisterHandler("git", func(log logger.Logger, cfg *config.Config) handlers.Handler {
 		return handlers.NewGitHandler(log)
 	})
+
+	// モジュールマネージャーを初期化
+	if cfg.IsFeatureEnabled("modular_architecture") {
+		c.initializeModuleManager(cfg)
+	}
 
 	// 従来の方法でもハンドラーを作成（後方互換性のため）
 	c.logger.Info("統合チャットハンドラーを初期化", map[string]interface{}{
@@ -215,4 +223,69 @@ func (c *Container) ListAvailableHandlers() []string {
 		return []string{}
 	}
 	return c.factory.ListAvailableHandlers()
+}
+
+// initializeModuleManager はモジュールマネージャーを初期化
+func (c *Container) initializeModuleManager(cfg *config.Config) {
+	c.logger.Info("モジュラーアーキテクチャ初期化", nil)
+	
+	// モジュールマネージャーを作成
+	c.moduleManager = core.NewModuleManager()
+	
+	// コンポーネントファクトリーを作成
+	factory := core.NewComponentFactory(c.logger, cfg)
+	
+	// コアコンポーネントを登録
+	for _, component := range factory.CreateCoreComponents() {
+		if err := c.moduleManager.RegisterCore(component); err != nil {
+			c.logger.Error("コアコンポーネント登録エラー", map[string]interface{}{
+				"component": component.Name(),
+				"error":     err.Error(),
+			})
+		}
+	}
+	
+	// 拡張機能を登録
+	for _, extension := range factory.CreateExtensions() {
+		if err := c.moduleManager.RegisterExtension(extension); err != nil {
+			c.logger.Error("拡張機能登録エラー", map[string]interface{}{
+				"extension": extension.Name(),
+				"error":     err.Error(),
+			})
+		}
+	}
+	
+	// 橋渡しコンポーネントを登録
+	for _, bridge := range factory.CreateBridges() {
+		if err := c.moduleManager.RegisterBridge(bridge); err != nil {
+			c.logger.Error("ブリッジコンポーネント登録エラー", map[string]interface{}{
+				"bridge": bridge.Name(),
+				"error":   err.Error(),
+			})
+		}
+	}
+	
+	// 全コンポーネントを初期化
+	if err := c.moduleManager.InitializeAll(context.Background()); err != nil {
+		c.logger.Error("モジュール初期化エラー", map[string]interface{}{
+			"error": err.Error(),
+		})
+	} else {
+		c.logger.Info("モジュラーアーキテクチャ初期化完了", nil)
+	}
+}
+
+// GetModuleManager はモジュールマネージャーを取得
+func (c *Container) GetModuleManager() core.ModuleManager {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.moduleManager
+}
+
+// ListModules は利用可能なモジュール一覧を取得
+func (c *Container) ListModules() []core.ComponentMetadata {
+	if c.moduleManager == nil {
+		return []core.ComponentMetadata{}
+	}
+	return c.moduleManager.ListModules()
 }

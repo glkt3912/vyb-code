@@ -14,7 +14,7 @@ type CoreComponentAdapter struct {
 	initialized bool
 	logger      logger.Logger
 	config      *config.Config
-	
+
 	// 実際の初期化・終了処理を行う関数
 	initFunc     func(ctx context.Context) error
 	shutdownFunc func(ctx context.Context) error
@@ -143,7 +143,7 @@ func (e *ExtensionAdapter) IsEnabled(ctx context.Context) bool {
 	if e.enabledFunc != nil {
 		return e.enabledFunc(ctx)
 	}
-	
+
 	// デフォルトでは有効
 	return true
 }

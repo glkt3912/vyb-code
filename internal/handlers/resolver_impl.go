@@ -155,17 +155,17 @@ func (l *LLMProviderAdapter) Generate(ctx context.Context, prompt string, option
 	// 実際の実装では動的にllmパッケージを呼び出し
 	// 現在はモック応答
 	l.logger.Info("LLM generation request", map[string]interface{}{
-		"provider": l.providerName,
-		"model":    l.model,
+		"provider":      l.providerName,
+		"model":         l.model,
 		"prompt_length": len(prompt),
 	})
 
 	// シミュレート応答
-	return fmt.Sprintf("Generated response for: %s\n(Using %s via %s)", 
+	return fmt.Sprintf("Generated response for: %s\n(Using %s via %s)",
 		prompt, l.model, l.providerName), nil
 }
 
-func (l *LLMProviderAdapter) Name() string { return l.providerName }
+func (l *LLMProviderAdapter) Name() string                     { return l.providerName }
 func (l *LLMProviderAdapter) Health(ctx context.Context) error { return nil }
 
 type StreamingManagerAdapter struct {
@@ -201,21 +201,21 @@ type InputCompleterAdapter struct {
 func (i *InputCompleterAdapter) GetSuggestions(input string) []string {
 	// 基本的な補完候補
 	suggestions := []string{"help", "status", "build", "test", "analyze"}
-	
+
 	var matches []string
 	for _, suggestion := range suggestions {
 		if strings.HasPrefix(suggestion, strings.ToLower(input)) {
 			matches = append(matches, suggestion)
 		}
 	}
-	
+
 	return matches
 }
 
 func (i *InputCompleterAdapter) GetAdvancedSuggestions(input string) []InputSuggestion {
 	basic := i.GetSuggestions(input)
 	var advanced []InputSuggestion
-	
+
 	for _, suggestion := range basic {
 		advanced = append(advanced, InputSuggestion{
 			Text:        suggestion,
@@ -223,14 +223,14 @@ func (i *InputCompleterAdapter) GetAdvancedSuggestions(input string) []InputSugg
 			Type:        "command",
 		})
 	}
-	
+
 	return advanced
 }
 
 type PerformanceMonitorAdapter struct {
-	enabled bool
-	logger  logger.Logger
-	metrics PerformanceMetrics
+	enabled   bool
+	logger    logger.Logger
+	metrics   PerformanceMetrics
 	startTime time.Time
 }
 
@@ -262,12 +262,12 @@ func (p *PerformanceMonitorAdapter) GetMetrics() PerformanceMetrics {
 	// メモリ使用量をシミュレート
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	p.metrics.MemoryUsage = MemoryUsage{
 		Current: float64(m.Alloc) / 1024 / 1024, // MB
 		Peak:    float64(m.TotalAlloc) / 1024 / 1024,
 	}
-	
+
 	return p.metrics
 }
 
@@ -278,14 +278,14 @@ func (p *PerformanceMonitorAdapter) Start() error {
 }
 
 type InteractiveManagerAdapter struct {
-	logger     logger.Logger
+	logger         logger.Logger
 	sessionCounter int
 }
 
 func (i *InteractiveManagerAdapter) CreateSession(sessionType int) (SessionInfo, error) {
 	i.sessionCounter++
 	sessionID := fmt.Sprintf("session_%d_%d", sessionType, i.sessionCounter)
-	
+
 	i.logger.Info("Interactive session created", map[string]interface{}{
 		"session_id": sessionID,
 		"type":       sessionType,
@@ -346,7 +346,7 @@ func (t *ToolExecutorAdapter) ExecuteCommand(command string) (string, error) {
 	t.logger.Info("Tool execution request", map[string]interface{}{
 		"command": command,
 	})
-	
+
 	return fmt.Sprintf("Executed: %s\n(This is a decoupled tool execution)", command), nil
 }
 

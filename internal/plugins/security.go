@@ -15,22 +15,22 @@ import (
 
 // PluginSecurity はプラグインのセキュリティ管理を行う
 type PluginSecurity struct {
-	logger          logger.Logger
-	policy          SecurityPolicy
-	trustedHashes   map[string]string // プラグインの信頼できるハッシュ
+	logger           logger.Logger
+	policy           SecurityPolicy
+	trustedHashes    map[string]string // プラグインの信頼できるハッシュ
 	blacklistedNames []string          // ブラックリストされたプラグイン名
 	whitelistedPaths []string          // 許可されたパス
 }
 
 // SecurityPolicy はセキュリティポリシーの設定
 type SecurityPolicy struct {
-	Level               SecurityLevel `json:"level"`
-	RequireSignature    bool          `json:"require_signature"`
-	RequireHashCheck    bool          `json:"require_hash_check"`
-	AllowUnsignedLocal  bool          `json:"allow_unsigned_local"`
-	MaxPluginSize       int64         `json:"max_plugin_size"`
-	AllowedExtensions   []string      `json:"allowed_extensions"`
-	RestrictedPaths     []string      `json:"restricted_paths"`
+	Level              SecurityLevel `json:"level"`
+	RequireSignature   bool          `json:"require_signature"`
+	RequireHashCheck   bool          `json:"require_hash_check"`
+	AllowUnsignedLocal bool          `json:"allow_unsigned_local"`
+	MaxPluginSize      int64         `json:"max_plugin_size"`
+	AllowedExtensions  []string      `json:"allowed_extensions"`
+	RestrictedPaths    []string      `json:"restricted_paths"`
 }
 
 // SecurityLevel はセキュリティレベル
@@ -65,13 +65,13 @@ func NewPluginSecurity(logger logger.Logger) *PluginSecurity {
 		logger:        logger,
 		trustedHashes: make(map[string]string),
 		policy: SecurityPolicy{
-			Level:             SecurityLevelModerate,
-			RequireSignature:  false,
-			RequireHashCheck:  true,
+			Level:              SecurityLevelModerate,
+			RequireSignature:   false,
+			RequireHashCheck:   true,
 			AllowUnsignedLocal: true,
-			MaxPluginSize:     50 * 1024 * 1024, // 50MB
-			AllowedExtensions: []string{".so", ".dll", ".dylib"},
-			RestrictedPaths:   []string{"/system", "/etc", "/var"},
+			MaxPluginSize:      50 * 1024 * 1024, // 50MB
+			AllowedExtensions:  []string{".so", ".dll", ".dylib"},
+			RestrictedPaths:    []string{"/system", "/etc", "/var"},
 		},
 	}
 }
@@ -210,7 +210,7 @@ func (s *PluginSecurity) validatePath(filePath string) error {
 // validateExtension は拡張子を検証
 func (s *PluginSecurity) validateExtension(filePath string) error {
 	ext := filepath.Ext(filePath)
-	
+
 	for _, allowed := range s.policy.AllowedExtensions {
 		if strings.EqualFold(ext, allowed) {
 			return nil
@@ -228,7 +228,7 @@ func (s *PluginSecurity) validateFileSize(filePath string) error {
 	}
 
 	if fileInfo.Size() > s.policy.MaxPluginSize {
-		return fmt.Errorf("ファイルサイズ %d は制限 %d を超えています", 
+		return fmt.Errorf("ファイルサイズ %d は制限 %d を超えています",
 			fileInfo.Size(), s.policy.MaxPluginSize)
 	}
 
@@ -256,7 +256,7 @@ func (s *PluginSecurity) validateHash(filePath string) error {
 		if s.policy.Level >= SecurityLevelHigh {
 			return fmt.Errorf("プラグイン %s の信頼できるハッシュが登録されていません", pluginName)
 		}
-		
+
 		s.logger.Warn("信頼ハッシュ未登録", map[string]interface{}{
 			"plugin": pluginName,
 			"hash":   hash,

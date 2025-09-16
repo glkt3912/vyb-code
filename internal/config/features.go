@@ -108,13 +108,13 @@ func (fm *FeatureManager) GetFlag(name string) (*FeatureFlag, error) {
 
 // 定義済み機能フラグ定数
 const (
-	FeatureLegacyTUI          = "legacy_tui"          // レガシーTUI (非推奨)
-	FeatureClaudeCodeStyle    = "claude_code_style"   // Claude Code風UI
-	FeatureStreamingUI        = "streaming_ui"        // ストリーミングUI
-	FeatureAdvancedInput      = "advanced_input"      // 高度な入力システム
-	FeatureProactiveMode      = "proactive_mode"      // プロアクティブモード
-	FeaturePluginArchitecture = "plugin_architecture" // プラグインアーキテクチャ
-	FeatureFactoryPattern     = "factory_pattern"     // ファクトリーパターン
+	FeatureLegacyTUI           = "legacy_tui"           // レガシーTUI (非推奨)
+	FeatureClaudeCodeStyle     = "claude_code_style"    // Claude Code風UI
+	FeatureStreamingUI         = "streaming_ui"         // ストリーミングUI
+	FeatureAdvancedInput       = "advanced_input"       // 高度な入力システム
+	FeatureProactiveMode       = "proactive_mode"       // プロアクティブモード
+	FeaturePluginArchitecture  = "plugin_architecture"  // プラグインアーキテクチャ
+	FeatureFactoryPattern      = "factory_pattern"      // ファクトリーパターン
 	FeatureModularArchitecture = "modular_architecture" // モジュラーアーキテクチャ
 )
 

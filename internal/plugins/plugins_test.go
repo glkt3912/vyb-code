@@ -17,7 +17,7 @@ func TestPluginRegistry_Creation(t *testing.T) {
 	mockLifecycleManager := &MockLifecycleManager{}
 
 	registry := NewPluginRegistry(mockComponentReg, mockLifecycleManager, mockLogger, mockConfig)
-	
+
 	if registry == nil {
 		t.Fatal("プラグインレジストリの作成に失敗")
 	}
@@ -34,7 +34,7 @@ func TestPluginManager_Creation(t *testing.T) {
 	mockLifecycleManager := &MockLifecycleManager{}
 
 	manager := NewPluginManager(mockComponentReg, mockLifecycleManager, mockLogger, mockConfig)
-	
+
 	if manager == nil {
 		t.Fatal("プラグインマネージャーの作成に失敗")
 	}
@@ -46,9 +46,9 @@ func TestPluginManager_Creation(t *testing.T) {
 
 func TestPluginScheduler_Creation(t *testing.T) {
 	mockLogger := &MockLogger{}
-	
+
 	scheduler := NewPluginScheduler(mockLogger)
-	
+
 	if scheduler == nil {
 		t.Fatal("プラグインスケジューラーの作成に失敗")
 	}
@@ -61,7 +61,7 @@ func TestPluginScheduler_Creation(t *testing.T) {
 func TestPluginScheduler_TaskScheduling(t *testing.T) {
 	mockLogger := &MockLogger{}
 	scheduler := NewPluginScheduler(mockLogger)
-	
+
 	// テスト用のタスク関数
 	executed := false
 	testTask := func(ctx context.Context) error {
@@ -69,28 +69,28 @@ func TestPluginScheduler_TaskScheduling(t *testing.T) {
 		return nil
 	}
 	_ = executed // prevent unused variable error
-	
+
 	// 繰り返しタスクをスケジュール
 	err := scheduler.ScheduleRepeating("test_task", 1*time.Second, testTask)
 	if err != nil {
 		t.Fatalf("タスクスケジュール失敗: %v", err)
 	}
-	
+
 	// タスクが登録されたかチェック
 	if len(scheduler.tasks) != 1 {
 		t.Error("タスクが正しく登録されていません")
 	}
-	
+
 	// タスク情報を取得
 	task, err := scheduler.GetTask("test_task")
 	if err != nil {
 		t.Fatalf("タスク取得失敗: %v", err)
 	}
-	
+
 	if task.Name != "test_task" {
 		t.Error("タスク名が正しくありません")
 	}
-	
+
 	if task.Interval != 1*time.Second {
 		t.Error("タスク間隔が正しくありません")
 	}
@@ -98,9 +98,9 @@ func TestPluginScheduler_TaskScheduling(t *testing.T) {
 
 func TestPluginSecurity_Creation(t *testing.T) {
 	mockLogger := &MockLogger{}
-	
+
 	security := NewPluginSecurity(mockLogger)
-	
+
 	if security == nil {
 		t.Fatal("プラグインセキュリティの作成に失敗")
 	}
@@ -113,18 +113,18 @@ func TestPluginSecurity_Creation(t *testing.T) {
 func TestPluginSecurity_ValidationBasic(t *testing.T) {
 	mockLogger := &MockLogger{}
 	security := NewPluginSecurity(mockLogger)
-	
+
 	ctx := context.Background()
 	if err := security.Initialize(ctx); err != nil {
 		t.Fatalf("セキュリティ初期化失敗: %v", err)
 	}
-	
+
 	// 正常なプラグイン名のテスト
 	err := security.ValidatePlugin("valid_plugin")
 	if err != nil {
 		t.Errorf("正常なプラグイン名の検証に失敗: %v", err)
 	}
-	
+
 	// ブラックリストされたプラグインのテスト
 	security.AddToBlacklist("malicious_plugin")
 	err = security.ValidatePlugin("malicious_plugin")
@@ -136,9 +136,9 @@ func TestPluginSecurity_ValidationBasic(t *testing.T) {
 func TestPluginConfigManager_Creation(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockConfig := &config.Config{}
-	
+
 	configManager := NewPluginConfigManager(mockConfig, mockLogger)
-	
+
 	if configManager == nil {
 		t.Fatal("プラグイン設定マネージャーの作成に失敗")
 	}
@@ -151,20 +151,20 @@ func TestPluginConfigManager_Creation(t *testing.T) {
 func TestPluginConfigManager_DefaultConfig(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockConfig := &config.Config{}
-	
+
 	configManager := NewPluginConfigManager(mockConfig, mockLogger)
 	pluginName := "test_plugin"
-	
+
 	// デフォルト設定を取得
 	config, err := configManager.GetPluginConfig(pluginName)
 	if err != nil {
 		t.Fatalf("デフォルト設定取得失敗: %v", err)
 	}
-	
+
 	if config.Metadata.Name != pluginName {
 		t.Error("デフォルト設定のプラグイン名が正しくありません")
 	}
-	
+
 	if !config.Metadata.Enabled {
 		t.Error("デフォルト設定では有効になっているべきです")
 	}
@@ -180,7 +180,7 @@ func TestSecurityLevel_String(t *testing.T) {
 		{SecurityLevelHigh, "high"},
 		{SecurityLevelStrict, "strict"},
 	}
-	
+
 	for _, tt := range tests {
 		if got := tt.level.String(); got != tt.expected {
 			t.Errorf("SecurityLevel.String() = %v, want %v", got, tt.expected)
@@ -200,7 +200,7 @@ func TestPluginStatus_String(t *testing.T) {
 		{StatusError, "error"},
 		{StatusDisabled, "disabled"},
 	}
-	
+
 	for _, tt := range tests {
 		if got := tt.status.String(); got != tt.expected {
 			t.Errorf("PluginStatus.String() = %v, want %v", got, tt.expected)

@@ -39,7 +39,7 @@ func main() {
 		for i, cycle := range cycles {
 			fmt.Printf("  Cycle %d: %s\n", i+1, strings.Join(cycle, " -> "))
 		}
-		
+
 		fmt.Println("\n💡 Suggestions to resolve cycles:")
 		suggestSolutions(cycles)
 	}
@@ -74,15 +74,15 @@ func runOptimizationAnalysis(graph *DependencyGraph) {
 	fmt.Println("\n=== Current Dependency Metrics ===")
 	fmt.Printf("%-20s %s %s %s %s\n", "Package", "In", "Out", "Coupling", "Impact")
 	fmt.Println(strings.Repeat("-", 65))
-	
+
 	for _, m := range metrics {
-		fmt.Printf("%-20s %2d %3d %8.1f %6.1f\n", 
+		fmt.Printf("%-20s %2d %3d %8.1f %6.1f\n",
 			m.PackageName, m.IncomingCount, m.OutgoingCount, m.CouplingScore, m.ImpactScore)
 	}
 
 	// 最適化提案を生成
 	GenerateOptimizationSuggestions(metrics, graph)
-	
+
 	// 具体的なリファクタリング計画
 	GenerateRefactoringPlan(metrics, graph)
 }
@@ -189,7 +189,7 @@ func (g *DependencyGraph) dfs(node string, visited, recStack map[string]bool, pa
 // PrintGraph はグラフを表示
 func (g *DependencyGraph) PrintGraph() {
 	fmt.Println("\n=== Dependency Graph ===")
-	
+
 	var nodes []string
 	for name := range g.nodes {
 		nodes = append(nodes, name)
@@ -207,7 +207,7 @@ func (g *DependencyGraph) PrintGraph() {
 // AnalyzeDependencies はプロジェクトの依存関係を分析
 func AnalyzeDependencies(rootDir string) (*DependencyGraph, error) {
 	graph := NewDependencyGraph()
-	
+
 	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -240,7 +240,7 @@ func analyzeFile(filePath, rootDir string, graph *DependencyGraph) error {
 
 	for _, imp := range node.Imports {
 		importPath := strings.Trim(imp.Path.Value, `"`)
-		
+
 		if strings.HasPrefix(importPath, "github.com/glkt/vyb-code/internal/") {
 			depPackage := strings.TrimPrefix(importPath, "github.com/glkt/vyb-code/internal/")
 			graph.AddDependency(packageName, depPackage)
@@ -261,18 +261,18 @@ func getPackageName(filePath, rootDir string) string {
 	if strings.HasPrefix(dir, "internal/") {
 		return strings.TrimPrefix(dir, "internal/")
 	}
-	
+
 	return dir
 }
 
 // DependencyMetrics は依存関係メトリクスを計算
 type DependencyMetrics struct {
-	PackageName      string
-	IncomingCount    int // このパッケージに依存するパッケージ数
-	OutgoingCount    int // このパッケージが依存するパッケージ数
-	CouplingScore    float64
-	ImpactScore      float64
-	ModularityScore  float64
+	PackageName     string
+	IncomingCount   int // このパッケージに依存するパッケージ数
+	OutgoingCount   int // このパッケージが依存するパッケージ数
+	CouplingScore   float64
+	ImpactScore     float64
+	ModularityScore float64
 }
 
 // AnalyzeDependencyComplexity は依存関係の複雑さを分析
@@ -288,10 +288,10 @@ func AnalyzeDependencyComplexity(graph *DependencyGraph) []DependencyMetrics {
 
 		// 結合度スコア（依存関係の多さ）
 		metric.CouplingScore = float64(metric.OutgoingCount)
-		
+
 		// 影響度スコア（他から依存される多さ）
 		metric.ImpactScore = float64(metric.IncomingCount)
-		
+
 		// モジュール性スコア（理想的な依存関係との差）
 		idealOutgoing := 3.0 // 理想的な依存数
 		metric.ModularityScore = 10.0 - (abs(float64(metric.OutgoingCount)-idealOutgoing) + float64(metric.IncomingCount)*0.5)
@@ -338,7 +338,7 @@ func GenerateOptimizationSuggestions(metrics []DependencyMetrics, graph *Depende
 
 	// 3. 改善提案
 	fmt.Println("\n💡 Specific Optimization Recommendations:")
-	
+
 	for _, m := range metrics {
 		if m.CouplingScore > 5 && m.ImpactScore > 2 {
 			fmt.Printf("  📦 %s: Consider creating interfaces to reduce coupling\n", m.PackageName)
@@ -366,7 +366,7 @@ func printDependencies(packageName string, graph *DependencyGraph) {
 // suggestArchitectureLayers はアーキテクチャ層を提案
 func suggestArchitectureLayers(metrics []DependencyMetrics) {
 	fmt.Println("\n🏗️  Suggested Architecture Layers:")
-	
+
 	// 各パッケージを層に分類
 	layers := map[string][]string{
 		"Infrastructure": {},

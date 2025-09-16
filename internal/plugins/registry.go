@@ -16,26 +16,26 @@ import (
 
 // PluginRegistry はプラグインの動的登録・管理を行う
 type PluginRegistry struct {
-	mu              sync.RWMutex
-	plugins         map[string]*PluginInfo
-	loadedModules   map[string]*plugin.Plugin
-	componentReg    core.ComponentRegistry
+	mu               sync.RWMutex
+	plugins          map[string]*PluginInfo
+	loadedModules    map[string]*plugin.Plugin
+	componentReg     core.ComponentRegistry
 	lifecycleManager core.LifecycleManager
-	logger          logger.Logger
-	config          *config.Config
-	discoveryPaths  []string
+	logger           logger.Logger
+	config           *config.Config
+	discoveryPaths   []string
 }
 
 // PluginInfo はプラグインの情報を保持
 type PluginInfo struct {
-	Metadata    core.ComponentMetadata `json:"metadata"`
-	FilePath    string                 `json:"file_path"`
-	LoadTime    time.Time              `json:"load_time"`
-	LastUsed    time.Time              `json:"last_used"`
-	UsageCount  int                    `json:"usage_count"`
-	Status      PluginStatus           `json:"status"`
-	Component   core.CoreComponent     `json:"-"`
-	Module      *plugin.Plugin         `json:"-"`
+	Metadata   core.ComponentMetadata `json:"metadata"`
+	FilePath   string                 `json:"file_path"`
+	LoadTime   time.Time              `json:"load_time"`
+	LastUsed   time.Time              `json:"last_used"`
+	UsageCount int                    `json:"usage_count"`
+	Status     PluginStatus           `json:"status"`
+	Component  core.CoreComponent     `json:"-"`
+	Module     *plugin.Plugin         `json:"-"`
 }
 
 // PluginStatus はプラグインの状態
@@ -97,13 +97,13 @@ func NewPluginRegistry(
 	config *config.Config,
 ) *PluginRegistry {
 	return &PluginRegistry{
-		plugins:         make(map[string]*PluginInfo),
-		loadedModules:   make(map[string]*plugin.Plugin),
-		componentReg:    componentReg,
+		plugins:          make(map[string]*PluginInfo),
+		loadedModules:    make(map[string]*plugin.Plugin),
+		componentReg:     componentReg,
 		lifecycleManager: lifecycleManager,
-		logger:          logger,
-		config:          config,
-		discoveryPaths:  []string{"./plugins", "./extensions", "/usr/local/lib/vyb-plugins"},
+		logger:           logger,
+		config:           config,
+		discoveryPaths:   []string{"./plugins", "./extensions", "/usr/local/lib/vyb-plugins"},
 	}
 }
 
@@ -183,7 +183,7 @@ func (r *PluginRegistry) discoverInPath(ctx context.Context, path string) (int, 
 // shouldSkipFile はファイルをスキップすべきかチェック
 func (r *PluginRegistry) shouldSkipFile(filename string) bool {
 	base := filepath.Base(filename)
-	
+
 	// 隠しファイルやバックアップファイルをスキップ
 	if strings.HasPrefix(base, ".") || strings.HasSuffix(base, "~") {
 		return true
@@ -245,7 +245,7 @@ func (r *PluginRegistry) registerPlugin(manifest *PluginManifest, filePath strin
 	}
 
 	r.plugins[manifest.Name] = pluginInfo
-	
+
 	r.logger.Info("プラグイン登録完了", map[string]interface{}{
 		"name":    manifest.Name,
 		"version": manifest.Version,
@@ -288,7 +288,7 @@ func (r *PluginRegistry) LoadPlugin(ctx context.Context, name string) error {
 	}
 
 	pluginInfo.Status = StatusLoading
-	
+
 	r.logger.Info("プラグイン読み込み開始", map[string]interface{}{
 		"name": name,
 		"path": pluginInfo.FilePath,

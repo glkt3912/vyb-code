@@ -22,16 +22,16 @@ type PluginScheduler struct {
 
 // ScheduledTask はスケジュールされたタスクの情報
 type ScheduledTask struct {
-	Name       string                                    `json:"name"`
-	Interval   time.Duration                             `json:"interval"`
-	NextRun    time.Time                                 `json:"next_run"`
-	LastRun    time.Time                                 `json:"last_run"`
-	Function   func(ctx context.Context) error           `json:"-"`
-	RunCount   int                                       `json:"run_count"`
-	ErrorCount int                                       `json:"error_count"`
-	LastError  string                                    `json:"last_error,omitempty"`
-	Enabled    bool                                      `json:"enabled"`
-	OneTime    bool                                      `json:"one_time"`
+	Name       string                          `json:"name"`
+	Interval   time.Duration                   `json:"interval"`
+	NextRun    time.Time                       `json:"next_run"`
+	LastRun    time.Time                       `json:"last_run"`
+	Function   func(ctx context.Context) error `json:"-"`
+	RunCount   int                             `json:"run_count"`
+	ErrorCount int                             `json:"error_count"`
+	LastError  string                          `json:"last_error,omitempty"`
+	Enabled    bool                            `json:"enabled"`
+	OneTime    bool                            `json:"one_time"`
 }
 
 // NewPluginScheduler は新しいスケジューラーを作成
@@ -71,7 +71,7 @@ func (s *PluginScheduler) Stop(ctx context.Context) {
 
 	s.running = false
 	close(s.stopChan)
-	
+
 	if s.ticker != nil {
 		s.ticker.Stop()
 	}
@@ -96,7 +96,7 @@ func (s *PluginScheduler) run(ctx context.Context) {
 // processTasks は実行すべきタスクを処理
 func (s *PluginScheduler) processTasks(ctx context.Context) {
 	now := time.Now()
-	
+
 	s.tasksMu.Lock()
 	defer s.tasksMu.Unlock()
 
@@ -139,7 +139,7 @@ func (s *PluginScheduler) executeTask(ctx context.Context, task *ScheduledTask) 
 	s.tasksMu.Lock()
 	task.LastRun = startTime
 	task.RunCount++
-	
+
 	if err != nil {
 		task.ErrorCount++
 		task.LastError = err.Error()
@@ -162,7 +162,7 @@ func (s *PluginScheduler) executeTask(ctx context.Context, task *ScheduledTask) 
 	} else {
 		task.NextRun = time.Now().Add(task.Interval)
 	}
-	
+
 	s.tasksMu.Unlock()
 }
 
@@ -252,7 +252,7 @@ func (s *PluginScheduler) EnableTask(name string) error {
 	}
 
 	task.Enabled = true
-	
+
 	// 次回実行時刻を再設定（一回限りでない場合）
 	if !task.OneTime {
 		task.NextRun = time.Now().Add(task.Interval)

@@ -19,7 +19,7 @@ func TestPluginIntegration_FullWorkflow(t *testing.T) {
 
 	// プラグイン統合システムを作成
 	integration := NewPluginIntegration(mockComponentReg, mockLifecycleManager, mockLogger, mockConfig)
-	
+
 	// 初期化
 	err := integration.Initialize(ctx)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestPluginIntegration_FullWorkflow(t *testing.T) {
 	hasCore := false
 	hasExtension := false
 	hasBridge := false
-	
+
 	for _, plugin := range plugins {
 		switch plugin.Metadata.Type {
 		case core.TypeCore:
@@ -68,7 +68,7 @@ func TestPluginIntegration_FullWorkflow(t *testing.T) {
 		t.Error("組み込みプラグインが登録されていません")
 	}
 
-	t.Logf("プラグイン統合テスト成功 - 組み込み: %d, 外部: %d, 総数: %d", 
+	t.Logf("プラグイン統合テスト成功 - 組み込み: %d, 外部: %d, 総数: %d",
 		stats.BuiltinCount, stats.ExternalCount, stats.ManagerStats.PluginStats.TotalPlugins)
 
 	// 終了処理
@@ -236,7 +236,7 @@ func TestPluginManager_LoadUnloadCycle(t *testing.T) {
 	}
 
 	if info.Status != StatusLoaded {
-		t.Errorf("プラグインの初期状態が正しくありません。期待: %s, 実際: %s", 
+		t.Errorf("プラグインの初期状態が正しくありません。期待: %s, 実際: %s",
 			StatusLoaded.String(), info.Status.String())
 	}
 

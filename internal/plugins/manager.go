@@ -13,20 +13,20 @@ import (
 
 // PluginManager は高レベルなプラグイン管理機能を提供
 type PluginManager struct {
-	registry         *PluginRegistry
-	scheduler        *PluginScheduler
-	security         *PluginSecurity
-	configManager    *PluginConfigManager
-	logger           logger.Logger
-	config           *config.Config
-	
+	registry      *PluginRegistry
+	scheduler     *PluginScheduler
+	security      *PluginSecurity
+	configManager *PluginConfigManager
+	logger        logger.Logger
+	config        *config.Config
+
 	// プラグイン実行コンテキスト
-	contexts         map[string]context.CancelFunc
-	contextsMu       sync.RWMutex
-	
+	contexts   map[string]context.CancelFunc
+	contextsMu sync.RWMutex
+
 	// 自動管理設定
-	autoDiscovery    bool
-	autoLoad         bool
+	autoDiscovery     bool
+	autoLoad          bool
 	discoveryInterval time.Duration
 }
 
@@ -48,17 +48,17 @@ func NewPluginManager(
 	config *config.Config,
 ) *PluginManager {
 	registry := NewPluginRegistry(componentReg, lifecycleManager, logger, config)
-	
+
 	return &PluginManager{
-		registry:         registry,
-		scheduler:        NewPluginScheduler(logger),
-		security:         NewPluginSecurity(logger),
-		configManager:    NewPluginConfigManager(config, logger),
-		logger:           logger,
-		config:           config,
-		contexts:         make(map[string]context.CancelFunc),
-		autoDiscovery:    true,
-		autoLoad:         false,
+		registry:          registry,
+		scheduler:         NewPluginScheduler(logger),
+		security:          NewPluginSecurity(logger),
+		configManager:     NewPluginConfigManager(config, logger),
+		logger:            logger,
+		config:            config,
+		contexts:          make(map[string]context.CancelFunc),
+		autoDiscovery:     true,
+		autoLoad:          false,
 		discoveryInterval: 30 * time.Second,
 	}
 }
@@ -135,7 +135,7 @@ func (m *PluginManager) loadConfig() error {
 func (m *PluginManager) loadEnabledPlugins(ctx context.Context) error {
 	plugins := m.registry.ListPlugins()
 	loaded := 0
-	
+
 	for name, info := range plugins {
 		if !info.Metadata.Enabled {
 			continue
@@ -286,7 +286,7 @@ func (m *PluginManager) EnablePlugin(ctx context.Context, name string) error {
 	}
 
 	pluginInfo.Metadata.Enabled = true
-	
+
 	// 設定を保存
 	if err := m.configManager.SavePluginConfig(name, &pluginInfo.Metadata); err != nil {
 		return fmt.Errorf("設定保存エラー %s: %w", name, err)
@@ -326,7 +326,7 @@ func (m *PluginManager) DisablePlugin(ctx context.Context, name string) error {
 
 	pluginInfo.Metadata.Enabled = false
 	pluginInfo.Status = StatusDisabled
-	
+
 	// 設定を保存
 	if err := m.configManager.SavePluginConfig(name, &pluginInfo.Metadata); err != nil {
 		return fmt.Errorf("設定保存エラー %s: %w", name, err)
@@ -354,7 +354,7 @@ func (m *PluginManager) GetPluginInfo(name string) (*EnhancedPluginInfo, error) 
 	if pluginInfo.Component != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		enhanced.HealthStatus = "healthy"
 		if err := pluginInfo.Component.Health(ctx); err != nil {
 			enhanced.HealthStatus = "unhealthy"
@@ -371,7 +371,7 @@ func (m *PluginManager) GetPluginInfo(name string) (*EnhancedPluginInfo, error) 
 // checkDependencyStatus は依存関係の状態をチェック
 func (m *PluginManager) checkDependencyStatus(dependencies []string) map[string]string {
 	status := make(map[string]string)
-	
+
 	for _, dep := range dependencies {
 		if info, err := m.registry.GetPlugin(dep); err != nil {
 			status[dep] = "missing"
@@ -379,7 +379,7 @@ func (m *PluginManager) checkDependencyStatus(dependencies []string) map[string]
 			status[dep] = info.Status.String()
 		}
 	}
-	
+
 	return status
 }
 
@@ -387,7 +387,7 @@ func (m *PluginManager) checkDependencyStatus(dependencies []string) map[string]
 func (m *PluginManager) ListPluginsDetailed() (map[string]*EnhancedPluginInfo, error) {
 	plugins := m.registry.ListPlugins()
 	result := make(map[string]*EnhancedPluginInfo)
-	
+
 	for name := range plugins {
 		info, err := m.GetPluginInfo(name)
 		if err != nil {
@@ -395,7 +395,7 @@ func (m *PluginManager) ListPluginsDetailed() (map[string]*EnhancedPluginInfo, e
 		}
 		result[name] = info
 	}
-	
+
 	return result, nil
 }
 
@@ -440,7 +440,7 @@ type EnhancedPluginInfo struct {
 // GetStats は統計情報を取得
 func (m *PluginManager) GetStats() ManagerStats {
 	registryStats := m.registry.GetPluginStats()
-	
+
 	return ManagerStats{
 		PluginStats:       registryStats,
 		AutoDiscovery:     m.autoDiscovery,

@@ -158,7 +158,7 @@ func (r *DefaultComponentRegistry) InitializeAll(ctx context.Context) error {
 	extensions := r.getSortedExtensions()
 	for _, ext := range extensions {
 		name := ext.Name()
-		
+
 		// 依存関係チェック
 		if err := r.checkDependencies(ext.Dependencies()); err != nil {
 			return fmt.Errorf("extension '%s' dependency check failed: %w", name, err)

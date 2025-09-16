@@ -30,7 +30,7 @@ func NewPluginIntegration(
 	config *config.Config,
 ) *PluginIntegration {
 	manager := NewPluginManager(componentReg, lifecycleManager, logger, config)
-	
+
 	return &PluginIntegration{
 		manager:          manager,
 		componentReg:     componentReg,
@@ -99,8 +99,8 @@ func (i *PluginIntegration) registerBuiltinPlugins(ctx context.Context) error {
 
 // registerBuiltinPlugin は個別の組み込みプラグインを登録
 func (i *PluginIntegration) registerBuiltinPlugin(
-	ctx context.Context, 
-	name string, 
+	ctx context.Context,
+	name string,
 	factory PluginFactory,
 	componentType core.ComponentType,
 ) error {
@@ -179,7 +179,7 @@ func (i *PluginIntegration) setupDiscoveryPaths() {
 	}
 
 	i.logger.Info("プラグイン発見パス設定完了", map[string]interface{}{
-		"user_dir": userPluginDir,
+		"user_dir":     userPluginDir,
 		"system_paths": systemPaths,
 	})
 }
@@ -230,7 +230,7 @@ func (i *PluginIntegration) RestartPlugin(ctx context.Context, name string) erro
 // GetStats は統計情報を取得
 func (i *PluginIntegration) GetStats() PluginSystemStats {
 	managerStats := i.manager.GetStats()
-	
+
 	return PluginSystemStats{
 		Enabled:       i.enabled,
 		ManagerStats:  managerStats,
@@ -276,13 +276,13 @@ func (i *PluginIntegration) CreatePluginCommand() *PluginCommand {
 // Shutdown はプラグイン統合システムを終了
 func (i *PluginIntegration) Shutdown(ctx context.Context) error {
 	i.logger.Info("プラグイン統合システム終了開始", nil)
-	
+
 	if err := i.manager.Shutdown(ctx); err != nil {
 		return fmt.Errorf("プラグインマネージャー終了エラー: %w", err)
 	}
 
 	i.enabled = false
-	
+
 	i.logger.Info("プラグイン統合システム終了完了", nil)
 	return nil
 }
@@ -303,12 +303,12 @@ type PluginCommand struct {
 // ExecuteListCommand はlist コマンドを実行
 func (c *PluginCommand) ExecuteListCommand(ctx context.Context) error {
 	plugins := c.integration.ListPlugins()
-	
+
 	fmt.Println("登録済みプラグイン一覧:")
 	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("%-20s %-10s %-10s %-15s %s\n", "名前", "タイプ", "状態", "バージョン", "説明")
 	fmt.Println(strings.Repeat("-", 80))
-	
+
 	for _, info := range plugins {
 		typeStr := ""
 		switch info.Metadata.Type {
@@ -319,7 +319,7 @@ func (c *PluginCommand) ExecuteListCommand(ctx context.Context) error {
 		case core.TypeBridge:
 			typeStr = "Bridge"
 		}
-		
+
 		fmt.Printf("%-20s %-10s %-10s %-15s %s\n",
 			info.Metadata.Name,
 			typeStr,
@@ -328,14 +328,14 @@ func (c *PluginCommand) ExecuteListCommand(ctx context.Context) error {
 			info.Metadata.Description,
 		)
 	}
-	
+
 	return nil
 }
 
 // ExecuteStatsCommand はstats コマンドを実行
 func (c *PluginCommand) ExecuteStatsCommand() error {
 	stats := c.integration.GetStats()
-	
+
 	fmt.Println("プラグインシステム統計情報:")
 	fmt.Println(strings.Repeat("-", 50))
 	fmt.Printf("システム有効: %t\n", stats.Enabled)
@@ -345,6 +345,6 @@ func (c *PluginCommand) ExecuteStatsCommand() error {
 	fmt.Printf("読み込み済み: %d\n", stats.ManagerStats.PluginStats.LoadedCount)
 	fmt.Printf("アクティブ: %d\n", stats.ManagerStats.PluginStats.ActiveCount)
 	fmt.Printf("エラー: %d\n", stats.ManagerStats.PluginStats.ErrorCount)
-	
+
 	return nil
 }

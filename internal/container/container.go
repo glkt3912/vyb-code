@@ -228,13 +228,13 @@ func (c *Container) ListAvailableHandlers() []string {
 // initializeModuleManager はモジュールマネージャーを初期化
 func (c *Container) initializeModuleManager(cfg *config.Config) {
 	c.logger.Info("モジュラーアーキテクチャ初期化", nil)
-	
+
 	// モジュールマネージャーを作成
 	c.moduleManager = core.NewModuleManager()
-	
+
 	// コンポーネントファクトリーを作成
 	factory := core.NewComponentFactory(c.logger, cfg)
-	
+
 	// コアコンポーネントを登録
 	for _, component := range factory.CreateCoreComponents() {
 		if err := c.moduleManager.RegisterCore(component); err != nil {
@@ -244,7 +244,7 @@ func (c *Container) initializeModuleManager(cfg *config.Config) {
 			})
 		}
 	}
-	
+
 	// 拡張機能を登録
 	for _, extension := range factory.CreateExtensions() {
 		if err := c.moduleManager.RegisterExtension(extension); err != nil {
@@ -254,17 +254,17 @@ func (c *Container) initializeModuleManager(cfg *config.Config) {
 			})
 		}
 	}
-	
+
 	// 橋渡しコンポーネントを登録
 	for _, bridge := range factory.CreateBridges() {
 		if err := c.moduleManager.RegisterBridge(bridge); err != nil {
 			c.logger.Error("ブリッジコンポーネント登録エラー", map[string]interface{}{
 				"bridge": bridge.Name(),
-				"error":   err.Error(),
+				"error":  err.Error(),
 			})
 		}
 	}
-	
+
 	// 全コンポーネントを初期化
 	if err := c.moduleManager.InitializeAll(context.Background()); err != nil {
 		c.logger.Error("モジュール初期化エラー", map[string]interface{}{

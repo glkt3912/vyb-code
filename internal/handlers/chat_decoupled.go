@@ -15,17 +15,17 @@ import (
 
 // DecoupledChatHandler は依存関係を分離したチャットハンドラー
 type DecoupledChatHandler struct {
-	log              logger.Logger
-	resolver         DependencyResolver
-	responseHistory  []string
-	
+	log             logger.Logger
+	resolver        DependencyResolver
+	responseHistory []string
+
 	// 遅延初期化される依存関係
-	llmProvider      LLMProvider
-	streamingManager StreamingManager
-	completer        InputCompleter
-	perfMonitor      PerformanceMonitor
+	llmProvider        LLMProvider
+	streamingManager   StreamingManager
+	completer          InputCompleter
+	perfMonitor        PerformanceMonitor
 	interactiveManager InteractiveSessionManager
-	initialized      bool
+	initialized        bool
 }
 
 // NewDecoupledChatHandler は依存関係分離型チャットハンドラーを作成
@@ -87,7 +87,7 @@ func (h *DecoupledChatHandler) Initialize(cfg *config.Config) error {
 
 	h.initialized = true
 	h.log.Info("Decoupled chat handler initialized", nil)
-	
+
 	return nil
 }
 
@@ -168,7 +168,7 @@ func (h *DecoupledChatHandler) runDecoupledInteractiveLoop(sessionID string, cfg
 
 	for {
 		fmt.Print("💬 You: ")
-		
+
 		if !scanner.Scan() {
 			if scanner.Err() != nil {
 				return fmt.Errorf("input error: %w", scanner.Err())
@@ -201,7 +201,7 @@ func (h *DecoupledChatHandler) runDecoupledInteractiveLoop(sessionID string, cfg
 
 		// 実際の処理（インターフェース経由）
 		response, err := h.processUserInputDecoupled(context.Background(), sessionID, input)
-		
+
 		// パフォーマンス測定
 		duration := time.Since(startTime)
 		h.perfMonitor.RecordResponseTime(duration)
@@ -256,7 +256,7 @@ func (h *DecoupledChatHandler) processUserInputDecoupled(ctx context.Context, se
 // showDecoupledWelcomeMessage はウェルカムメッセージを表示
 func (h *DecoupledChatHandler) showDecoupledWelcomeMessage() {
 	fmt.Print("\033[2J\033[H") // 画面クリア
-	
+
 	fmt.Println("🤖 vyb-code · Decoupled AI Coding Assistant")
 	fmt.Println(strings.Repeat("─", 50))
 	fmt.Println()
@@ -265,19 +265,19 @@ func (h *DecoupledChatHandler) showDecoupledWelcomeMessage() {
 	fmt.Println()
 	fmt.Println("🔧 Commands: 'help' for help")
 	fmt.Println("🚪 Exit: 'exit' or 'quit'")
-	
+
 	// プロジェクト情報
 	workDir, _ := os.Getwd()
 	fmt.Printf("📂 Project: %s\n", filepath.Base(workDir))
 	fmt.Printf("🏗️  Architecture: Decoupled\n")
-	
+
 	fmt.Println()
 }
 
 // displayDecoupledResponse は応答を表示
 func (h *DecoupledChatHandler) displayDecoupledResponse(response ResponseInfo, duration time.Duration) {
 	fmt.Printf("🤖 Assistant (%s)\n", response.Type)
-	
+
 	// ストリーミング表示を試行
 	if h.streamingManager.IsEnabled() && len(response.Message) > 50 {
 		err := h.streamingManager.ProcessString(context.Background(), response.Message, os.Stdout, nil)

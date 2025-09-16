@@ -14,38 +14,38 @@ import (
 
 // PluginConfigManager はプラグインの設定管理を行う
 type PluginConfigManager struct {
-	config      *config.Config
-	logger      logger.Logger
-	configDir   string
+	config        *config.Config
+	logger        logger.Logger
+	configDir     string
 	pluginConfigs map[string]*PluginConfig
 }
 
 // PluginConfig は個別プラグインの設定
 type PluginConfig struct {
-	Metadata core.ComponentMetadata    `json:"metadata"`
-	Settings map[string]interface{}    `json:"settings"`
-	Advanced AdvancedPluginConfig      `json:"advanced"`
+	Metadata core.ComponentMetadata `json:"metadata"`
+	Settings map[string]interface{} `json:"settings"`
+	Advanced AdvancedPluginConfig   `json:"advanced"`
 }
 
 // AdvancedPluginConfig は高度な設定項目
 type AdvancedPluginConfig struct {
-	LoadOrder         int               `json:"load_order"`
-	MemoryLimit       int64             `json:"memory_limit"`      // バイト単位
-	CPULimit          float64           `json:"cpu_limit"`         // CPU使用率上限（0-1）
-	Timeout           int               `json:"timeout"`           // 秒単位
-	Retry             RetryConfig       `json:"retry"`
-	ResourceLimits    ResourceLimits    `json:"resource_limits"`
-	Environment       map[string]string `json:"environment"`
-	NetworkAccess     NetworkConfig     `json:"network_access"`
-	FileSystemAccess  FileSystemConfig  `json:"filesystem_access"`
+	LoadOrder        int               `json:"load_order"`
+	MemoryLimit      int64             `json:"memory_limit"` // バイト単位
+	CPULimit         float64           `json:"cpu_limit"`    // CPU使用率上限（0-1）
+	Timeout          int               `json:"timeout"`      // 秒単位
+	Retry            RetryConfig       `json:"retry"`
+	ResourceLimits   ResourceLimits    `json:"resource_limits"`
+	Environment      map[string]string `json:"environment"`
+	NetworkAccess    NetworkConfig     `json:"network_access"`
+	FileSystemAccess FileSystemConfig  `json:"filesystem_access"`
 }
 
 // RetryConfig は再試行設定
 type RetryConfig struct {
-	Enabled     bool  `json:"enabled"`
-	MaxAttempts int   `json:"max_attempts"`
-	Interval    int   `json:"interval"`    // 秒単位
-	Backoff     bool  `json:"backoff"`     // 指数バックオフ
+	Enabled     bool `json:"enabled"`
+	MaxAttempts int  `json:"max_attempts"`
+	Interval    int  `json:"interval"` // 秒単位
+	Backoff     bool `json:"backoff"`  // 指数バックオフ
 }
 
 // ResourceLimits はリソース制限
@@ -53,16 +53,16 @@ type ResourceLimits struct {
 	MaxGoroutines int   `json:"max_goroutines"`
 	MaxFiles      int   `json:"max_files"`
 	MaxSockets    int   `json:"max_sockets"`
-	DiskQuota     int64 `json:"disk_quota"`     // バイト単位
+	DiskQuota     int64 `json:"disk_quota"` // バイト単位
 }
 
 // NetworkConfig はネットワークアクセス設定
 type NetworkConfig struct {
-	Allowed       bool     `json:"allowed"`
-	AllowedHosts  []string `json:"allowed_hosts"`
-	BlockedHosts  []string `json:"blocked_hosts"`
-	AllowedPorts  []int    `json:"allowed_ports"`
-	RequireHTTPS  bool     `json:"require_https"`
+	Allowed      bool     `json:"allowed"`
+	AllowedHosts []string `json:"allowed_hosts"`
+	BlockedHosts []string `json:"blocked_hosts"`
+	AllowedPorts []int    `json:"allowed_ports"`
+	RequireHTTPS bool     `json:"require_https"`
 }
 
 // FileSystemConfig はファイルシステムアクセス設定
@@ -78,7 +78,7 @@ func NewPluginConfigManager(config *config.Config, logger logger.Logger) *Plugin
 	// Get user's home directory for config
 	homeDir, _ := os.UserHomeDir()
 	configDir := filepath.Join(homeDir, ".vyb", "plugins")
-	
+
 	return &PluginConfigManager{
 		config:        config,
 		logger:        logger,
@@ -102,7 +102,7 @@ func (m *PluginConfigManager) Initialize() error {
 	}
 
 	m.logger.Info("プラグイン設定マネージャー初期化完了", map[string]interface{}{
-		"config_dir": m.configDir,
+		"config_dir":     m.configDir,
 		"loaded_configs": len(m.pluginConfigs),
 	})
 
@@ -149,7 +149,7 @@ func (m *PluginConfigManager) GetPluginConfig(pluginName string) (*PluginConfig,
 // loadPluginConfig はファイルからプラグイン設定を読み込み
 func (m *PluginConfigManager) loadPluginConfig(pluginName string) error {
 	configPath := filepath.Join(m.configDir, pluginName+".json")
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("設定ファイル読み込みエラー: %w", err)
@@ -183,10 +183,10 @@ func (m *PluginConfigManager) createDefaultConfig(pluginName string) *PluginConf
 		},
 		Settings: make(map[string]interface{}),
 		Advanced: AdvancedPluginConfig{
-			LoadOrder:    1000,
-			MemoryLimit:  100 * 1024 * 1024, // 100MB
-			CPULimit:     0.8,                // 80%
-			Timeout:      30,                 // 30秒
+			LoadOrder:   1000,
+			MemoryLimit: 100 * 1024 * 1024, // 100MB
+			CPULimit:    0.8,               // 80%
+			Timeout:     30,                // 30秒
 			Retry: RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,

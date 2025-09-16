@@ -37,14 +37,14 @@ func (p *ExamplePlugin) Initialize(ctx context.Context) error {
 	p.logger.Info("サンプルプラグイン初期化開始", map[string]interface{}{
 		"name": p.name,
 	})
-	
+
 	// 初期化ロジック
 	p.enabled = true
-	
+
 	p.logger.Info("サンプルプラグイン初期化完了", map[string]interface{}{
 		"name": p.name,
 	})
-	
+
 	return nil
 }
 
@@ -53,13 +53,13 @@ func (p *ExamplePlugin) Shutdown(ctx context.Context) error {
 	p.logger.Info("サンプルプラグインシャットダウン開始", map[string]interface{}{
 		"name": p.name,
 	})
-	
+
 	p.enabled = false
-	
+
 	p.logger.Info("サンプルプラグインシャットダウン完了", map[string]interface{}{
 		"name": p.name,
 	})
-	
+
 	return nil
 }
 
@@ -68,7 +68,7 @@ func (p *ExamplePlugin) Health(ctx context.Context) error {
 	if !p.enabled {
 		return fmt.Errorf("プラグイン %s は無効状態です", p.name)
 	}
-	
+
 	return nil
 }
 
@@ -87,7 +87,7 @@ func NewExampleExtensionPlugin(logger logger.Logger, config *config.Config) (cor
 		config:  config,
 		enabled: true,
 	}
-	
+
 	return &ExampleExtensionPlugin{
 		ExamplePlugin: *base,
 		dependencies:  []string{"config", "logger"},
@@ -110,7 +110,7 @@ func (p *ExampleExtensionPlugin) Priority() int {
 	return p.priority
 }
 
-// ExampleBridgePlugin はブリッジプラグインの実装例  
+// ExampleBridgePlugin はブリッジプラグインの実装例
 type ExampleBridgePlugin struct {
 	ExamplePlugin
 	connectsTo []string
@@ -125,7 +125,7 @@ func NewExampleBridgePlugin(logger logger.Logger, config *config.Config) (core.B
 		config:  config,
 		enabled: true,
 	}
-	
+
 	return &ExampleBridgePlugin{
 		ExamplePlugin: *base,
 		connectsTo:    []string{"example_extension"},

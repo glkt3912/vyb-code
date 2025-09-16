@@ -18,7 +18,7 @@ type LLMProvider interface {
 	Health(ctx context.Context) error
 }
 
-// StreamingManager はストリーミング機能のインターフェース  
+// StreamingManager はストリーミング機能のインターフェース
 type StreamingManager interface {
 	ProcessString(ctx context.Context, content string, output io.Writer, options interface{}) error
 	IsEnabled() bool
@@ -193,16 +193,16 @@ func (n *NullStreamingManager) IsEnabled() bool { return false }
 
 type NullInputCompleter struct{}
 
-func (n *NullInputCompleter) GetSuggestions(input string) []string                      { return nil }
+func (n *NullInputCompleter) GetSuggestions(input string) []string                  { return nil }
 func (n *NullInputCompleter) GetAdvancedSuggestions(input string) []InputSuggestion { return nil }
 
 type NullPerformanceMonitor struct{}
 
-func (n *NullPerformanceMonitor) RecordProactiveUsage(operation string)        {}
-func (n *NullPerformanceMonitor) RecordResponseTime(duration time.Duration)    {}
-func (n *NullPerformanceMonitor) RecordLLMLatency(duration time.Duration)      {}
-func (n *NullPerformanceMonitor) GetMetrics() PerformanceMetrics               { return PerformanceMetrics{} }
-func (n *NullPerformanceMonitor) Start() error                                 { return nil }
+func (n *NullPerformanceMonitor) RecordProactiveUsage(operation string)     {}
+func (n *NullPerformanceMonitor) RecordResponseTime(duration time.Duration) {}
+func (n *NullPerformanceMonitor) RecordLLMLatency(duration time.Duration)   {}
+func (n *NullPerformanceMonitor) GetMetrics() PerformanceMetrics            { return PerformanceMetrics{} }
+func (n *NullPerformanceMonitor) Start() error                              { return nil }
 
 type NullInteractiveManager struct{}
 
@@ -217,7 +217,7 @@ type NullSecurityConstraints struct{}
 
 func (n *NullSecurityConstraints) ValidateCommand(command string) error { return nil }
 func (n *NullSecurityConstraints) ValidateFilePath(path string) error   { return nil }
-func (n *NullSecurityConstraints) GetAllowedCommands() []string          { return []string{"echo", "ls"} }
+func (n *NullSecurityConstraints) GetAllowedCommands() []string         { return []string{"echo", "ls"} }
 
 type NullToolExecutor struct{}
 

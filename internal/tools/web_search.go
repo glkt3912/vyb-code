@@ -10,6 +10,7 @@ import (
 )
 
 // WebSearchTool - Web検索機能（Claude Code相当）
+// Deprecated: Use UnifiedWebSearchTool from unified_websearch.go instead
 type WebSearchTool struct {
 	client  *http.Client
 	timeout time.Duration

@@ -148,45 +148,7 @@ func TestManager_UpdateConfig(t *testing.T) {
 	}
 }
 
-func TestLegacyStreamAdapter(t *testing.T) {
-	manager := NewManager(DefaultStreamConfig())
-	adapter := NewLegacyStreamAdapter(manager)
-
-	t.Run("StreamContent", func(t *testing.T) {
-		err := adapter.StreamContent("Hello from legacy adapter!")
-		if err != nil {
-			t.Errorf("LegacyStreamAdapter.StreamContent() error = %v", err)
-		}
-	})
-
-	t.Run("SetSpeedPreset", func(t *testing.T) {
-		adapter.SetSpeedPreset("fast")
-
-		if manager.config.TokenDelay != 5*time.Millisecond {
-			t.Errorf("SetSpeedPreset(fast) not applied correctly")
-		}
-	})
-
-	t.Run("SetStreamingEnabled", func(t *testing.T) {
-		adapter.SetStreamingEnabled(false)
-
-		if manager.config.EnableStreaming != false {
-			t.Errorf("SetStreamingEnabled(false) not applied correctly")
-		}
-	})
-
-	t.Run("GetState", func(t *testing.T) {
-		state := adapter.GetState()
-
-		if _, ok := state["active_streams"]; !ok {
-			t.Errorf("GetState() should include active_streams")
-		}
-
-		if _, ok := state["total_requests"]; !ok {
-			t.Errorf("GetState() should include total_requests")
-		}
-	})
-}
+// TestLegacyStreamAdapter removed - legacy streaming system deleted
 
 func TestStreamOptions_Validation(t *testing.T) {
 	manager := NewManager(DefaultStreamConfig())
@@ -244,16 +206,4 @@ func BenchmarkManager_ProcessString(b *testing.B) {
 	}
 }
 
-func BenchmarkLegacyStreamAdapter_StreamContent(b *testing.B) {
-	manager := NewManager(DefaultStreamConfig())
-	adapter := NewLegacyStreamAdapter(manager)
-	content := "This is a benchmark test content for legacy adapter performance measurement."
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := adapter.StreamContent(content)
-		if err != nil {
-			b.Errorf("StreamContent() error = %v", err)
-		}
-	}
-}
+// BenchmarkLegacyStreamAdapter_StreamContent removed - legacy streaming system deleted

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -310,8 +311,18 @@ func (h *ToolsHandler) AutoBuild() error {
 		MaxTimeout:      cfg.CommandTimeout * 3, // ビルドは長時間かかる可能性があるので3倍に設定
 	}
 
+	// プロジェクトパスを決定
+	workspacePath := cfg.WorkspacePath
+	if workspacePath == "" {
+		if cwd, err := os.Getwd(); err == nil {
+			workspacePath = cwd
+		} else {
+			return fmt.Errorf("現在のディレクトリ取得エラー: %w", err)
+		}
+	}
+
 	// ビルドマネージャーを作成
-	buildManager := tools.NewBuildManager(constraints, cfg.WorkspacePath)
+	buildManager := tools.NewBuildManager(constraints, workspacePath)
 
 	// 自動ビルド実行
 	result, err := buildManager.AutoBuild()
@@ -352,12 +363,22 @@ func (h *ToolsHandler) AutoTest() error {
 
 	// セキュリティ制約設定
 	constraints := &security.Constraints{
-		AllowedCommands: []string{"make", "go", "npm", "yarn", "cargo", "mvn", "gradle", "python", "pytest", "jest"},
+		AllowedCommands: []string{"ls", "make", "go", "npm", "yarn", "cargo", "mvn", "gradle", "python", "pytest", "jest"},
 		MaxTimeout:      cfg.CommandTimeout * 5, // テストはさらに長時間かかる可能性があるので5倍に設定
 	}
 
+	// プロジェクトパスを決定
+	workspacePath := cfg.WorkspacePath
+	if workspacePath == "" {
+		if cwd, err := os.Getwd(); err == nil {
+			workspacePath = cwd
+		} else {
+			return fmt.Errorf("現在のディレクトリ取得エラー: %w", err)
+		}
+	}
+
 	// コマンド実行器を作成
-	executor := tools.NewCommandExecutor(constraints, cfg.WorkspacePath)
+	executor := tools.NewCommandExecutor(constraints, workspacePath)
 
 	// テストコマンドを自動検出して実行
 	var testCommand string

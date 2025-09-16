@@ -163,6 +163,7 @@ const (
 	ResponseTypeConfirmation                       // 確認要求
 	ResponseTypeError                              // エラー応答
 	ResponseTypeCompletion                         // 作業完了
+	ResponseTypeAnalysis                           // 分析結果
 )
 
 // Claude Code風の自然な対話フロー管理

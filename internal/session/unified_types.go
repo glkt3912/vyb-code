@@ -6,7 +6,7 @@ import (
 
 	"github.com/glkt/vyb-code/internal/contextmanager"
 	"github.com/glkt/vyb-code/internal/llm"
-	"github.com/glkt/vyb-code/internal/streaming"
+	// "github.com/glkt/vyb-code/internal/streaming" // 削除されたパッケージ
 )
 
 // UnifiedSessionType - 統合セッションタイプ
@@ -57,9 +57,9 @@ type UnifiedSession struct {
 	Stats *UnifiedSessionStats `json:"stats"`
 
 	// 内部状態（JSONエクスポート対象外）
-	mu             sync.RWMutex                  `json:"-"`
-	manager        UnifiedSessionManager         `json:"-"`
-	streamManager  *streaming.Manager            `json:"-"`
+	mu      sync.RWMutex          `json:"-"`
+	manager UnifiedSessionManager `json:"-"`
+	// streamManager  *streaming.Manager            `json:"-"` // 使用停止
 	contextManager contextmanager.ContextManager `json:"-"`
 	llmProvider    llm.Provider                  `json:"-"`
 

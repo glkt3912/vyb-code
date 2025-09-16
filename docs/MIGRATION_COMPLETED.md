@@ -53,7 +53,7 @@ Validation Enabled: true
 
 - `internal/stream/processor.go`
 - `internal/stream/processor_test.go`
-- `internal/streaming/legacy_adapter.go`
+- `internal/streaming/compatibility_adapter.go`
 - `internal/streaming/processor.go`
 - `internal/streaming/ui_processor.go`
 

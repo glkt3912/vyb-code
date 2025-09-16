@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"golang.org/x/term"
 )
@@ -291,12 +292,17 @@ func (r *Reader) readLineRaw() (string, error) {
 				r.redrawLine()
 			}
 
-		case KeyBS:
-			// Backspace
+		case KeyBS, 8: // Backspace (127 or 8)
+			// Backspace: カーソルの左の文字を削除（UTF-8対応）
 			if r.cursorPos > 0 {
-				r.currentLine = r.currentLine[:r.cursorPos-1] + r.currentLine[r.cursorPos:]
-				r.cursorPos--
-				r.redrawLine()
+				runes := []rune(r.currentLine)
+				if r.cursorPos <= len(runes) {
+					// ルーン（文字）単位で削除
+					newRunes := append(runes[:r.cursorPos-1], runes[r.cursorPos:]...)
+					r.currentLine = string(newRunes)
+					r.cursorPos--
+					r.redrawLine()
+				}
 			}
 
 		case KeyESC:
@@ -308,8 +314,10 @@ func (r *Reader) readLineRaw() (string, error) {
 		default:
 			// 通常文字
 			if b >= 32 && b <= 126 {
-				// ASCII印字可能文字 - リアルタイム長制限チェック
-				newLine := r.currentLine[:r.cursorPos] + string(b) + r.currentLine[r.cursorPos:]
+				// ASCII印字可能文字 - ルーン単位で挿入
+				runes := []rune(r.currentLine)
+				newRunes := append(runes[:r.cursorPos], append([]rune{rune(b)}, runes[r.cursorPos:]...)...)
+				newLine := string(newRunes)
 				if len(newLine) > MaxLineLength {
 					// 長すぎる場合は無視
 					continue
@@ -343,7 +351,7 @@ func (r *Reader) handleEscapeSequence() error {
 			// 上矢印: 履歴を戻る
 			if prev := r.history.Previous(); prev != r.currentLine {
 				r.currentLine = prev
-				r.cursorPos = len(r.currentLine)
+				r.cursorPos = len([]rune(r.currentLine)) // ルーン単位でカーソル位置設定
 				r.redrawLine()
 			}
 
@@ -351,27 +359,54 @@ func (r *Reader) handleEscapeSequence() error {
 			// 下矢印: 履歴を進む
 			if next := r.history.Next(); next != r.currentLine {
 				r.currentLine = next
-				r.cursorPos = len(r.currentLine)
+				r.cursorPos = len([]rune(r.currentLine)) // ルーン単位でカーソル位置設定
 				r.redrawLine()
 			}
 
 		case KeyLeft:
-			// 左矢印: カーソルを左に移動
+			// 左矢印: カーソルを左に移動（UTF-8対応）
 			if r.cursorPos > 0 {
 				r.cursorPos--
-				fmt.Print("\033[D") // カーソルを1文字左に移動
+				r.redrawLine() // 完全な再描画でカーソル位置を同期
 			}
 
 		case KeyRight:
-			// 右矢印: カーソルを右に移動
-			if r.cursorPos < len(r.currentLine) {
+			// 右矢印: カーソルを右に移動（UTF-8対応）
+			runes := []rune(r.currentLine)
+			if r.cursorPos < len(runes) {
 				r.cursorPos++
-				fmt.Print("\033[C") // カーソルを1文字右に移動
+				r.redrawLine() // 完全な再描画でカーソル位置を同期
 			}
+
+		case '3':
+			// Delete key: [3~ シーケンス - より安全な処理
+			buffer2 := make([]byte, 1)
+			n2, err2 := os.Stdin.Read(buffer2)
+			if err2 != nil {
+				// 読み取りエラーの場合は静かに無視
+				return nil
+			}
+			if n2 == 1 && buffer2[0] == '~' {
+				// Delete: カーソル位置の文字を削除（UTF-8対応）
+				r.performDelete()
+			}
+			// それ以外の場合は無視（Deleteキーでない）
 		}
 	}
 
 	return nil
+}
+
+// Delete操作を実行（共通化）
+func (r *Reader) performDelete() {
+	runes := []rune(r.currentLine)
+	if r.cursorPos < len(runes) {
+		// ルーン（文字）単位で削除
+		newRunes := append(runes[:r.cursorPos], runes[r.cursorPos+1:]...)
+		r.currentLine = string(newRunes)
+		// カーソル位置はそのまま（削除した文字の次にカーソルが移動する）
+		r.redrawLine()
+	}
 }
 
 // UTF-8入力を処理
@@ -407,15 +442,19 @@ func (r *Reader) handleUTF8Input(firstByte byte) error {
 	// UTF-8文字列に変換
 	char := string(utf8Bytes)
 
-	// リアルタイム長制限チェック
-	newLine := r.currentLine[:r.cursorPos] + char + r.currentLine[r.cursorPos:]
+	// UTF-8文字をルーン単位で挿入
+	runes := []rune(r.currentLine)
+	charRunes := []rune(char)
+	newRunes := append(runes[:r.cursorPos], append(charRunes, runes[r.cursorPos:]...)...)
+	newLine := string(newRunes)
+
 	if len(newLine) > MaxLineLength {
 		return fmt.Errorf("行長制限を超えています")
 	}
 
 	// 現在の行に文字を挿入
 	r.currentLine = newLine
-	r.cursorPos += len(char)
+	r.cursorPos += len(charRunes) // ルーン数で更新
 	r.redrawLine()
 
 	return nil
@@ -432,10 +471,12 @@ func (r *Reader) redrawLine() {
 	// 行末まで削除
 	fmt.Print("\033[K")
 
-	// カーソルを正しい位置に移動
-	if r.cursorPos < len(r.currentLine) {
-		// カーソルが行末でない場合、正しい位置に移動
-		fmt.Printf("\033[%dG", len(r.prompt)+r.cursorPos+1)
+	// カーソルを正しい位置に移動 (UTF-8対応)
+	runes := []rune(r.currentLine)
+	if r.cursorPos < len(runes) {
+		// UTF-8文字の実際の表示幅を計算
+		displayWidth := r.calculateDisplayWidth(runes[:r.cursorPos])
+		fmt.Printf("\033[%dG", len(r.prompt)+displayWidth+1)
 	}
 }
 
@@ -711,6 +752,30 @@ func (r *Reader) GetPerformanceMetrics() map[string]interface{} {
 		return r.perfOptimizer.metricsCollector.GetMetrics()
 	}
 	return map[string]interface{}{}
+}
+
+// UTF-8文字の表示幅を計算（東アジア文字対応）
+func (r *Reader) calculateDisplayWidth(runes []rune) int {
+	width := 0
+	for _, r := range runes {
+		if r < 32 || r == 127 {
+			// 制御文字は幅0
+			continue
+		} else if r < 127 {
+			// ASCII文字は幅1
+			width++
+		} else if unicode.Is(unicode.Han, r) || unicode.Is(unicode.Hiragana, r) || unicode.Is(unicode.Katakana, r) {
+			// CJK文字（中国語、日本語、韓国語）は幅2
+			width += 2
+		} else if unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Me, r) || unicode.Is(unicode.Mc, r) {
+			// 結合文字は幅0
+			continue
+		} else {
+			// その他のUnicode文字は幅1
+			width++
+		}
+	}
+	return width
 }
 
 // リーダーのクリーンアップ

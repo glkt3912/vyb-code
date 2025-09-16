@@ -115,6 +115,7 @@ const (
 	FeatureProactiveMode      = "proactive_mode"      // プロアクティブモード
 	FeaturePluginArchitecture = "plugin_architecture" // プラグインアーキテクチャ
 	FeatureFactoryPattern     = "factory_pattern"     // ファクトリーパターン
+	FeatureModularArchitecture = "modular_architecture" // モジュラーアーキテクチャ
 )
 
 // DefaultFeatureFlags はデフォルトの機能フラグ定義
@@ -168,6 +169,13 @@ func DefaultFeatureFlags() map[string]*FeatureFlag {
 			Description: "ファクトリーパターンによるハンドラー管理",
 			Version:     "2.3.0",
 			Conditions:  map[string]string{"architecture": "modern"},
+		},
+		FeatureModularArchitecture: {
+			Name:        FeatureModularArchitecture,
+			Enabled:     false, // モジュラーアーキテクチャは実験的
+			Description: "Core/Extensions分離型モジュラーアーキテクチャ",
+			Version:     "3.0.0",
+			Conditions:  map[string]string{"experimental": "true", "architecture": "modular"},
 		},
 	}
 }

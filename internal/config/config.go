@@ -81,6 +81,9 @@ type Config struct {
 	Features     *Features                  `json:"features"`      // 機能設定
 	Proactive    ProactiveConfig            `json:"proactive"`     // プロアクティブ設定
 	Migration    GradualMigrationConfig     `json:"migration"`     // 段階的移行設定
+
+	// 内部管理用（JSONには含まれない）
+	featureManager *FeatureManager `json:"-"` // 機能フラグマネージャー
 }
 
 // Markdown設定

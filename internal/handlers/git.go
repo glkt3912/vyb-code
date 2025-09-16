@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/glkt/vyb-code/internal/config"
 	"github.com/glkt/vyb-code/internal/logger"
 	"github.com/spf13/cobra"
 )
@@ -147,4 +149,43 @@ func (h *GitHandler) CreateGitCommands() *cobra.Command {
 	gitCmd.AddCommand(statusCmd, branchCmd, switchCmd, commitCmd, diffCmd, logCmd)
 
 	return gitCmd
+}
+
+// Handler インターフェース実装
+
+// Initialize はハンドラーを初期化
+func (h *GitHandler) Initialize(cfg *config.Config) error {
+	// GitHandlerは特別な初期化を必要としない
+	return nil
+}
+
+// GetMetadata はハンドラーのメタデータを返す
+func (h *GitHandler) GetMetadata() HandlerMetadata {
+	return HandlerMetadata{
+		Name:        "git",
+		Version:     "1.0.0",
+		Description: "Git操作ハンドラー（開発版）",
+		Capabilities: []string{
+			"git_status",
+			"branch_management",
+			"commit_creation",
+			"diff_viewing",
+			"log_viewing",
+		},
+		Dependencies: []string{
+			"git",
+		},
+		Config: map[string]string{
+			"status": "development",
+			"mode":   "simplified",
+		},
+	}
+}
+
+// Health はハンドラーの健全性をチェック
+func (h *GitHandler) Health(ctx context.Context) error {
+	if h.log == nil {
+		return fmt.Errorf("logger not initialized")
+	}
+	return nil
 }

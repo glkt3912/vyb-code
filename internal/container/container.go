@@ -15,6 +15,7 @@ type Container struct {
 	services map[string]interface{}
 	config   *config.Config
 	logger   logger.Logger
+	factory  *handlers.HandlerFactory // ハンドラーファクトリー
 }
 
 // NewContainer は新しいコンテナーを作成
@@ -58,7 +59,24 @@ func (c *Container) Initialize() error {
 		"log_format": cfg.Log.Format,
 	})
 
-	// 統合チャットハンドラー
+	// ハンドラーファクトリーを初期化
+	c.factory = handlers.NewHandlerFactory(c.logger, c.config)
+
+	// ハンドラーファクトリーにハンドラー作成関数を登録
+	c.factory.RegisterHandler("chat", func(log logger.Logger, cfg *config.Config) handlers.Handler {
+		return handlers.NewChatHandler(log, cfg)
+	})
+	c.factory.RegisterHandler("tools", func(log logger.Logger, cfg *config.Config) handlers.Handler {
+		return handlers.NewToolsHandler(log)
+	})
+	c.factory.RegisterHandler("config", func(log logger.Logger, cfg *config.Config) handlers.Handler {
+		return handlers.NewConfigHandler(log)
+	})
+	c.factory.RegisterHandler("git", func(log logger.Logger, cfg *config.Config) handlers.Handler {
+		return handlers.NewGitHandler(log)
+	})
+
+	// 従来の方法でもハンドラーを作成（後方互換性のため）
 	c.logger.Info("統合チャットハンドラーを初期化", map[string]interface{}{
 		"system_type": "unified",
 	})
@@ -174,4 +192,27 @@ func (c *Container) Shutdown() error {
 
 	c.logger.Info("Container シャットダウン完了", nil)
 	return nil
+}
+
+// GetHandlerFactory はハンドラーファクトリーを取得
+func (c *Container) GetHandlerFactory() *handlers.HandlerFactory {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.factory
+}
+
+// CreateHandler は新しいファクトリーパターンでハンドラーを作成
+func (c *Container) CreateHandler(name string) (handlers.Handler, error) {
+	if c.factory == nil {
+		return nil, fmt.Errorf("handler factory not initialized")
+	}
+	return c.factory.CreateHandler(name)
+}
+
+// ListAvailableHandlers は利用可能なハンドラー一覧を取得
+func (c *Container) ListAvailableHandlers() []string {
+	if c.factory == nil {
+		return []string{}
+	}
+	return c.factory.ListAvailableHandlers()
 }

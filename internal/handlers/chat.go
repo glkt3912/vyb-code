@@ -588,3 +588,55 @@ func (h *ChatHandler) GetMigrationStatus() map[string]interface{} {
 		"status":              "fully integrated system using InteractiveSessionManager",
 	}
 }
+
+// Handler インターフェース実装
+
+// Initialize はハンドラーを初期化（既存の初期化処理を分離）
+func (h *ChatHandler) Initialize(cfg *config.Config) error {
+	if h.interactiveManager != nil {
+		return nil // 既に初期化済み
+	}
+	return h.initializeInteractiveManager(cfg)
+}
+
+// GetMetadata はハンドラーのメタデータを返す
+func (h *ChatHandler) GetMetadata() HandlerMetadata {
+	return HandlerMetadata{
+		Name:        "chat",
+		Version:     "1.0.0",
+		Description: "Claude Code風対話インターフェース",
+		Capabilities: []string{
+			"interactive_chat",
+			"streaming_response",
+			"context_management",
+			"vibe_coding",
+			"session_management",
+		},
+		Dependencies: []string{
+			"interactive",
+			"streaming",
+			"input",
+			"performance",
+		},
+		Config: map[string]string{
+			"default_mode": "vibe_coding",
+			"ui_style":     "claude_code",
+		},
+	}
+}
+
+// Health はハンドラーの健全性をチェック
+func (h *ChatHandler) Health(ctx context.Context) error {
+	// 基本的な健全性チェック
+	if h.log == nil {
+		return fmt.Errorf("logger not initialized")
+	}
+	if h.streamingManager == nil {
+		return fmt.Errorf("streaming manager not initialized")
+	}
+	if h.completer == nil {
+		return fmt.Errorf("completer not initialized")
+	}
+	// インタラクティブマネージャーは遅延初期化されるためオプショナル
+	return nil
+}

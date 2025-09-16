@@ -180,7 +180,7 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 - ✅ **Real-time metadata display** (response time, token count, model name)
 - ✅ **Convenient shortcuts** (`vyb s`, `vyb build`, `vyb test`)
 - ✅ **Auto-detection systems** (Makefile/Go/Node.js build and test commands)
-- ✅ **Modern TUI integration** (Bubble Tea framework, theme system, interactive components)
+- ✅ **Claude Code-style interface** (streaming responses, intelligent completion, progress indicators)
 
 ### Phase 5: Enhanced Input System (✅ Completed)
 
@@ -242,7 +242,7 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 - ✅ **Real-time Code Suggestions** - Context-aware suggestions with confirmation dialogs
 - ✅ **Memory-efficient Dialogue Management** - Optimized conversation handling for long sessions
 - ✅ **Default Experience Integration** - Vibe mode as primary interface replacing traditional terminal mode
-- ✅ **Enhanced UI Components** - Bubble Tea-based confirmation dialogs and interactive elements
+- ✅ **Enhanced UI Components** - Modern confirmation dialogs and interactive elements
 
 ### Phase 2: Advanced Development Features (✅ Completed)
 
@@ -273,7 +273,7 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 - ✅ Workspace mode restrictions
 - ✅ Security settings and command restrictions
 - ✅ Performance optimization settings
-- ✅ **TUI configuration** (`vyb config set-tui`, `vyb config set-tui-theme`)
+- ✅ **Interface configuration** (deprecated TUI settings maintained for compatibility)
 
 **Current config commands:**
 
@@ -281,8 +281,8 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
-vyb config set-tui <true/false>    # Enable/disable TUI mode
-vyb config set-tui-theme <theme>   # Set TUI theme (vyb, dark, light, auto)
+# Note: TUI configuration commands are deprecated
+# Claude Code-style interface is now the default experience
 ```
 
 **All implemented commands:**

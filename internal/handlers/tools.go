@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -525,4 +526,51 @@ func (h *ToolsHandler) CreateToolCommands() []*cobra.Command {
 	commands = append(commands, analyzeCmd, statusCmd, buildCmd, testCmd)
 
 	return commands
+}
+
+// Handler インターフェース実装
+
+// Initialize はハンドラーを初期化
+func (h *ToolsHandler) Initialize(cfg *config.Config) error {
+	// ToolsHandlerは特別な初期化を必要としない
+	return nil
+}
+
+// GetMetadata はハンドラーのメタデータを返す
+func (h *ToolsHandler) GetMetadata() HandlerMetadata {
+	return HandlerMetadata{
+		Name:        "tools",
+		Version:     "1.0.0",
+		Description: "ツール実行ハンドラー",
+		Capabilities: []string{
+			"command_execution",
+			"file_search",
+			"project_analysis",
+			"build_management",
+			"test_execution",
+		},
+		Dependencies: []string{
+			"tools",
+			"security",
+		},
+		Config: map[string]string{
+			"security_mode": "strict",
+			"timeout":       "60s",
+		},
+	}
+}
+
+// Health はハンドラーの健全性をチェック
+func (h *ToolsHandler) Health(ctx context.Context) error {
+	if h.log == nil {
+		return fmt.Errorf("logger not initialized")
+	}
+
+	// セキュリティ制約の基本テスト
+	_, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config access failed: %w", err)
+	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -513,4 +514,50 @@ func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 	configCmd.AddCommand(enableValidationCmd)
 
 	return configCmd
+}
+
+// Handler インターフェース実装
+
+// Initialize はハンドラーを初期化
+func (h *ConfigHandler) Initialize(cfg *config.Config) error {
+	// ConfigHandlerは特別な初期化を必要としない
+	return nil
+}
+
+// GetMetadata はハンドラーのメタデータを返す
+func (h *ConfigHandler) GetMetadata() HandlerMetadata {
+	return HandlerMetadata{
+		Name:        "config",
+		Version:     "1.0.0",
+		Description: "設定管理ハンドラー",
+		Capabilities: []string{
+			"config_management",
+			"model_selection",
+			"provider_settings",
+			"logging_config",
+			"proactive_settings",
+		},
+		Dependencies: []string{
+			"config",
+		},
+		Config: map[string]string{
+			"storage_type": "json_file",
+			"auto_save":    "true",
+		},
+	}
+}
+
+// Health はハンドラーの健全性をチェック
+func (h *ConfigHandler) Health(ctx context.Context) error {
+	if h.log == nil {
+		return fmt.Errorf("logger not initialized")
+	}
+
+	// 設定ファイルへのアクセステスト
+	_, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config file access failed: %w", err)
+	}
+
+	return nil
 }

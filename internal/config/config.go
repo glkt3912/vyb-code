@@ -32,13 +32,13 @@ type LogConfig struct {
 	Context       map[string]string `json:"context"`        // デフォルトコンテキスト
 }
 
-// TUI設定
+// TUI設定（非推奨 - Claude Code風インターフェースに移行済み）
 type TUIConfig struct {
-	Enabled      bool   `json:"enabled"`       // TUI有効/無効
-	Theme        string `json:"theme"`         // カラーテーマ (dark, light, auto, vyb)
-	ShowSpinner  bool   `json:"show_spinner"`  // スピナー表示
-	ShowProgress bool   `json:"show_progress"` // プログレスバー表示
-	Animation    bool   `json:"animation"`     // アニメーション有効
+	Enabled      bool   `json:"enabled"`       // TUI有効/無効（非推奨）
+	Theme        string `json:"theme"`         // カラーテーマ（非推奨）
+	ShowSpinner  bool   `json:"show_spinner"`  // スピナー表示（非推奨）
+	ShowProgress bool   `json:"show_progress"` // プログレスバー表示（非推奨）
+	Animation    bool   `json:"animation"`     // アニメーション有効（非推奨）
 }
 
 // ターミナルモード専用設定
@@ -104,7 +104,7 @@ type GradualMigrationConfig struct {
 	UseUnifiedAnalysis  bool `json:"use_unified_analysis"`  // 統合分析システムを使用
 
 	// 移行モード
-	MigrationMode string `json:"migration_mode"` // gradual, legacy, unified
+	MigrationMode string `json:"migration_mode"` // gradual, compatibility, unified
 
 	// 検証・監視設定
 	EnableValidation  bool `json:"enable_validation"`  // 新旧システム比較検証を有効化
@@ -264,7 +264,7 @@ func DefaultConfig() *Config {
 			UseUnifiedTools:     false, // 段階的に有効化
 			UseUnifiedAnalysis:  false, // 段階的に有効化
 
-			MigrationMode: "gradual", // gradual, legacy, unified
+			MigrationMode: "gradual", // gradual, compatibility, unified
 
 			// 検証・監視はデフォルトで有効
 			EnableValidation:  true,
@@ -462,20 +462,20 @@ func (c *Config) SetLogOutput(outputs []string) error {
 
 // TUI有効/無効を設定して保存する
 func (c *Config) SetTUIEnabled(enabled bool) error {
-	c.TUI.Enabled = enabled
-	return c.Save()
+	// TUI設定は非推奨 - Claude Code風インターフェースが標準
+	return nil
 }
 
 // TUIテーマを設定して保存する
 func (c *Config) SetTUITheme(theme string) error {
-	c.TUI.Theme = theme
-	return c.Save()
+	// TUI設定は非推奨 - Claude Code風インターフェースが標準
+	return nil
 }
 
 // TUIアニメーションを設定して保存する
 func (c *Config) SetTUIAnimation(enabled bool) error {
-	c.TUI.Animation = enabled
-	return c.Save()
+	// TUI設定は非推奨 - Claude Code風インターフェースが標準
+	return nil
 }
 
 // プロアクティブモードを設定して保存する

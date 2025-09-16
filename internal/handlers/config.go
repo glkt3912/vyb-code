@@ -178,55 +178,17 @@ func (h *ConfigHandler) SetLogFormat(format string) error {
 	return nil
 }
 
-// SetTUIEnabled はTUIの有効/無効を設定
+// SetTUIEnabled はTUIの有効/無効を設定（非推奨 - Claude Code風インターフェースに移行済み）
 func (h *ConfigHandler) SetTUIEnabled(enabled bool) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("設定読み込みエラー: %w", err)
-	}
-
-	cfg.TUI.Enabled = enabled
-
-	if err := config.Save(cfg); err != nil {
-		return fmt.Errorf("設定保存エラー: %w", err)
-	}
-
-	h.log.Info("TUI設定を更新しました", map[string]interface{}{
-		"enabled": enabled,
-	})
+	h.log.Warn("TUI設定は非推奨です。Claude Code風インターフェースが常に使用されます。", nil)
+	fmt.Println("⚠️  TUI設定は非推奨です。Claude Code風インターフェースが標準となりました。")
 	return nil
 }
 
-// SetTUITheme はTUIテーマを設定
+// SetTUITheme はTUIテーマを設定（非推奨 - Claude Code風インターフェースに移行済み）
 func (h *ConfigHandler) SetTUITheme(theme string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("設定読み込みエラー: %w", err)
-	}
-
-	// テーマの検証
-	validThemes := []string{"dark", "light", "auto", "vyb"}
-	isValid := false
-	for _, valid := range validThemes {
-		if theme == valid {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return fmt.Errorf("無効なテーマです。有効な値: %v", validThemes)
-	}
-
-	cfg.TUI.Theme = theme
-
-	if err := config.Save(cfg); err != nil {
-		return fmt.Errorf("設定保存エラー: %w", err)
-	}
-
-	h.log.Info("TUIテーマを更新しました", map[string]interface{}{
-		"theme": theme,
-	})
+	h.log.Warn("TUIテーマ設定は非推奨です。Claude Code風インターフェースが常に使用されます。", nil)
+	fmt.Println("⚠️  TUIテーマ設定は非推奨です。Claude Code風インターフェースが標準となりました。")
 	return nil
 }
 
@@ -239,7 +201,7 @@ func (h *ConfigHandler) SetMigrationMode(mode string) error {
 		return fmt.Errorf("設定読み込みエラー: %w", err)
 	}
 
-	validModes := []string{"gradual", "legacy", "unified"}
+	validModes := []string{"gradual", "compatibility", "unified"}
 	isValid := false
 	for _, valid := range validModes {
 		if mode == valid {
@@ -467,7 +429,7 @@ func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 	// 段階的移行設定コマンド
 	setMigrationModeCmd := &cobra.Command{
 		Use:   "set-migration-mode [mode]",
-		Short: "Set the gradual migration mode (gradual, legacy, unified)",
+		Short: "Set the gradual migration mode (gradual, compatibility, unified)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return h.SetMigrationMode(args[0])

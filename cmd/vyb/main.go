@@ -33,23 +33,20 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// フラグをチェック
-		noTUI, _ := cmd.Flags().GetBool("no-tui")
-		continueSession, _ := cmd.Flags().GetBool("continue")
-		resumeID, _ := cmd.Flags().GetString("resume")
-
 		chatHandler, err := appContainer.GetChatHandler()
 		if err != nil {
 			return fmt.Errorf("チャットハンドラー取得エラー: %w", err)
 		}
 
+		config := appContainer.GetConfig()
+
 		if len(args) == 0 {
 			// 引数なし：バイブコーディングモードをデフォルトで開始
-			return chatHandler.StartVibeCodingMode()
+			return chatHandler.StartVibeChat(config)
 		} else {
 			// 引数あり：単発コマンド処理
 			query := args[0]
-			return chatHandler.ProcessSingleQueryWithOptions(query, noTUI, continueSession, resumeID)
+			return chatHandler.RunSingleQuery(query, "", config)
 		}
 	},
 }
@@ -59,26 +56,13 @@ var chatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Start legacy terminal mode (traditional chat interface)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		noTUI, _ := cmd.Flags().GetBool("no-tui")
-		terminalMode, _ := cmd.Flags().GetBool("terminal-mode")
-		noTerminalMode, _ := cmd.Flags().GetBool("no-terminal-mode")
-		planMode, _ := cmd.Flags().GetBool("plan-mode")
-		continueSession, _ := cmd.Flags().GetBool("continue")
-		resumeID, _ := cmd.Flags().GetString("resume")
-
-		// terminal-modeのロジック調整
-		if noTerminalMode {
-			terminalMode = false
-		} else {
-			terminalMode = true
-		}
-
 		chatHandler, err := appContainer.GetChatHandler()
 		if err != nil {
 			return fmt.Errorf("チャットハンドラー取得エラー: %w", err)
 		}
 
-		return chatHandler.StartInteractiveModeWithOptions(noTUI, terminalMode, planMode, continueSession, resumeID)
+		config := appContainer.GetConfig()
+		return chatHandler.StartChatSession(config)
 	},
 }
 
@@ -93,8 +77,8 @@ var vibeCmd = &cobra.Command{
 			return fmt.Errorf("チャットハンドラー取得エラー: %w", err)
 		}
 
-		// バイブコーディングモードで開始
-		return chatHandler.StartVibeCodingMode()
+		config := appContainer.GetConfig()
+		return chatHandler.StartVibeChat(config)
 	},
 }
 

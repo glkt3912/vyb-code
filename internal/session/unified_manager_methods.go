@@ -309,7 +309,7 @@ func (m *unifiedSessionManager) ImportSession(data []byte, format string) (*Unif
 
 		// 内部参照を復元
 		session.manager = m
-		session.streamManager = m.streamManager
+		// session.streamManager = m.streamManager // 使用停止
 		session.contextManager = m.contextManager
 		session.llmProvider = m.llmProvider
 		session.eventHandlers = make(map[SessionEventType]SessionEventHandler)

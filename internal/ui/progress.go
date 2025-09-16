@@ -1,182 +1,228 @@
 package ui
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 )
 
-// プログレスバーコンポーネント
-type Progress struct {
-	progress progress.Model
-	message  string
-	active   bool
-	current  float64
-	style    lipgloss.Style
+// ========== ClaudeCode風 ProgressIndicator ==========
+
+// ProgressIndicator はClaudeCode風の進捗表示
+type ProgressIndicator struct {
+	startTime   time.Time
+	message     string
+	tokensSent  int
+	tokensRecv  int
+	ctx         context.Context
+	cancel      context.CancelFunc
+	mu          sync.RWMutex
+	isActive    bool
+	interrupted bool
+	animation   []rune
+	animIndex   int
 }
 
-// 新しいプログレスバーを作成
-func NewProgress() *Progress {
-	prog := progress.New(progress.WithDefaultGradient())
-	prog.Width = 40
+// NewProgressIndicator は新しい進捗インジケーターを作成
+func NewProgressIndicator(message string, tokensSent int) *ProgressIndicator {
+	ctx, cancel := context.WithCancel(context.Background())
 
-	return &Progress{
-		progress: prog,
-		active:   false,
-		current:  0.0,
-		style: lipgloss.NewStyle().
-			MarginLeft(1).
-			MarginRight(1),
+	return &ProgressIndicator{
+		startTime:   time.Now(),
+		message:     message,
+		tokensSent:  tokensSent,
+		tokensRecv:  0,
+		ctx:         ctx,
+		cancel:      cancel,
+		isActive:    false,
+		interrupted: false,
+		animation:   []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}, // スピナー文字
+		animIndex:   0,
 	}
 }
 
-// プログレスバーを開始
-func (p *Progress) Start(message string) tea.Cmd {
-	p.message = message
-	p.active = true
-	p.current = 0.0
-	return nil
-}
+// Start は進捗表示を開始
+func (p *ProgressIndicator) Start() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-// プログレスバーを停止
-func (p *Progress) Stop() {
-	p.active = false
-	p.message = ""
-	p.current = 0.0
-}
-
-// 進捗を更新
-func (p *Progress) SetProgress(percent float64) tea.Cmd {
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > 1 {
-		percent = 1
+	if p.isActive {
+		return
 	}
 
-	p.current = percent
-	return p.progress.SetPercent(percent)
+	p.isActive = true
+
+	// 新しい行を開始して進捗表示専用の行を作成
+	fmt.Fprint(os.Stderr, "\n")
+
+	// Escキーでの中断監視を開始
+	go p.watchForInterrupt()
+
+	// 進捗表示ループを開始
+	go p.displayLoop()
 }
 
-// メッセージを更新
-func (p *Progress) SetMessage(message string) {
-	p.message = message
-}
+// Stop は進捗表示を停止
+func (p *ProgressIndicator) Stop() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-// アクティブ状態を確認
-func (p *Progress) IsActive() bool {
-	return p.active
-}
-
-// 現在の進捗を取得
-func (p *Progress) GetProgress() float64 {
-	return p.current
-}
-
-// Init implements tea.Model
-func (p *Progress) Init() tea.Cmd {
-	return nil
-}
-
-// Update implements tea.Model
-func (p *Progress) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if !p.active {
-		return p, nil
+	if !p.isActive {
+		return
 	}
 
-	switch msg := msg.(type) {
-	case ProgressMsg:
-		return p, p.SetProgress(float64(msg))
-	}
+	p.isActive = false
+	p.cancel()
 
-	var cmd tea.Cmd
-	newModel, cmd := p.progress.Update(msg)
-	if prog, ok := newModel.(progress.Model); ok {
-		p.progress = prog
-	}
-	return p, cmd
+	// 進捗行を完全にクリア
+	fmt.Fprint(os.Stderr, "\r\033[2K")
+	os.Stderr.Sync()
 }
 
-// View implements tea.Model
-func (p *Progress) View() string {
-	if !p.active {
-		return ""
-	}
-
-	progressBar := p.progress.View()
-	percentage := fmt.Sprintf("%.1f%%", p.current*100)
-
-	// メッセージと進捗バーを組み合わせ
-	if p.message != "" {
-		return lipgloss.JoinVertical(
-			lipgloss.Left,
-			p.style.Render(p.message),
-			lipgloss.JoinHorizontal(
-				lipgloss.Left,
-				progressBar,
-				lipgloss.NewStyle().MarginLeft(2).Render(percentage),
-			),
-		)
-	}
-
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		progressBar,
-		lipgloss.NewStyle().MarginLeft(2).Render(percentage),
-	)
+// UpdateTokens は受信トークン数を更新
+func (p *ProgressIndicator) UpdateTokens(received int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.tokensRecv = received
 }
 
-// 幅を設定
-func (p *Progress) SetWidth(width int) {
-	p.progress.Width = width
+// IsInterrupted は中断されたかを返す
+func (p *ProgressIndicator) IsInterrupted() bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.interrupted
 }
 
-// カラーグラデーションを設定
-func (p *Progress) SetColors(colors []string) {
-	var lipglossColors []lipgloss.Color
-	for _, color := range colors {
-		lipglossColors = append(lipglossColors, lipgloss.Color(color))
-	}
+// GetContext は中断可能なコンテキストを返す
+func (p *ProgressIndicator) GetContext() context.Context {
+	return p.ctx
+}
 
-	if len(lipglossColors) >= 2 {
-		currentWidth := p.progress.Width
-		p.progress = progress.New(
-			progress.WithGradient(string(lipglossColors[0]), string(lipglossColors[1])),
-		)
-		p.progress.Width = currentWidth
+// displayLoop は進捗表示のメインループ
+func (p *ProgressIndicator) displayLoop() {
+	ticker := time.NewTicker(200 * time.Millisecond) // 200msごとに更新（より安定）
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker.C:
+			p.mu.RLock()
+			if !p.isActive {
+				p.mu.RUnlock()
+				return
+			}
+
+			// 進捗情報を取得
+			elapsed := time.Since(p.startTime)
+			spinner := p.animation[p.animIndex%len(p.animation)]
+
+			// 表示文字列を構築
+			progressStr := p.buildProgressString(spinner, elapsed)
+			p.mu.RUnlock()
+
+			// 進捗を表示（stderrに出力して分離）
+			fmt.Fprintf(os.Stderr, "\r\033[2K%s", progressStr)
+			// フラッシュを強制
+			os.Stderr.Sync()
+
+			p.mu.Lock()
+			p.animIndex++
+			p.mu.Unlock()
+		}
 	}
 }
 
-// ファイル検索用プログレスバー
-func NewSearchProgress() *Progress {
-	p := NewProgress()
-	p.SetColors([]string{"#00FFFF", "#0080FF"}) // シアンから青のグラデーション
-	p.SetWidth(50)
-	return p
+// buildProgressString は進捗表示文字列を構築
+func (p *ProgressIndicator) buildProgressString(spinner rune, elapsed time.Duration) string {
+	// ClaudeCode風のフォーマット: ✢ Creating… (31s · ↑ 673 tokens · esc to interrupt)
+
+	// 経過時間をフォーマット
+	seconds := int(elapsed.Seconds())
+	timeStr := fmt.Sprintf("%ds", seconds)
+
+	// トークン情報
+	var tokenStr string
+	if p.tokensRecv > 0 {
+		tokenStr = fmt.Sprintf("↑ %d ↓ %d tokens", p.tokensSent, p.tokensRecv)
+	} else {
+		tokenStr = fmt.Sprintf("↑ %d tokens", p.tokensSent)
+	}
+
+	// メッセージの省略処理
+	message := p.message
+	if len(message) > 20 {
+		message = message[:17] + "…"
+	}
+
+	// 全体の文字列を構築
+	progressStr := fmt.Sprintf("\033[90m%c %s (%s · %s · ctrl+c to interrupt)\033[0m",
+		spinner, message, timeStr, tokenStr)
+
+	return progressStr
 }
 
-// プロジェクト分析用プログレスバー
-func NewAnalysisProgress() *Progress {
-	p := NewProgress()
-	p.SetColors([]string{"#FFFF00", "#FF8000"}) // 黄色からオレンジのグラデーション
-	p.SetWidth(50)
-	return p
+// watchForInterrupt はCtrl+Cでの中断を監視（より安全な実装）
+func (p *ProgressIndicator) watchForInterrupt() {
+	// シグナル監視のみに変更（入力監視は他のシステムと競合するため削除）
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-p.ctx.Done():
+		signal.Stop(sigCh)
+		return
+	case <-sigCh:
+		// Ctrl+Cでの中断
+		p.mu.Lock()
+		p.interrupted = true
+		p.mu.Unlock()
+		p.cancel()
+		signal.Stop(sigCh)
+		return
+	}
 }
 
-// LLM処理用プログレスバー
-func NewLLMProgress() *Progress {
-	p := NewProgress()
-	p.SetColors([]string{"#00FF00", "#80FF00"}) // 緑から明るい緑のグラデーション
-	p.SetWidth(50)
-	return p
+// CompleteWithResult は完了時の結果表示
+func (p *ProgressIndicator) CompleteWithResult(success bool, finalMessage string) {
+	p.Stop()
+
+	elapsed := time.Since(p.startTime)
+	seconds := elapsed.Round(time.Millisecond)
+
+	var icon string
+	var color string
+	if success {
+		icon = "✓"
+		color = "\033[32m" // 緑
+	} else {
+		icon = "✗"
+		color = "\033[31m" // 赤
+	}
+
+	// 完了メッセージを進捗行に上書きして表示
+	fmt.Fprintf(os.Stderr, "\r\033[2K%s%s %s\033[0m (%v)\n",
+		color, icon, finalMessage, seconds)
+	os.Stderr.Sync()
 }
 
-// ヘルスチェック用プログレスバー
-func NewHealthProgress() *Progress {
-	p := NewProgress()
-	p.SetColors([]string{"#FF69B4", "#FF1493"}) // ピンクから濃いピンクのグラデーション
-	p.SetWidth(50)
-	return p
+// ShowStreamingProgress はストリーミング応答用の進捗表示
+func ShowStreamingProgress(message string, tokensSent int, onInterrupt func()) *ProgressIndicator {
+	indicator := NewProgressIndicator(message, tokensSent)
+
+	// 中断時のコールバック設定
+	go func() {
+		<-indicator.GetContext().Done()
+		if indicator.IsInterrupted() && onInterrupt != nil {
+			onInterrupt()
+		}
+	}()
+
+	indicator.Start()
+	return indicator
 }

@@ -5,8 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/glkt/vyb-code/internal/streaming"
+	// "github.com/glkt/vyb-code/internal/streaming" // 削除されたパッケージ
 )
 
 func TestUnifiedSessionManager_CreateSession(t *testing.T) {
@@ -25,8 +24,8 @@ func TestUnifiedSessionManager_CreateSession(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,8 +118,8 @@ func TestUnifiedSessionManager_MessageOperations(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,8 +225,8 @@ func TestUnifiedSessionManager_SessionStateManagement(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,8 +304,8 @@ func TestUnifiedSessionManager_Persistence(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +341,7 @@ func TestUnifiedSessionManager_Persistence(t *testing.T) {
 	// 新しいマネージャーで読み込み
 	manager.Shutdown()
 
-	manager2, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	manager2, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,8 +385,8 @@ func TestUnifiedSessionManager_SessionFiltering(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,8 +470,8 @@ func TestUnifiedSessionManager_Statistics(t *testing.T) {
 		EventQueueSize: 10,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, err := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, err := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,8 +552,8 @@ func BenchmarkUnifiedSessionManager_CreateSession(b *testing.B) {
 		EventQueueSize: 100,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, _ := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, _ := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	defer manager.Shutdown()
 
 	b.ResetTimer()
@@ -577,8 +576,8 @@ func BenchmarkUnifiedSessionManager_AddMessage(b *testing.B) {
 		EventQueueSize: 100,
 	}
 
-	streamManager := streaming.NewManager(streaming.DefaultStreamConfig())
-	manager, _ := NewUnifiedSessionManager(config, streamManager, nil, nil)
+	// streamManager := streaming.NewManager(streaming.DefaultStreamConfig()) // 使用停止
+	manager, _ := NewUnifiedSessionManager(config, nil, nil) // streamManager使用停止
 	defer manager.Shutdown()
 
 	session, _ := manager.CreateSession(SessionTypeTemporary, nil)

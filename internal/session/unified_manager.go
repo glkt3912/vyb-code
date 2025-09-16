@@ -14,7 +14,7 @@ import (
 
 	"github.com/glkt/vyb-code/internal/contextmanager"
 	"github.com/glkt/vyb-code/internal/llm"
-	"github.com/glkt/vyb-code/internal/streaming"
+	// "github.com/glkt/vyb-code/internal/streaming" // 削除されたパッケージ
 )
 
 // UnifiedSessionManager - 統合セッション管理インターフェース
@@ -83,7 +83,7 @@ type unifiedSessionManager struct {
 	config   *ManagerConfig
 
 	// 依存関係
-	streamManager  *streaming.Manager
+	// streamManager  *streaming.Manager // 使用停止
 	contextManager contextmanager.ContextManager
 	llmProvider    llm.Provider
 
@@ -131,7 +131,7 @@ type GlobalSessionStats struct {
 // NewUnifiedSessionManager - 新しい統合セッション管理を作成
 func NewUnifiedSessionManager(
 	config *ManagerConfig,
-	streamManager *streaming.Manager,
+	// streamManager *streaming.Manager, // 使用停止
 	contextManager contextmanager.ContextManager,
 	llmProvider llm.Provider,
 ) (UnifiedSessionManager, error) {
@@ -145,9 +145,9 @@ func NewUnifiedSessionManager(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &unifiedSessionManager{
-		sessions:       make(map[string]*UnifiedSession),
-		config:         config,
-		streamManager:  streamManager,
+		sessions: make(map[string]*UnifiedSession),
+		config:   config,
+		// streamManager:  streamManager, // 使用停止
 		contextManager: contextManager,
 		llmProvider:    llmProvider,
 		storageDir:     config.StorageDir,
@@ -202,7 +202,7 @@ func (m *unifiedSessionManager) CreateSession(sessionType UnifiedSessionType, co
 		Messages:       make([]Message, 0),
 		Stats:          &UnifiedSessionStats{LastActivityTime: now},
 		manager:        m,
-		streamManager:  m.streamManager,
+		// streamManager:  m.streamManager, // 使用停止
 		contextManager: m.contextManager,
 		llmProvider:    m.llmProvider,
 		eventHandlers:  make(map[SessionEventType]SessionEventHandler),
@@ -413,7 +413,7 @@ func (m *unifiedSessionManager) loadSessionFromDisk(sessionID string) (*UnifiedS
 
 	// 内部参照を復元
 	session.manager = m
-	session.streamManager = m.streamManager
+	// session.streamManager = m.streamManager // 使用停止
 	session.contextManager = m.contextManager
 	session.llmProvider = m.llmProvider
 	session.eventHandlers = make(map[SessionEventType]SessionEventHandler)

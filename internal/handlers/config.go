@@ -94,8 +94,8 @@ func (h *ConfigHandler) ListConfig() error {
 	fmt.Printf("  Stream: %t\n", cfg.Stream)
 	fmt.Printf("  Log Level: %s\n", cfg.Log.Level)
 	fmt.Printf("  Log Format: %s\n", cfg.Log.Format)
-	fmt.Printf("  TUI Enabled: %t\n", cfg.TUI.Enabled)
-	fmt.Printf("  TUI Theme: %s\n", cfg.TUI.Theme)
+	fmt.Printf("  TUI Enabled: %t (deprecated - Claude Code風インターフェースが標準)\n", cfg.TUI.Enabled)
+	fmt.Printf("  TUI Theme: %s (deprecated - Claude Code風インターフェースが標準)\n", cfg.TUI.Theme)
 	fmt.Printf("  File Max Size (MB): %d\n", cfg.FileMaxSizeMB)
 	fmt.Printf("  Command Timeout: %d\n", cfg.CommandTimeout)
 
@@ -403,10 +403,10 @@ func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 		},
 	}
 
-	// set-tui コマンド
+	// set-tui コマンド（非推奨）
 	setTUICmd := &cobra.Command{
 		Use:   "set-tui [true|false]",
-		Short: "Enable or disable TUI mode",
+		Short: "Enable or disable TUI mode (deprecated - Claude Code風インターフェースが標準)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			enabled, err := strconv.ParseBool(args[0])
@@ -417,10 +417,10 @@ func (h *ConfigHandler) CreateConfigCommands() *cobra.Command {
 		},
 	}
 
-	// set-tui-theme コマンド
+	// set-tui-theme コマンド（非推奨）
 	setTUIThemeCmd := &cobra.Command{
 		Use:   "set-tui-theme [theme]",
-		Short: "Set TUI theme (dark, light, auto, vyb)",
+		Short: "Set TUI theme (deprecated - Claude Code風インターフェースが標準)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return h.SetTUITheme(args[0])

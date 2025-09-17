@@ -229,11 +229,11 @@ func DefaultConfig() *Config {
 			Context:       make(map[string]string),
 		},
 		TUI: TUIConfig{
-			Enabled:      true,
-			Theme:        "vyb",
-			ShowSpinner:  true,
-			ShowProgress: true,
-			Animation:    true,
+			Enabled:      false, // レガシーTUI無効（Claude Code風UIに完全移行）
+			Theme:        "",    // 使用しない
+			ShowSpinner:  false, // Claude Code風UIで代替
+			ShowProgress: false, // Claude Code風UIで代替
+			Animation:    false, // Claude Code風UIで代替
 		},
 		TerminalMode: TerminalModeConfig{
 			TypingSpeed:     15, // 15ms per character
@@ -261,23 +261,23 @@ func DefaultConfig() *Config {
 			ProjectMonitoring:  false, // 重い処理は引き続き無効
 		},
 		Migration: GradualMigrationConfig{
-			// デフォルトは段階的移行モード（安全な設定）
-			UseUnifiedStreaming: false, // 段階的に有効化
-			UseUnifiedSession:   false, // 段階的に有効化
-			UseUnifiedTools:     false, // 段階的に有効化
-			UseUnifiedAnalysis:  false, // 段階的に有効化
+			// 移行完了後のデフォルト設定（PR#32, PR#33で移行完了済み）
+			UseUnifiedStreaming: true, // 統合ストリーミング使用（移行完了）
+			UseUnifiedSession:   true, // 統合セッション管理使用（移行完了）
+			UseUnifiedTools:     true, // 統合ツールシステム使用（移行完了）
+			UseUnifiedAnalysis:  true, // 統合分析システム使用（移行完了）
 
-			MigrationMode: "gradual", // gradual, compatibility, unified
+			MigrationMode: "unified", // 統合モード（移行完了）
 
-			// 検証・監視はデフォルトで有効
-			EnableValidation:  true,
-			ValidationTimeout: 30, // 30秒
-			EnableFallback:    true,
+			// 検証・監視設定（移行完了により調整）
+			EnableValidation:  false, // 移行完了により不要
+			ValidationTimeout: 30,    // 30秒（監視用として保持）
+			EnableFallback:    false, // レガシーシステム削除により無効
 
-			// モニタリングは有効
+			// パフォーマンス監視は継続
 			EnableMetrics:    true,
-			MetricsInterval:  60, // 1分間隔
-			LogMigrationInfo: true,
+			MetricsInterval:  60,    // 1分間隔
+			LogMigrationInfo: false, // 移行完了により不要
 		},
 	}
 }

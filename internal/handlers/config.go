@@ -32,7 +32,8 @@ func (h *ConfigHandler) SetModel(model string) error {
 		return fmt.Errorf("モデル名が空です")
 	}
 
-	cfg.ModelName = model
+	cfg.Model = model
+	cfg.ModelName = model // 互換性のため両方設定
 
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("設定保存エラー: %w", err)
@@ -98,6 +99,19 @@ func (h *ConfigHandler) ListConfig() error {
 	fmt.Printf("  TUI Theme: %s (deprecated - Claude Code風インターフェースが標準)\n", cfg.TUI.Theme)
 	fmt.Printf("  File Max Size (MB): %d\n", cfg.FileMaxSizeMB)
 	fmt.Printf("  Command Timeout: %d\n", cfg.CommandTimeout)
+
+	// プロンプト設定表示
+	if cfg.Prompts != nil {
+		fmt.Println("\nプロンプト設定:")
+		fmt.Printf("  Personality Style: %s\n", cfg.Prompts.PersonalityStyle)
+		fmt.Printf("  Technical Level: %d\n", cfg.Prompts.TechnicalLevel)
+		fmt.Printf("  Tool Usage Style: %s\n", cfg.Prompts.ToolUsageStyle.String())
+		fmt.Printf("  Auto Tool Usage: %t\n", cfg.Prompts.EnableAutoToolUsage)
+		fmt.Printf("  Chained Actions: %t\n", cfg.Prompts.EnableChainedActions)
+		fmt.Printf("  Context Aware: %t\n", cfg.Prompts.EnableContextAware)
+		fmt.Printf("  Concise Tendency: %.1f\n", cfg.Prompts.ConciseTendency)
+		fmt.Printf("  Explanation Tendency: %.1f\n", cfg.Prompts.ExplanationTendency)
+	}
 
 	// 段階的移行設定
 	fmt.Println("  Migration Settings:")
@@ -559,5 +573,156 @@ func (h *ConfigHandler) Health(ctx context.Context) error {
 		return fmt.Errorf("config file access failed: %w", err)
 	}
 
+	return nil
+}
+
+// SetTechnicalLevel は技術レベルを設定
+func (h *ConfigHandler) SetTechnicalLevel(levelStr string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	level, err := strconv.Atoi(levelStr)
+	if err != nil || level < 1 || level > 10 {
+		return fmt.Errorf("技術レベルは1-10の数値で指定してください")
+	}
+
+	if cfg.Prompts == nil {
+		cfg.Prompts = config.DefaultPromptConfig()
+	}
+	cfg.Prompts.TechnicalLevel = level
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("技術レベルを更新しました", map[string]interface{}{
+		"level": level,
+	})
+	return nil
+}
+
+// SetToolUsageStyle はツール使用スタイルを設定
+func (h *ConfigHandler) SetToolUsageStyle(style string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	if cfg.Prompts == nil {
+		cfg.Prompts = config.DefaultPromptConfig()
+	}
+
+	switch style {
+	case "conservative":
+		cfg.Prompts.ToolUsageStyle = config.ToolUsageConservative
+	case "balanced":
+		cfg.Prompts.ToolUsageStyle = config.ToolUsageBalanced
+	case "proactive":
+		cfg.Prompts.ToolUsageStyle = config.ToolUsageProactive
+	case "aggressive":
+		cfg.Prompts.ToolUsageStyle = config.ToolUsageAggressive
+	default:
+		return fmt.Errorf("無効なツール使用スタイル。有効な値: conservative, balanced, proactive, aggressive")
+	}
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("ツール使用スタイルを更新しました", map[string]interface{}{
+		"style": style,
+	})
+	return nil
+}
+
+// SetAutoToolUsage は自動ツール使用を設定
+func (h *ConfigHandler) SetAutoToolUsage(enabledStr string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	enabled, err := strconv.ParseBool(enabledStr)
+	if err != nil {
+		return fmt.Errorf("true または false で指定してください")
+	}
+
+	if cfg.Prompts == nil {
+		cfg.Prompts = config.DefaultPromptConfig()
+	}
+	cfg.Prompts.EnableAutoToolUsage = enabled
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("自動ツール使用を更新しました", map[string]interface{}{
+		"enabled": enabled,
+	})
+	return nil
+}
+
+// SetChainedActions は連続アクションを設定
+func (h *ConfigHandler) SetChainedActions(enabledStr string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	enabled, err := strconv.ParseBool(enabledStr)
+	if err != nil {
+		return fmt.Errorf("true または false で指定してください")
+	}
+
+	if cfg.Prompts == nil {
+		cfg.Prompts = config.DefaultPromptConfig()
+	}
+	cfg.Prompts.EnableChainedActions = enabled
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("連続アクションを更新しました", map[string]interface{}{
+		"enabled": enabled,
+	})
+	return nil
+}
+
+// SetResponseTendency は応答傾向を設定
+func (h *ConfigHandler) SetResponseTendency(tendencyType, valueStr string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("設定読み込みエラー: %w", err)
+	}
+
+	value, err := strconv.ParseFloat(valueStr, 64)
+	if err != nil || value < 0.0 || value > 1.0 {
+		return fmt.Errorf("値は0.0-1.0の範囲で指定してください")
+	}
+
+	if cfg.Prompts == nil {
+		cfg.Prompts = config.DefaultPromptConfig()
+	}
+
+	switch tendencyType {
+	case "concise":
+		cfg.Prompts.ConciseTendency = value
+	case "explanation":
+		cfg.Prompts.ExplanationTendency = value
+	default:
+		return fmt.Errorf("無効な傾向タイプ。有効な値: concise, explanation")
+	}
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("設定保存エラー: %w", err)
+	}
+
+	h.log.Info("応答傾向を更新しました", map[string]interface{}{
+		"type":  tendencyType,
+		"value": value,
+	})
 	return nil
 }

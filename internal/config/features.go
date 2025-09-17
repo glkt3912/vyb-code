@@ -158,10 +158,10 @@ func DefaultFeatureFlags() map[string]*FeatureFlag {
 		},
 		FeaturePluginArchitecture: {
 			Name:        FeaturePluginArchitecture,
-			Enabled:     false, // プラグインアーキテクチャは開発中
-			Description: "プラグインアーキテクチャ（実験的）",
+			Enabled:     true, // プラグインアーキテクチャは実装済み（PR#33）
+			Description: "プラグインスタイルアーキテクチャ基盤",
 			Version:     "3.0.0",
-			Conditions:  map[string]string{"experimental": "true"},
+			Conditions:  map[string]string{"architecture": "modular"},
 		},
 		FeatureFactoryPattern: {
 			Name:        FeatureFactoryPattern,
@@ -172,10 +172,10 @@ func DefaultFeatureFlags() map[string]*FeatureFlag {
 		},
 		FeatureModularArchitecture: {
 			Name:        FeatureModularArchitecture,
-			Enabled:     false, // モジュラーアーキテクチャは実験的
+			Enabled:     true, // モジュラーアーキテクチャは実装済み（PR#33）
 			Description: "Core/Extensions分離型モジュラーアーキテクチャ",
 			Version:     "3.0.0",
-			Conditions:  map[string]string{"experimental": "true", "architecture": "modular"},
+			Conditions:  map[string]string{"architecture": "modular"},
 		},
 	}
 }

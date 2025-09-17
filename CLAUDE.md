@@ -273,7 +273,8 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 - ✅ Workspace mode restrictions
 - ✅ Security settings and command restrictions
 - ✅ Performance optimization settings
-- ✅ **Interface configuration** (deprecated TUI settings maintained for compatibility)
+- ✅ **Migration system configuration** (completed unified mode after PR#32, PR#33)
+- ✅ **Legacy TUI configuration** (deprecated - Claude Code風インターフェースが標準)
 
 **Current config commands:**
 
@@ -281,8 +282,14 @@ go test ./internal/analysis -v -run TestCognitiveAnalyzer
 vyb config list                    # Show current settings
 vyb config set-model <model>       # Set LLM model
 vyb config set-provider <provider> # Set LLM provider
-# Note: TUI configuration commands are deprecated
-# Claude Code-style interface is now the default experience
+vyb config set-migration-mode <mode> # Set migration mode (unified mode is default)
+
+# Legacy TUI configuration commands (deprecated)
+vyb config set-tui <true|false>      # TUI mode setting (deprecated)
+vyb config set-tui-theme <theme>     # TUI theme setting (deprecated)
+
+# Note: TUI configuration commands are deprecated after migration completion (PR#32, PR#33)
+# Claude Code-style interface is now the default and only supported interface
 ```
 
 **All implemented commands:**

@@ -230,10 +230,10 @@ func DefaultConfig() *Config {
 		},
 		TUI: TUIConfig{
 			Enabled:      false, // レガシーTUI無効（Claude Code風UIに完全移行）
-			Theme:        "",     // 使用しない
-			ShowSpinner:  false,  // Claude Code風UIで代替
-			ShowProgress: false,  // Claude Code風UIで代替
-			Animation:    false,  // Claude Code風UIで代替
+			Theme:        "",    // 使用しない
+			ShowSpinner:  false, // Claude Code風UIで代替
+			ShowProgress: false, // Claude Code風UIで代替
+			Animation:    false, // Claude Code風UIで代替
 		},
 		TerminalMode: TerminalModeConfig{
 			TypingSpeed:     15, // 15ms per character
@@ -276,7 +276,7 @@ func DefaultConfig() *Config {
 
 			// パフォーマンス監視は継続
 			EnableMetrics:    true,
-			MetricsInterval:  60, // 1分間隔
+			MetricsInterval:  60,    // 1分間隔
 			LogMigrationInfo: false, // 移行完了により不要
 		},
 	}

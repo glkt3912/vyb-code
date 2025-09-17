@@ -81,6 +81,7 @@ type Config struct {
 	Features     *Features                  `json:"features"`      // 機能設定
 	Proactive    ProactiveConfig            `json:"proactive"`     // プロアクティブ設定
 	Migration    GradualMigrationConfig     `json:"migration"`     // 段階的移行設定
+	Prompts      *PromptConfig              `json:"prompts"`       // プロンプト設定
 
 	// 内部管理用（JSONには含まれない）
 	featureManager *FeatureManager `json:"-"` // 機能フラグマネージャー
@@ -279,6 +280,7 @@ func DefaultConfig() *Config {
 			MetricsInterval:  60,    // 1分間隔
 			LogMigrationInfo: false, // 移行完了により不要
 		},
+		Prompts: DefaultPromptConfig(), // プロンプト設定のデフォルト
 	}
 }
 
@@ -332,6 +334,22 @@ func Load() (*Config, error) {
 			VibeMode:      true, // バイブコーディングモード有効
 			ProactiveMode: true, // Phase 2: プロアクティブモード有効化
 		}
+	}
+
+	// プロンプト設定の初期化
+	if config.Prompts == nil {
+		config.Prompts = DefaultPromptConfig()
+	}
+
+	// デフォルト値の修正（0値の場合）
+	if config.Temperature == 0 {
+		config.Temperature = 0.7
+	}
+	if config.MaxTokens == 0 {
+		config.MaxTokens = 4096
+	}
+	if config.CommandTimeout == 0 {
+		config.CommandTimeout = 60
 	}
 
 	// プロアクティブ設定の初期化
@@ -535,6 +553,29 @@ func (c *Config) UpdateProactiveConfig(config ProactiveConfig) error {
 	c.Proactive = config
 	c.Features.ProactiveMode = config.Enabled
 	return c.Save()
+}
+
+// プロンプト設定を更新して保存する
+func (c *Config) UpdatePromptConfig(promptConfig *PromptConfig) error {
+	c.Prompts = promptConfig
+	return c.Save()
+}
+
+// モデル別プロンプト設定を取得する
+func (c *Config) GetModelPromptConfig(modelName string) (ModelPromptConfig, bool) {
+	if c.Prompts == nil {
+		return ModelPromptConfig{}, false
+	}
+	config, exists := c.Prompts.ModelSpecific[modelName]
+	return config, exists
+}
+
+// システムプロンプトを生成する（モデルとコンテキストに応じて）
+func (c *Config) GenerateSystemPrompt() string {
+	if c.Prompts == nil {
+		c.Prompts = DefaultPromptConfig()
+	}
+	return c.Prompts.GenerateSystemPrompt(c.Model)
 }
 
 // 現在のプロアクティブ設定を取得する

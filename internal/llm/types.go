@@ -12,9 +12,12 @@ type ChatMessage struct {
 // ChatRequest represents a request to the LLM API
 // LLM APIへのリクエスト（会話履歴とモデル指定を含む）
 type ChatRequest struct {
-	Model    string        `json:"model"`    // Model name (e.g., "qwen2.5-coder:14b") - 使用するモデル名
-	Messages []ChatMessage `json:"messages"` // Conversation history - 会話履歴の配列
-	Stream   bool          `json:"stream"`   // Whether to stream response - ストリーミング応答の有無
+	Model       string        `json:"model"`                 // Model name (e.g., "qwen2.5-coder:14b") - 使用するモデル名
+	Messages    []ChatMessage `json:"messages"`              // Conversation history - 会話履歴の配列
+	Stream      bool          `json:"stream"`                // Whether to stream response - ストリーミング応答の有無
+	Temperature *float64      `json:"temperature,omitempty"` // Temperature setting - 温度設定
+	TopP        *float64      `json:"top_p,omitempty"`       // TopP setting - TopP設定
+	MaxTokens   *int          `json:"max_tokens,omitempty"`  // Max tokens - 最大トークン数
 }
 
 // ChatResponse represents a response from the LLM API

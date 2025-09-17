@@ -71,7 +71,9 @@ func (h *ChatHandler) initializeInteractiveManager(cfg *config.Config) error {
 	}
 
 	// LLMプロバイダーを作成
-	llmProvider := llm.NewOllamaClient(cfg.BaseURL)
+	baseProvider := llm.NewOllamaClient(cfg.BaseURL)
+	// プロンプトアダプターでラップして自動システムプロンプト統合
+	llmProvider := llm.NewPromptAdapter(baseProvider, cfg)
 
 	// ContextManagerを作成
 	contextManager := contextmanager.NewSmartContextManager()

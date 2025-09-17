@@ -177,7 +177,7 @@ func (ef *ExecutionFlow) extractToolSteps(userInput string) []toolStepCandidate 
 	}
 
 	// ディレクトリリストパターン
-	if regexp.MustCompile(`(?:list|show|ls)\s+(?:files|dir|directory|folder)`).MatchString(inputLower) {
+	if regexp.MustCompile(`(?:list|show|ls)(?:\s+(?:me\s+)?(?:the\s+)?)?(?:files|dir|directory|folder)`).MatchString(inputLower) {
 		steps = append(steps, toolStepCandidate{
 			tool: "ls",
 			parameters: map[string]interface{}{

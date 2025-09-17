@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/glkt/vyb-code/internal/config"
@@ -141,8 +142,12 @@ func TestRiskAssessment(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.tool+"_"+tt.parameters["command"].(string), func(t *testing.T) {
+	for i, tt := range tests {
+		testName := fmt.Sprintf("%s_%d", tt.tool, i)
+		if cmd, ok := tt.parameters["command"].(string); ok {
+			testName = fmt.Sprintf("%s_%s", tt.tool, cmd)
+		}
+		t.Run(testName, func(t *testing.T) {
 			risk := flow.assessRisk(tt.tool, tt.parameters)
 			if risk != tt.expected {
 				t.Errorf("Expected risk %v, got %v", tt.expected, risk)

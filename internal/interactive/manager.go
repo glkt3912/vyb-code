@@ -42,6 +42,9 @@ type interactiveSessionManager struct {
 	cognitiveAnalyzer *analysis.CognitiveAnalyzer
 	cognitiveEngine   *reasoning.CognitiveEngine
 	config            *config.Config
+
+	// Claude Code風ツール実行フロー
+	executionFlow *tools.ExecutionFlow
 }
 
 // NewInteractiveSessionManager は新しいインタラクティブセッション管理を作成
@@ -99,7 +102,96 @@ func NewInteractiveSessionManager(
 	// プロアクティブ拡張を初期化
 	manager.proactiveExt = NewProactiveExtension(manager)
 
+	// ExecutionFlowを初期化
+	if cfg != nil {
+		toolRegistry := tools.NewUnifiedToolRegistry(
+			security.NewDefaultConstraints("."),
+			nil, // MCPマネージャーは必要に応じて初期化
+		)
+		manager.executionFlow = tools.NewExecutionFlow(toolRegistry, cfg, security.NewDefaultConstraints("."))
+	}
+
 	return manager
+}
+
+// formatToolExecutionResults はツール実行結果をフォーマット
+func (ism *interactiveSessionManager) formatToolExecutionResults(steps []tools.ExecutionStep) string {
+	var results strings.Builder
+	results.WriteString("## Tool Execution Results\n\n")
+
+	for i, step := range steps {
+		results.WriteString(fmt.Sprintf("### Step %d: %s\n", i+1, step.Tool))
+		results.WriteString(fmt.Sprintf("**Status**: %s\n", map[bool]string{true: "✅ Success", false: "❌ Failed"}[step.Success]))
+
+		if step.Result != nil {
+			results.WriteString(fmt.Sprintf("**Output**:\n```\n%s\n```\n\n", step.Result.Content))
+		}
+
+		if step.Reasoning != "" {
+			results.WriteString(fmt.Sprintf("**Reasoning**: %s\n\n", step.Reasoning))
+		}
+	}
+
+	return results.String()
+}
+
+// processUserInputWithToolResults はツール実行結果を含むLLM応答を生成
+func (ism *interactiveSessionManager) processUserInputWithToolResults(
+	ctx context.Context,
+	sessionID string,
+	userInput string,
+	toolResults string,
+) (*InteractionResponse, error) {
+	session, err := ism.GetSession(sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ツール実行結果を含むプロンプト構築
+	enhancedPrompt := fmt.Sprintf(`User request: %s
+
+I have automatically read the files and here is the EXACT content:
+
+%s
+
+You must analyze the SPECIFIC content shown above. Read through all the sections, phases, commands, and details. Then provide a concrete analysis based on what you actually see in this file content. Reference specific sections, exact text, and particular details from the file. Do not provide generic advice - only respond based on the actual content shown.`, userInput, toolResults)
+
+	// LLM呼び出し
+	chatReq := llm.ChatRequest{
+		Model: ism.getConfiguredModel(),
+		Messages: []llm.ChatMessage{
+			{
+				Role:    "user",
+				Content: enhancedPrompt,
+			},
+		},
+		Stream: false,
+	}
+
+	response, err := ism.llmProvider.Chat(ctx, chatReq)
+	if err != nil {
+		return nil, fmt.Errorf("LLM応答生成エラー: %w", err)
+	}
+
+	// 応答を構築
+	interactionResponse := &InteractionResponse{
+		SessionID:            sessionID,
+		ResponseType:         ResponseTypeMessage,
+		Message:              response.Message.Content,
+		RequiresConfirmation: false,
+		Metadata: map[string]string{
+			"tool_execution": "completed",
+			"auto_tools":     "true",
+		},
+		GeneratedAt: time.Now(),
+	}
+
+	// セッション状態更新
+	session.State = SessionStateIdle
+	session.LastActivity = time.Now()
+	session.Metrics.TotalInteractions++
+
+	return interactionResponse, nil
 }
 
 // DefaultVibeConfig はデフォルトのバイブ設定を作成
@@ -639,12 +731,30 @@ func (ism *interactiveSessionManager) ProcessUserInput(
 	sessionID string,
 	input string,
 ) (*InteractionResponse, error) {
-	// プロアクティブ拡張が利用可能で、分析能力が必要な場合は使用
+	// 1. Claude Code風ツール実行分析
+	if ism.executionFlow != nil {
+		plan, err := ism.executionFlow.AnalyzeUserIntent(ctx, input)
+		if err == nil && len(plan.Steps) > 0 {
+			// ツール実行が必要と判断された場合
+			if plan.Confidence > 0.6 && !plan.RequiresConfirmation {
+				// 高信頼度かつ確認不要の場合は自動実行
+				steps, execErr := ism.executionFlow.ExecutePlan(ctx, plan)
+				if execErr == nil && len(steps) > 0 {
+					// ツール実行結果を取得してLLM応答に含める
+					toolResults := ism.formatToolExecutionResults(steps)
+					// ツール実行結果を含めてLLM応答を生成
+					return ism.processUserInputWithToolResults(ctx, sessionID, input, toolResults)
+				}
+			}
+		}
+	}
+
+	// 2. プロアクティブ拡張が利用可能で、分析能力が必要な場合は使用
 	if ism.proactiveExt != nil && ism.shouldUseProactiveExtension(input) {
 		return ism.proactiveExt.EnhanceProcessUserInput(ctx, sessionID, input)
 	}
 
-	// 通常の処理を実行
+	// 3. 通常の処理を実行
 	return ism.processUserInputFallback(ctx, sessionID, input)
 }
 
